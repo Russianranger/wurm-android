@@ -1,5 +1,10 @@
 # Wurm Server for Android
 
+**0.6.0 passed on the Thor:** the world report survived app reopening, five
+Adventure map files and the active `localhost/sqlite` databases were observed,
+and the Java child exposed listeners on TCP 3724 and 48020. Normal Stop exited 0.
+See [the device evidence, configuration limits and next client test](docs/THOR_WORLD_PASS.md).
+
 **0.6.0 adds world/configuration reporting:** Start captures recognized GameFolder,
 SQLite paths, map/database file observations, port evidence and candidate
 configuration identities. View/export the saved report while running or stopped.

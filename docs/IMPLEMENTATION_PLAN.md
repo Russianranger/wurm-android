@@ -1,5 +1,14 @@
 # From the working POC to Wurm Server
 
+**Latest device result: 0.6.0 observation passed.** The user confirmed the report
+survived closing/reopening. The child observed five Adventure maps, eight open
+databases with WAL/SHM under `localhost/sqlite`, and owned TCP listeners on 3724
+and 48020; all nine databases were logged at startup. Proc inspection succeeded
+on this Thor. Normal Stop exited 0. See [THOR_WORLD_PASS.md](THOR_WORLD_PASS.md).
+The additional port's role and which identical INI candidate was loaded remain
+unknown. Next: second-device LAN reachability, a supported client session, and
+a specific gameplay/item change verified across restart.
+
 **Current implemented milestone: 0.6.0 world/configuration observation.**
 The existing controller now records candidate configuration identities, POC
 GameFolder and JDBC log evidence, loopback readiness and a best-effort snapshot
@@ -7,8 +16,9 @@ of the Java child's open/mapped game files and owned TCP listeners. View/export
 persists across Stop and app reopening. Unknown/denied observations stay explicit;
 configuration writes and world/database relocation are not introduced. See
 [WORLD_CONFIGURATION_TEST.md](WORLD_CONFIGURATION_TEST.md) for implementation,
-every changed file, report limitations and the next physical test. Effective
-configuration selection and bound interface remain open where evidence is absent.
+every changed file, report limitations and the reproducible physical test.
+The Thor report now records wildcard IPv6 listeners and a successful IPv4
+loopback connection; LAN reachability and effective INI selection remain open.
 
 **Next small milestone implemented:** 0.5.0 adds stopped-runtime baseline/check
 controls, persistent file comparisons and SQLite-copy checks using the existing

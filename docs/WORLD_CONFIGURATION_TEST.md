@@ -1,5 +1,12 @@
 # Wurm Server 0.6.0: world and configuration observation
 
+**Physical acceptance passed, 2026-09-08.** The user confirmed the world report
+survived app reopening. The reports identify open Adventure maps, active SQLite
+files under `localhost/sqlite`, owned TCP listeners and normal exit 0.
+See [THOR_WORLD_PASS.md](THOR_WORLD_PASS.md) for the exact evidence and remaining
+questions. The procedure below remains reproducible; this accepted run need not
+be repeated.
+
 The next milestone adds **View world/configuration report** and **Export
 world/configuration report**. Start automatically records a new report for that
 launch; Restart creates a new launch identity after the previous child exits.
@@ -42,9 +49,11 @@ so a listener is accepted only when its inode was observed in this child's FDs.
 See the kernel documentation for [proc](https://docs.kernel.org/filesystems/proc.html)
 and [TCP fields](https://docs.kernel.org/networking/proc_net_tcp.html).
 Android 10 and later [restrict proc network access](https://developer.android.com/about/versions/10/privacy/changes#proc-net-filesystem),
-so **`TCP_UNAVAILABLE` is expected on the Thor**. Loopback readiness and logged
-ports remain available; bound interface/LAN reachability remain unknown when
-listener inspection is denied. No root or permission bypass is attempted.
+so the probe handles `TCP_UNAVAILABLE` explicitly. **The actual 0.6.0 Thor run
+successfully read these tables**, observing owned listeners on `[::]:3724` and
+`[::]:48020`. Other devices may deny access; missing listener evidence then stays
+unknown. A bound listener alone does not establish LAN reachability. No root or
+permission bypass is attempted.
 
 Observation runs on a daemon thread separate from the STOP reader, after readiness.
 Inspection failure does not replace server status or prevent normal Stop. Scans
@@ -105,11 +114,11 @@ unit-tests and lints all three variants and verifies packaged runtime/POC/helper
 identities and APK signing before publication.
 
 Use the existing [managed build instructions](MANAGED_SERVER_TEST.md#build-and-verification).
-Physical acceptance still needs the steps above. Effective Wurm configuration
-selection, OEM proc access and observed map/database layout cannot be certified
-from host fixtures. No gameplay or item-SQL test is claimed. After report review,
-the next step is a supported external client/admin connection and a specific
-change verified across restart.
+The steps above now passed on the Thor, including proc access and the observed
+map/database layout. Which identical INI candidate Wurm loaded remains unknown;
+host fixtures cannot qualify other devices. No gameplay or item-SQL test is
+claimed. The next step is a supported external client/admin connection and a
+specific change verified across restart.
 
 ## Every file changed in 0.6.0
 
