@@ -34,4 +34,20 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
                            "com/wurmonline/client/launcherfx/WurmMain.class", "com/wurmonline/client/launcherfx/WurmMain$1.class"}, classes
         assert all(int.from_bytes(compat.read(n)[6:8], "big") == 61 for n in classes)
     assert not any(name in apk.namelist() for name in ("assets/server.jar", "assets/common.jar", "assets/client.jar"))
+    graphics = json.loads(apk.read("assets/client-graphics.json"))
+    assert graphics["sources"] == json.loads((ROOT/"graphics-compat/native-sources.json").read_text())
+    assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so"}
+    for name, digest in graphics["nativeSha256"].items():
+        data = apk.read("lib/arm64-v8a/"+name)
+        assert hashlib.sha256(data).hexdigest() == digest
+        assert data[:6] == b"\x7fELF\x02\x01" and int.from_bytes(data[18:20], "little") == 183
+    for name, digest in graphics["assetsSha256"].items():
+        assert hashlib.sha256(apk.read("assets/"+name)).hexdigest() == digest
+    assert "lib/arm64-v8a/liblwjgl.so" not in apk.namelist(), "Graphics test must not replace imported LWJGL2 native lookup"
+    with zipfile.ZipFile(io.BytesIO(apk.read("assets/graphics-probe.jar"))) as probe:
+        assert set(probe.namelist()) == {"wurm/graphics/GraphicsProbe.class", "wurm/graphics/FrameFile.class", "wurm/graphics/NativeEgl.class", "wurm/graphics/LibraryNames.class"}
+    with zipfile.ZipFile(io.BytesIO(apk.read("assets/pojav-wurm-api.jar"))) as adapter:
+        assert "META-INF/LICENSE.lwjgl.txt" in adapter.namelist()
+        assert "org/lwjgl/opengl/ARBProgram.class" in adapter.namelist()
+        assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
 print("Verified maintained runtime, notices, native runner, Java 17 helper classes and exact POC artifact.")

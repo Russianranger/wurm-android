@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Build public ARM64 LWJGL/GL4ES and the JVM graphics test. No game input."""
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import tarfile
+import zipfile
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def sha(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def run(args, log, cwd=None, env=None):
+    with log.open('w') as output:
+        result = subprocess.run(list(map(str, args)), cwd=cwd, env=env, stdout=output, stderr=subprocess.STDOUT)
+    if result.returncode:
+        print(log.read_text()[-8000:])
+        raise RuntimeError(f'Command failed ({result.returncode}); see {log}')
+
+
+def fetch(cache, name, pin):
+    path = cache/(name + ('.jar' if name == 'jsr305' else '.tar.gz'))
+    if not path.is_file() or sha(path) != pin['sha256']:
+        partial = path.with_suffix('.partial')
+        subprocess.run(['curl', '-fsSL', '--retry', '3', '--max-time', '300', pin['url'], '-o', str(partial)], check=True)
+        if sha(partial) != pin['sha256']:
+            raise ValueError(f'Graphics dependency checksum mismatch: {name}')
+        partial.replace(path)
+    return path
+
+
+def main():
+    ndk = Path(os.environ['ANDROID_NDK_HOME']).resolve()
+    if '26.1.10909125' not in (ndk/'source.properties').read_text():
+        raise ValueError('Use Android NDK 26.1.10909125')
+    cc = ndk/'toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang'
+    readelf = cc.parent/'llvm-readelf'
+    pins = json.loads((ROOT/'graphics-compat/native-sources.json').read_text())
+    cache = ROOT/'app/build/graphicsDownloads'; cache.mkdir(parents=True, exist_ok=True)
+    archives = {name: fetch(cache, name, pin) for name, pin in pins.items()}
+    output = ROOT/'app/build/generated/clientGraphics'
+    if output.exists(): shutil.rmtree(output)
+    assets = output/'assets'; assets.mkdir(parents=True)
+    native = output/'jniLibs/arm64-v8a'; native.mkdir(parents=True)
+    work = output/'work'; work.mkdir()
+    sources = {}
+    for name in ('lwjgl', 'gl4es', 'libffi'):
+        with tarfile.open(archives[name]) as archive:
+            archive.extractall(work, filter='data')
+        sources[name] = work/pins[name]['root']
+    lwjgl, gl4es, ffi = (sources[n] for n in ('lwjgl', 'gl4es', 'libffi'))
+    spec = importlib.util.spec_from_file_location('lwjgl_builder', ROOT/'scripts/build-lwjgl-api.py')
+    api = importlib.util.module_from_spec(spec); spec.loader.exec_module(api)
+    candidate = api.compile_verified_source(lwjgl, archives['jsr305'], work/'java-api',
+        [p.relative_to(lwjgl).as_posix() for p in (lwjgl/'modules/lwjgl').rglob('*') if p.is_file()])
+    shutil.copyfile(candidate, assets/'pojav-wurm-api.jar')
+    ffi_build = work/'ffi-build'; ffi_build.mkdir()
+    env = dict(os.environ, CC=str(cc), CXX=str(cc)+'++', AR=str(cc.parent/'llvm-ar'),
+               RANLIB=str(cc.parent/'llvm-ranlib'), CFLAGS='-O2 -fPIC')
+    run(['bash', ffi/'configure', '--host=aarch64-linux-android', '--disable-shared', '--enable-static', '--disable-docs'], work/'ffi-configure.log', ffi_build, env)
+    run(['make', '-j4'], work/'ffi-build.log', ffi_build, env)
+    ffi_lib = next(ffi_build.rglob('libffi.a'))
+    core = lwjgl/'modules/lwjgl/core/src/main/c'
+    generated = lwjgl/'modules/lwjgl/core/src/generated/c'
+    # These are the same core source groups used by upstream config/linux/build.xml.
+    core_sources = sorted(list(core.glob('*.c')) + list(generated.glob('*.c')) +
+                          list((generated/'linux').glob('*.c')) + list((core/'linux/liburing').glob('*.c')))
+    includes = [core, core/'linux', core/'libffi', core/'libffi/aarch64', core/'linux/liburing', core/'linux/liburing/include']
+    flags = ['-std=gnu11', '-O2', '-fPIC', '-pthread', '-DNDEBUG', '-DLWJGL_LINUX', '-DLWJGL_arm64',
+             '-D_GNU_SOURCE', '-D_FILE_OFFSET_BITS=64', '-DCONFIG_HAVE_MEMFD_CREATE']
+
+    def library(name, files, options, libraries):
+        folder = work/name; folder.mkdir()
+        def compile_one(pair):
+            index, source = pair
+            obj = folder/f'{index}.o'
+            run([cc, *options, '-c', source, '-o', obj], folder/f'{index}.log')
+            return obj
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            objects = list(pool.map(compile_one, enumerate(files)))
+        target = native/f'lib{name}.so'
+        run([cc, '-shared', '-Wl,--no-undefined', '-Wl,-z,max-page-size=16384', f'-Wl,-soname,lib{name}.so',
+             *objects, *libraries, '-o', target], folder/'link.log')
+        print(f'Built {target.name}', flush=True)
+
+    library('wurm_lwjgl3', core_sources, flags + ['-I'+str(p) for p in includes], [ffi_lib, '-ldl', '-lm'])
+    gl = lwjgl/'modules/lwjgl/opengl/src'
+    gl_sources = sorted(p for p in (gl/'generated/c').glob('*.c') if p.name != 'org_lwjgl_opengl_WGL.c')
+    library('wurm_lwjgl3_opengl', gl_sources, flags + ['-I'+str(p) for p in [core, core/'linux', gl/'main/c']], ['-ldl', '-lm'])
+    # Compile the public Android.mk source list without modifying the upstream tree.
+    gl4es_sources = [gl4es/p for p in re.findall(r'\bsrc/[A-Za-z0-9_/]+\.c\b', (gl4es/'Android.mk').read_text())]
+    if len(gl4es_sources) < 60: raise ValueError('Unexpected GL4ES Android source list')
+    library('gl4es', gl4es_sources,
+        ['-std=gnu99', '-O2', '-fPIC', '-fvisibility=hidden', '-DANDROID', '-DNOX11', '-DNO_GBM',
+         '-DNO_INIT_CONSTRUCTOR', '-DDEFAULT_ES=2', '-I'+str(gl4es/'include'), '-Wno-incompatible-function-pointer-types'],
+        ['-ldl', '-lm', '-llog'])
+    library('wurm_graphics', [ROOT/'graphics-compat/native/egl_probe.c'],
+            ['-std=c11', '-O2', '-fPIC', '-Wall', '-Wextra', '-Werror'], ['-lEGL', '-lGLESv2', '-ldl'])
+    helper = work/'graphics-classes'; helper.mkdir()
+    run(['java', 'com.sun.tools.javac.Main', '--release', '17', '-cp', candidate, '-d', helper,
+         *sorted((ROOT/'graphics-compat/probe').rglob('*.java'))], work/'probe-compile.log')
+    with zipfile.ZipFile(assets/'graphics-probe.jar', 'w', zipfile.ZIP_DEFLATED) as jar:
+        for path in sorted(helper.rglob('*.class')):
+            entry = zipfile.ZipInfo(path.relative_to(helper).as_posix(), (1980, 1, 1, 0, 0, 0))
+            jar.writestr(entry, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
+    notices = [('LWJGL BSD notice', lwjgl/'LICENSE.md'), ('LWJGL dyncall notice', core/'org_lwjgl_system_SharedLibraryUtil.c'),
+               ('LWJGL bundled liburing notice', lwjgl/'modules/lwjgl/core/liburing_license.txt'), ('GL4ES MIT notice', gl4es/'LICENSE'),
+               ('libffi MIT notice', ffi/'LICENSE'), ('JSR305 annotation notice (build only)', None)]
+    notice_text = []
+    for title, path in notices:
+        if path is None: continue
+        notice_text.append(title+'\n'+path.read_text())
+    (assets/'graphics-NOTICES.txt').write_text('\n\n'.join(notice_text))
+    system = {'libc.so', 'libm.so', 'libdl.so', 'liblog.so', 'libEGL.so', 'libGLESv2.so'}
+    for path in native.glob('*.so'):
+        contents = path.read_bytes()
+        if contents[:6] != b'\x7fELF\x02\x01' or int.from_bytes(contents[18:20], 'little') != 183:
+            raise ValueError('Not ARM64 ELF: '+path.name)
+        dynamic = subprocess.check_output([str(readelf), '-d', str(path)], text=True)
+        for dependency in re.findall(r'\(NEEDED\).*?\[(.*?)\]', dynamic):
+            if dependency not in system and not (native/dependency).is_file():
+                raise ValueError(f'Missing native dependency {dependency}: {path.name}')
+    manifest = dict(id='wurm-graphics-1', backend='LWJGL/Pojav + GL4ES, EGL pbuffer diagnostic',
+                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins,
+                    nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},
+                    assetsSha256={p.name: sha(p) for p in sorted(assets.iterdir())})
+    (assets/'client-graphics.json').write_text(json.dumps(manifest, indent=2)+'\n')
+    print('Graphics runtime built and dependency closure verified. Device rendering is not yet qualified.')
+
+
+if __name__ == '__main__': main()

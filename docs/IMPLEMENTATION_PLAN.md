@@ -1,5 +1,29 @@
 # From the working POC to Wurm Server
 
+## 0.9.0 implemented: executable native graphics gate
+
+The [JVM Graphics Test](GRAPHICS_THOR_TEST.md) packages the pinned Pojav Java API,
+its actual ARM64 core/OpenGL JNI bindings, GL4ES and a small public-NDK EGL bridge.
+It uses the verified separate JVM process, an off-screen pbuffer and bounded frame
+readback into Android. It exercises desktop GLSL, VBO drawing, known-pixel checks,
+surface resize/swap and teardown; reports exact stages and native identities.
+This isolates driver/native compatibility before taking on ART/OpenJDK hosting
+and direct Android Surface ownership. It is a smaller executable gate than the
+previous proposed dual-VM host, not a claim that a pbuffer supplies Wurm's window.
+
+Only the new `render` operation receives these assets/settings. Separate library
+names prevent overlap with imported LWJGL2 native lookup. Existing client import,
+bootstrap, offline shim, controller test and server process/POC/SQL behavior remain
+intact. Version 0.9.0 installs separately and needs no user files for this gate.
+
+Next: qualify the rendered triangle and clean repeated runs on the Thor, then
+integrate a GLFW/window/surface host and its real keyboard/mouse queues before
+retrying Profile, the game thread and local authentication. Full Gate 4 rendering/
+input and Gate 5 login/world entry remain incomplete. No physical graphics pass
+is inferred from compilation or the earlier Android GLES diagnostic.
+
+The earlier plan and report milestones follow for context.
+
 ## Current priority: native client graphics after the 0.8.0 Thor test
 
 [The two new Thor reports](THOR_CLIENT_080_PASS.md) qualify controller delivery

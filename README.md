@@ -1,5 +1,16 @@
 # Wurm Server for Android
 
+**0.9.0 native JVM graphics test:** [Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.9.0-graphics-probe).
+Open **Client tab → JVM Graphics Test → Run Graphics Test**. The new test runs real
+ARM64 LWJGL/Pojav bindings and GL4ES in the managed JVM, draws a desktop GLSL triangle,
+verifies pixels at two sizes and shows the resulting frame in Android. Export
+**Client Report** afterward. No game import, PC, Termux or root is needed.
+Keep the working 0.6.0 server and 0.8.0 client; this is a separate `.graphicsprobe`
+package. [Exact Thor steps, build/source details and every changed file](docs/GRAPHICS_THOR_TEST.md).
+**Device acceptance is pending; Wurm rendering/login/gameplay are not yet working.**
+
+The following records the preceding client evidence and source milestone.
+
 **0.8.0 Thor results:** controller events reached the diagnostic JVM, local Steam
 handler/ticket initialization passed, resource JAR checks passed, and the server
 answered at `127.0.0.1:3724`. Client startup fails before login with

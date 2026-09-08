@@ -30,6 +30,13 @@ def build(source, annotations, output, patches=True):
         raise ValueError('Unexpected JSR305 annotation dependency')
     # Do not consume untracked source files or change the upstream checkout.
     tracked = subprocess.check_output(['git', 'ls-files', 'modules/lwjgl'], cwd=source, text=True).splitlines()
+    return compile_verified_source(source, annotations, output, tracked, patches)
+
+
+def compile_verified_source(source, annotations, output, tracked, patches=True):
+    """Build sources whose identity was checked by the caller (Git or pinned archive)."""
+    if hashlib.sha256(annotations.read_bytes()).hexdigest() != JSR305_SHA256:
+        raise ValueError('Unexpected JSR305 annotation dependency')
     java = [source/p for p in tracked if any(p.startswith(f'modules/lwjgl/{m}/src/{s}/java/') for m in MODULES for s in ('main', 'generated'))
             and p.endswith('.java') and Path(p).name not in ('module-info.java', 'package-info.java', 'GLFWVulkan.java')]
     # A fresh directory prevents old class files masking missing providers in the audit.

@@ -1,0 +1,21 @@
+{
+  "lwjgl": {
+    "url": "https://github.com/PojavLauncherTeam/lwjgl3/archive/39272d4d0ca119379024e3ca7207699fd3fce237.tar.gz",
+    "sha256": "598e676c20c89847538a202c42d6765a36bb83da7adc4ca01cffdefdc534e476",
+    "root": "lwjgl3-39272d4d0ca119379024e3ca7207699fd3fce237"
+  },
+  "gl4es": {
+    "url": "https://github.com/ptitSeb/gl4es/archive/81547d986798e876de8b434193920b606a72363f.tar.gz",
+    "sha256": "475c30409fd64a649352487d0df0dc3f8ef200ea5c54b7de5f61d099948877ed",
+    "root": "gl4es-81547d986798e876de8b434193920b606a72363f"
+  },
+  "libffi": {
+    "url": "https://github.com/libffi/libffi/releases/download/v3.4.6/libffi-3.4.6.tar.gz",
+    "sha256": "b0dea9df23c863a7a50e825440f3ebffabd65df1497108e5d437747843895a4e",
+    "root": "libffi-3.4.6"
+  },
+  "jsr305": {
+    "url": "https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+    "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7"
+  }
+}

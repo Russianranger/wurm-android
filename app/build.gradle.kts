@@ -93,6 +93,14 @@ val prepareManagedRuntime by tasks.registering(Exec::class) {
     commandLine("python3", rootProject.file("scripts/prepare-managed-runtime.py").absolutePath)
 }
 
+val prepareClientGraphics by tasks.registering(Exec::class) {
+    inputs.files(rootProject.file("scripts/prepare-client-graphics.py"), rootProject.file("scripts/build-lwjgl-api.py"),
+        rootProject.file("scripts/ExportAuditPlatform.java"), rootProject.fileTree("graphics-compat"))
+    outputs.dir(layout.buildDirectory.dir("generated/clientGraphics"))
+    workingDir(rootProject.projectDir)
+    commandLine("python3", rootProject.file("scripts/prepare-client-graphics.py").absolutePath)
+}
+
 android {
     namespace = "io.github.russianranger.wurmlauncher"
     compileSdk = 34
@@ -103,8 +111,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 11
-        versionName = "0.8.0"
+        versionCode = 12
+        versionName = "0.9.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -117,7 +125,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".clientlaunch"
+            applicationIdSuffix = ".graphicsprobe"
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }
@@ -141,6 +149,8 @@ android {
         assets.srcDir(clientCompatAssets)
         assets.srcDir(layout.buildDirectory.dir("generated/managedRuntime/assets"))
         jniLibs.srcDir(layout.buildDirectory.dir("generated/managedRuntime/jniLibs"))
+        assets.srcDir(layout.buildDirectory.dir("generated/clientGraphics/assets"))
+        jniLibs.srcDir(layout.buildDirectory.dir("generated/clientGraphics/jniLibs"))
     }
     packaging {
         jniLibs {
@@ -152,7 +162,7 @@ android {
 
 tasks.named("preBuild").configure { dependsOn(packagePoc) }
 tasks.matching { it.name == "preJvmProbeBuild" }.configureEach { dependsOn(prepareJvmProbe, packageProbe) }
-tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe, packageClientCompat) }
+tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe, packageClientCompat, prepareClientGraphics) }
 
 dependencies {
     testImplementation("junit:junit:4.13.2")

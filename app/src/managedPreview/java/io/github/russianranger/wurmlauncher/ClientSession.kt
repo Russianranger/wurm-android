@@ -27,6 +27,7 @@ object ClientSession {
     fun inputReady() = inputReady && child?.isAlive == true
     fun store(context: Context) = ClientStore(File(context.filesDir, "managed-client"))
     fun profileFile(context: Context) = File(context.filesDir, "controller.properties")
+    fun graphicsFrame(context: Context) = File(context.filesDir, "client-graphics-frame.bin")
     @Synchronized fun log(message: String) {
         val line = message.take(4000); lines.addLast(line)
         while (lines.size > 1500) lines.removeFirst()
@@ -42,11 +43,16 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.8.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.9.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: direct profile/resources launch adapter and local Steam shim implemented; rendering, server ticket acceptance and Wurm login are not qualified.\n\n" +
+            "Gate status: source-built LWJGL/GL4ES pbuffer test available; Wurm window, gameplay input, server ticket acceptance and login are not qualified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
-            profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nSession history:\n" +
+            profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
+            runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
+            "\nLast graphics frame:\n" + runCatching { graphicsFrame(context).takeIf { it.isFile }?.let {
+                val frame = GraphicsFrame.read(it)
+                "sequence=${frame.sequence} size=${frame.width}x${frame.height} sha256=${ProbeInputs.sha256(it)}; retained frame, not a new run\n"
+            } ?: "No frame\n" }.getOrElse { "Frame invalid: ${it.message}\n" } + "\nSession history:\n" +
             (file?.takeIf { it.isFile }?.readText() ?: recent())
     }
     @Synchronized fun start(context: Context, mode: String, uri: Uri?, done: () -> Unit): Boolean {
@@ -102,8 +108,12 @@ object ClientSession {
     private fun checkCancelled() { if (cancelled || Thread.currentThread().isInterrupted) throw InterruptedException("Client operation cancelled") }
     private fun reachable() = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", 3724), 300) }; true }.getOrDefault(false)
     private fun run(context: Context, store: ClientStore, mode: String) {
-        require(mode in listOf("start", "local", "input"))
-        val installed = if (mode == "input") null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
+        require(mode in listOf("start", "local", "input", "render"))
+        val installed = if (mode in listOf("input", "render")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
+        if (mode == "render") {
+            graphicsFrame(context).delete()
+            File(graphicsFrame(context).path + ".pending").delete()
+        }
         if (mode == "local") {
             if (!reachable()) {
                 val server = ManagedSession.snapshot()
@@ -138,16 +148,17 @@ object ClientSession {
         val compat = File(session, "client-compat.jar")
         context.assets.open("client-compat.jar").use { input -> compat.outputStream().use { input.copyTo(it) } }
         try {
-            val cp = listOf(helper.absolutePath) + installed?.jars.orEmpty().map { File(installed!!.root, it).absolutePath }
+            val cp = if (mode == "render") GraphicsRuntime.prepare(context, session, ::log).map { it.absolutePath }
+                else listOf(helper.absolutePath) + installed?.jars.orEmpty().map { File(installed!!.root, it).absolutePath }
             log("[client] Runtime root=${installed?.root}; no server JARs, server Steam shim or JavaFX launcher added")
-            log("[client] CLIENT_JVM_MODE exec; Android graphics surface adapter not installed")
-            val stages = if (mode == "input") listOf("input") else listOf("inventory", "compat", "entry", "graphics")
+            log("[client] CLIENT_JVM_MODE exec; ${if (mode == "render") "LWJGL/GL4ES pbuffer test with frame readback" else "Wurm window adapter not installed"}")
+            val stages = when (mode) { "input" -> listOf("input"); "render" -> listOf("render"); else -> listOf("inventory", "compat", "entry", "graphics") }
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
             require(player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
             for (stage in stages) {
                 checkCancelled(); queue.clear(); inputReady = false
-                status(if (stage == "input") "Input diagnostic" else "Starting client", "Bootstrap stage: $stage")
+                status(when (stage) { "input" -> "Input diagnostic"; "render" -> "Graphics diagnostic"; else -> "Starting client" }, "Bootstrap stage: $stage")
                 val stageCp = if (stage in listOf("compat", "entry")) listOf(compat.absolutePath) + cp else cp
                 log("[client] CLASSPATH stage=$stage ${stageCp.joinToString(":")}")
                 val args = listOf(File(native, "libwurmjvm_runner.so").absolutePath, "-Xms32m", "-Xmx1024m",
@@ -157,16 +168,26 @@ object ClientSession {
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",
-                    "-cp", stageCp.joinToString(":"), "client.ClientBootstrap", stage)
+                    "-cp", stageCp.joinToString(":")) + if (stage == "render") listOf(
+                        "-Dorg.lwjgl.librarypath=$native", "-Dorg.lwjgl.opengl.explicitInit=true", "-Dorg.lwjgl.util.Debug=true",
+                        "-Dorg.lwjgl.system.bundledLibrary.nameMapper=wurm.graphics.LibraryNames",
+                        "-Dorg.lwjgl.system.allocator=system", "wurm.graphics.GraphicsProbe", File(native,"libgl4es.so").absolutePath,
+                        graphicsFrame(context).absolutePath) else listOf("client.ClientBootstrap", stage)
                 val process = ProcessBuilder(args).directory(installed?.root ?: session).redirectErrorStream(true).apply {
                     environment().clear(); environment().putAll(ProbeEnvironment.create(home, native, tmp))
                     environment()["WURM_HEAP_TAGGING"] = "off"
                     environment()["WURM_WORLD_LOCK"] = File(store.home, "process.lock").absolutePath
+                    if (stage == "render") {
+                        environment()["LIBGL_ES"] = "2"; environment()["LIBGL_GL"] = "21"
+                        environment()["LIBGL_GLES"] = "libGLESv2.so"; environment()["LIBGL_EGL"] = "libEGL.so"
+                    }
                 }.start().also { child = it }
+                val graphicsPassed = java.util.concurrent.atomic.AtomicBoolean(false)
                 val reader = Thread({
                     try { RootServerController.consumeLines(process.inputStream) { line ->
                         log(line)
                         if (stage == "input" && line.startsWith("[client] INPUT_READY ")) inputReady = true
+                        if (stage == "render" && line == "[graphics] GRAPHICS_PROBE_EXIT code=0") graphicsPassed.set(true)
                     } } catch (failure: Exception) { log("[client] OUTPUT_CLOSED stage=$stage ${failure.javaClass.simpleName}: ${failure.message}") }
                 }, "wurm-client-output").apply { isDaemon = true; start() }
                 val writer = if (stage == "input") Thread({
@@ -180,11 +201,14 @@ object ClientSession {
                     if (System.nanoTime() > deadline) { log("[client] STAGE_TIMEOUT $stage; terminating only client child"); process.destroyForcibly(); break }
                 }
                 process.waitFor(); reader.join(3000); writer?.join(1000)
-                results[stage] = process.exitValue(); log("[client] CHILD_EXIT stage=$stage code=${process.exitValue()}")
+                results[stage] = if (stage == "render" && process.exitValue() == 0 && !graphicsPassed.get()) 42 else process.exitValue()
+                log("[client] CHILD_EXIT stage=$stage code=${process.exitValue()} accepted=${results[stage]}")
                 child = null; inputReady = false
             }
             log("[client] GATE_RESULTS $results; Wurm login/world entry NOT verified; input sink=diagnostic")
-            status(if (mode == "input") "Stopped" else "Blocked", if (mode == "input") "Input diagnostic ended." else "Client attempt finished: $results. Export Client Report for the startup/graphics result; login is not verified.")
+            if (mode == "render") status(if (results["render"] == 0) "Graphics test passed" else "Graphics test failed",
+                "LWJGL/GL4ES result=$results. Export Client Report. Wurm window/login are not tested.")
+            else status(if (mode == "input") "Stopped" else "Blocked", if (mode == "input") "Input diagnostic ended." else "Client attempt finished: $results. Export Client Report for the startup/graphics result; login is not verified.")
         } finally {
             reapChild()
             session.listFiles().orEmpty().filter { it.name.startsWith("hs_err_pid") }.forEach { f -> f.useLines { it.take(120).forEach(::log) } }

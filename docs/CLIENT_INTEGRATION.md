@@ -1,5 +1,32 @@
 # Client integration architecture and qualification
 
+## 0.9.0: native LWJGL/GL4ES graphics diagnostic
+
+The next executable Gate 4 step is implemented in
+[GRAPHICS_THOR_TEST.md](GRAPHICS_THOR_TEST.md): source-built ARM64 native core/OpenGL
+bindings from the pinned Pojav fork, pinned GL4ES, an authored EGL pbuffer bridge,
+desktop GLSL triangle/pixel verification, resize/swap/teardown and Android frame
+viewing. It runs inside the existing separate OpenJDK child; no ART/OpenJDK
+cohosting or Android native-window pointers are required for this bounded test.
+This does not yet connect the candidate to Wurm's Display/window or input queues.
+
+The render child alone receives `graphics-probe.jar`, `pojav-wurm-api.jar`, the
+GL4ES GLES2/OpenGL2.1 settings and LWJGL's supported library-name mapper. Renamed
+LWJGL3 JNI libraries do not alter the original client's `liblwjgl.so` lookup.
+All four libraries and Java assets are verified against packaged SHA-256 metadata.
+The existing Client Report includes source pins, outcomes and retained frame
+identity. Pixel transport is a bounded diagnostic file, not a production frame-rate
+claim; no synthetic Android drawing is substituted if the JVM fails.
+
+This source-built native test is ready for physical acceptance, which remains
+pending. Next use its result to resolve graphics loading/driver failures or advance
+to GLFW/window integration, display sizing, audio and real gameplay input. Local
+Steam Java compatibility has passed; server ticket acceptance still needs a Wurm
+login. The working managed server and prior device evidence remain unchanged.
+
+The following 0.8.0 architecture is retained as the preceding milestone. Its
+candidate-packaging and next-device-test statements are superseded above.
+
 ## 0.8.0: direct launch, local compatibility and automatic receiver
 
 This preview fixes the inaccessible separate receiver-start workflow and implements

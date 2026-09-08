@@ -1,5 +1,12 @@
 # Pojav Java API compatibility candidate
 
+**0.9.0 update:** the candidate is now packaged **only for the JVM Graphics Test**,
+along with source-built ARM64 core/OpenGL JNI bindings, GL4ES and an authored EGL
+pbuffer bridge. See [the executable test and exact Thor steps](../docs/GRAPHICS_THOR_TEST.md).
+It is not yet the Wurm window/input backend. The API-audit findings and commands
+below record the preceding source-only milestone; its statements about no APK
+packaging apply to 0.8.0. The new sources are pinned in `native-sources.json`.
+
 This developer milestone builds the public Pojav LWJGL sources and supplies the
 legacy signatures found missing by inspecting the owner's matching client JAR.
 **It is not included in the APK and contains no native graphics backend.** The
