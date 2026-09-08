@@ -3,7 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
     <application android:label="Wurm Server JVM Test" android:extractNativeLibs="true"
         tools:replace="android:label">
-        <activity android:name=".HomeActivity">
+        <activity android:name=".HomeActivity" android:exported="false"
+            tools:replace="android:exported">
             <intent-filter tools:node="removeAll" />
         </activity>
         <activity android:name=".JvmProbeActivity" android:exported="true">

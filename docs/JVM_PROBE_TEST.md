@@ -111,3 +111,25 @@ After a physical PASS, integrate a maintained embedded runtime with the managed
 import and the unchanged POC classpath. Add world backup/export and then test
 GameFolder initialization, the Steam shim, item SQLite updates, TCP 3724, and
 save/stop/restart. The currently working source-backed POC stays unchanged.
+
+## Files changed for this milestone
+
+| File | Purpose |
+| --- | --- |
+| `app/build.gradle.kts` | Additional `jvmProbe` build, JVM-class JAR tasks and native assets |
+| `app/src/jvmProbe/AndroidManifest.xml` | Separate package launcher/label and APK native extraction |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/JvmProbeActivity.kt` | ZIP picker, progress, cancel, log viewing and export |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/JvmProbeCoordinator.kt` | Test lifecycle, child ownership, timeout and saved report |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/ProbeInputs.kt` | Copy only the two verified SQLite inputs |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/ProbeRuntime.kt` | Verify/install JRE data and native-library links |
+| `app/src/testJvmProbe/java/io/github/russianranger/wurmlauncher/ProbeInputsTest.kt` | Five focused input validation/preservation tests |
+| `runtime-probe/native/jvm_runner.c` | Ordinary-UID native child that calls OpenJDK JLI |
+| `runtime-probe/src/probe/RuntimeProbe.java` | Java threads/computation and disposable SQLite persistence test |
+| `scripts/prepare-jvm-probe.py` | Pin/download/package JRE and compile ARM64 runner |
+| `.github/workflows/android.yml` | Both variant builds/tests/lint, APK verification, diagnostic release |
+| `README.md` | Entry point to the next device test |
+| `docs/BUILD_TERMUX.md` | Distinguish the existing Termux build from the NDK diagnostic build |
+| `docs/IMPLEMENTATION_PLAN.md` | Record passed import checks and the next physical gate |
+| `docs/JVM_PROBE_TEST.md` | Verified baseline, install/test steps, expected output and scope |
+| `docs/RUNTIME_PROVENANCE.md` | Candidate version, hashes, source/notice references and limitations |
+| `docs/RELEASE_JVM_PROBE.md` | Clear install-alongside diagnostic release notes |
