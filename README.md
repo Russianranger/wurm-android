@@ -1,10 +1,28 @@
-# Wurm Android — rooted server launcher
+# Wurm Server for Android
 
-Minimal Kotlin launcher for an **existing** Wurm Unlimited ARM64 Termux server
-POC. Milestone 1 is server-only: **no client, game downloader, embedded Java
-runtime, or proprietary Wurm files** are included.
+Minimal Kotlin app bringing the proven Wurm Unlimited ARM64 server POC into
+app-managed storage. **0.2.0 is an import preview**: no-root prepared-runtime ZIP
+import, packaged source-backed POC, world selection, diagnostic export and a
+Client tab with ZIP-reference/settings groundwork. No proprietary Wurm files,
+embedded Java runtime or functioning Wurm client are included.
 
-## Included
+**Managed server startup is not implemented yet.** Start/Stop/Restart on the new
+home screen are disabled. The existing rooted Termux launcher remains available
+through **Open rooted POC controls and live logs**, with its proven command intact.
+
+- [Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.2.0-import-preview)
+- [Exactly what to copy/install/test on the AYN Thor](docs/THOR_IMPORT_TEST.md)
+- [Implementation plan: packaging, imports, JVM, UI, worlds and device gates](docs/IMPLEMENTATION_PLAN.md)
+- [Handwritten POC source and current JAR](poc/README.md)
+
+Import a complete ZIP of your **stopped, working, SQLite-patched** runtime from
+Downloads. Game files are copied unchanged into private storage; the app supplies
+the tracked POC JAR. A conflicting POC is rejected. Import does not patch stock
+Wurm files and cannot independently verify the earlier SQL fix. World selection
+is saved for future managed startup and does not change the rooted Adventure
+launch. Keep an external backup; re-import replaces the previous private copy.
+
+## Existing rooted launcher
 
 - Start Server and Stop Server buttons.
 - Stopped, Starting, Running, Stopping and Error states.
@@ -14,7 +32,7 @@ runtime, or proprietary Wurm files** are included.
 - Saved runtime directory and Java executable fields.
 - Runtime lock, missing-file checks, and TCP 3724 availability/readiness checks.
 
-The target device for this milestone is **rooted Android 13 / ARM64**, with the
+The target device for the **rooted regression path** is Android 13 / ARM64, with the
 standard `com.termux` installation in the primary Android user profile. Minimum
 and target SDK are 33; compile SDK is 34. This is a sideloading POC, not a Play
 Store submission or a claim of testing on later Android versions.
@@ -35,17 +53,19 @@ bash scripts/build-termux.sh
 The debug-signed APK is `app/build/outputs/apk/debug/app-debug.apk`.
 
 There is also a [GitHub Actions build](../../actions) that compiles, runs unit
-tests and lint, and uploads the debug APK. This can produce the APK without
-installing build tools on your handheld. See the build guide for download steps.
+tests and lint, and uploads the APK. The passing 0.2.0 build publishes an import
+preview to Releases. It is debug-signed; see the release notes before upgrading
+an older CI APK. Building/installing the app does not require proprietary Wurm
+JARs: Gradle decodes and verifies the POC artifact into generated assets.
 
-## First launch
+## Rooted regression launch (optional)
 
 1. Stop the server you currently run manually. **Back up the stopped world/runtime
    before the first app-driven launch.** Do not copy a live SQLite database as
    your only backup.
 2. In normal Termux, install `bash` and `util-linux` if needed (`pkg install bash
    util-linux`). Confirm the existing Java runtime is still installed.
-3. Install/open the launcher, allow notifications, and leave the runtime field as:
+3. Open **Open rooted POC controls and live logs**, allow notifications, and leave the runtime field as:
    `/data/data/com.termux/files/home/wurm-arm64-poc/runtime`.
 4. The Java field defaults to `/data/data/com.termux/files/usr/bin/java`.
    Prefer the **resolved executable of your working POC** if you have multiple
@@ -77,9 +97,9 @@ java \
   poc.AndroidServerMain Adventure
 ```
 
-Supply your own existing `wurm-arm64-poc.jar`, both SQLite JARs, `server.jar`,
+For this **separate rooted screen**, supply your own existing `wurm-arm64-poc.jar`, both SQLite JARs, `server.jar`,
 `common.jar`, `lib/`, `Adventure/`, and the rest of the POC runtime. Nothing is
-downloaded, patched, imported or uploaded by the launcher. It streams console
+downloaded, patched, imported or uploaded by that root controller. It streams console
 output only; it does not tail log files written separately by Wurm.
 
 ## Root, shutdown and lifecycle limitations
@@ -119,6 +139,11 @@ output only; it does not tail log files written separately by Wurm.
 
 ## Source layout and checks
 
+- `HomeActivity.kt`: Server/Client tabs, document picker, world selection and reports.
+- `ManagedRuntimeStore.kt`: bounded, transactional private ZIP import and identity report.
+- `ImportCoordinator.kt`: serial background import surviving Activity recreation.
+- `poc/`: both handwritten JVM classes and their reconstructable Java 17 artifact.
+- `app/build.gradle.kts`: source/artifact verification and generated POC asset.
 - `MainActivity.kt`: platform-widget UI and notification permission.
 - `ServerService.kt`: foreground lifecycle, notification, wake lock.
 - `RootServerController.kt`: root session, bounded log reading, TCP probe.

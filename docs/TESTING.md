@@ -43,3 +43,9 @@ are a Linux host harness with a fake Java executable, not a real server test.
 No physical-device or actual Wurm world-save checks have been performed by the
 repository authoring environment. Record device/root-manager-specific results
 before considering this ready for valuable worlds.
+# Scope of this checklist
+
+This is the retained **rooted server regression** checklist. Open it through
+**Wurm Server → Server → Open rooted POC controls and live logs**. The new
+no-root import-preview test is documented in [THOR_IMPORT_TEST.md](THOR_IMPORT_TEST.md).
+The managed world selection does not affect the rooted screen's Adventure launch.

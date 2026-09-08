@@ -159,3 +159,11 @@ Do not pass the Termux `aapt2` override on desktop.
 - [Google SDK command-line setup and licenses](https://developer.android.com/tools/sdkmanager)
 - [Termux aapt/aapt2 build recipe](https://github.com/termux/termux-packages/tree/master/packages/aapt)
 - [Termux OpenJDK 17 package](https://github.com/termux/termux-packages/tree/master/packages/openjdk-17)
+# Import preview note
+
+The APK is now named **Wurm Server**. These build instructions still apply.
+Building requires no proprietary Wurm JARs: Gradle verifies and decodes the
+tracked `poc/artifacts/wurm-arm64-poc.jar.base64` into an APK asset. It is Java 17
+bytecode for a future embedded JVM, not an Android ART dependency. The new import
+screen needs no root or Termux to use; standalone server startup remains pending.
+For a prebuilt APK and precise device inputs, see [THOR_IMPORT_TEST.md](THOR_IMPORT_TEST.md).

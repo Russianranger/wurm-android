@@ -50,7 +50,7 @@ class MainActivity : Activity() {
             setPadding(0, dp(4), 0, dp(4))
         }.also { root.addView(it) }
 
-        label("Wurm Server Launcher", 23f).setTypeface(null, Typeface.BOLD)
+        label("Rooted POC controls", 23f).setTypeface(null, Typeface.BOLD)
         label("Rooted ARM64 · Adventure · server only")
         label("Runs Java as root. Back up your world first; new files may be root-owned.", 12f)
         label("Runtime directory")

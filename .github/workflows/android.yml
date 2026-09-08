@@ -1,4 +1,4 @@
-name: Android debug APK
+name: Wurm Server APK
 
 on:
   push:
@@ -41,11 +41,25 @@ jobs:
         run: python3 -m unittest discover -s tests -v
       - name: Build, unit test and lint
         run: bash ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
-      - name: Upload debug APK
+      - name: Prepare import preview
+        run: |
+          python3 - <<'PY'
+          import base64, pathlib, zipfile
+          expected = base64.b64decode(pathlib.Path('poc/artifacts/wurm-arm64-poc.jar.base64').read_bytes())
+          with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as apk:
+              assert apk.read('assets/wurm-arm64-poc.jar') == expected, 'POC APK asset mismatch'
+          print('Verified APK contains the exact source-backed POC artifact.')
+          PY
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/Wurm-Server.apk
+          cp docs/RELEASE_IMPORT_PREVIEW.md dist/release-notes.md
+          cd dist
+          sha256sum Wurm-Server.apk > SHA256SUMS
+      - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: wurm-launcher-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: wurm-server-import-preview
+          path: dist/
           if-no-files-found: error
       - name: Upload reports
         if: always()
@@ -54,3 +68,34 @@ jobs:
           name: verification-reports
           path: app/build/reports/
           if-no-files-found: ignore
+
+  publish-import-preview:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: publish-wurm-import-preview
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PREVIEW_TAG: v0.2.0-import-preview
+    steps:
+      - name: Publish the first passing import preview
+        run: |
+          # One immutable preview. Later pushes do not replace its APK or tag.
+          if gh release view "$PREVIEW_TAG" > /dev/null 2>&1; then
+            echo "Import preview already published; leaving it unchanged."
+            exit 0
+          fi
+          gh run download "$GITHUB_RUN_ID" --name wurm-server-import-preview --dir dist
+          gh release create "$PREVIEW_TAG" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title 'Wurm Server 0.2.0 — import preview' \
+            --notes-file dist/release-notes.md \
+            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS
