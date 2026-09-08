@@ -26,7 +26,7 @@ class ManagedBootstrapTest(unittest.TestCase):
             throw new IllegalStateException("synthetic startup failure");''' if startup_failure else 'System.out.println("FIXTURE_STARTED"); while(true) Thread.sleep(1000);'
         poc.write_text('package poc; public class AndroidServerMain { public static void main(String[] args) throws Exception {' + body + '}}')
         subprocess.run(["java", "com.sun.tools.javac.Main", "--release", "17", "-d", str(root), str(server), str(poc),
-                        str(ROOT / "runtime-probe/src/server/ManagedServerMain.java")], check=True, capture_output=True)
+                        *map(str, (ROOT / "runtime-probe/src/server").glob("*.java"))], check=True, capture_output=True)
         return root
 
     def launch(self, root, command="STOP\n"):
@@ -46,6 +46,12 @@ class ManagedBootstrapTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("FIXTURE_STARTED", result.stdout)
         self.assertFalse((root / "synthetic-save").exists())
+
+    def test_inspection_does_not_consume_or_block_stop_command(self):
+        root = self.fixture()
+        result = self.launch(root, "INSPECT\nSTOP\n")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((root / "synthetic-save").read_text(), "saved")
 
     def test_startup_exception_exits_instead_of_leaving_partial_server_alive(self):
         result = self.launch(self.fixture(startup_failure=True), command="")

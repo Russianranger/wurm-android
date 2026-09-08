@@ -43,12 +43,12 @@ class ManagedActivity : Activity() {
         page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 12, 20, 12) }
         setContentView(ScrollView(this).apply { addView(page) })
         label("Wurm Server", 25f)
-        label("0.5.0 · storage verification preview · no root or Termux required", 13f)
+        label("0.6.0 · world/configuration preview · no root or Termux required", 13f)
         button("Client tab") { startActivity(Intent(this, HomeActivity::class.java).putExtra("clientOnly", true)) }
-        label("Use a test world copy. Each Start saves a complete before-start checkpoint. The original import stays separate. Wurm saving and background stability need this device test.")
+        label("Each Start saves a before-start checkpoint and records world paths and ports. File persistence and short background operation passed on the Thor; gameplay saves still need verification.")
         idleButtons += button("Import Server ZIP") {
             AlertDialog.Builder(this).setTitle("Import prepared runtime")
-                .setMessage("Choose your ZIP of the stopped, working Termux POC runtime. Include its existing SQLite fixes. This preview keeps one original import plus a separate working copy. Allow at least 4 GiB free space for your current runtime and recovery files.")
+                .setMessage("Choose the working runtime ZIP exported while stopped from your previous Wurm Server app, or your prepared Termux POC ZIP. Include its existing SQLite fixes. This preview keeps one original import plus a separate working copy. Allow at least 4 GiB free space for your current runtime and recovery files.")
                 .setPositiveButton("Choose ZIP") { _, _ -> document(Intent.ACTION_OPEN_DOCUMENT, "*/*", "", IMPORT) }
                 .setNegativeButton("Cancel", null).show()
         }
@@ -73,6 +73,17 @@ class ManagedActivity : Activity() {
         idleButtons += button("Export before-start checkpoint ZIP") { document(Intent.ACTION_CREATE_DOCUMENT, "application/zip", "wurm-before-start.zip", EXPORT_CHECKPOINT) }
         idleButtons += button("Restore before-start checkpoint") { restore(false) }
         idleButtons += button("Restore original import") { restore(true) }
+        label("World and configuration", 20f)
+        label("Start captures the selected GameFolder, observed database/map paths and port evidence. View or export the saved report while running or stopped. Imported settings are read-only.")
+        button("View world/configuration report") {
+            val text = TextView(this).apply {
+                setTextIsSelectable(true); setPadding(20, 12, 20, 12)
+                text = worldReport()
+            }
+            AlertDialog.Builder(this).setTitle("World/configuration report").setView(ScrollView(this).apply { addView(text) })
+                .setPositiveButton("Close", null).show()
+        }
+        button("Export world/configuration report") { document(Intent.ACTION_CREATE_DOCUMENT, "text/plain", "wurm-world-report.txt", EXPORT_WORLD_REPORT) }
         label("Storage verification", 20f)
         label("Capture a baseline while stopped, run and stop the server, then check what changed. Database checks use disposable copies. These checks do not prove a particular gameplay change was saved.")
         idleButtons += button("Capture storage baseline") {
@@ -101,6 +112,12 @@ class ManagedActivity : Activity() {
         if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 70)
         startForegroundService(Intent(this, ManagedServerService::class.java).setAction(action))
+    }
+
+    private fun worldReport(): String {
+        val workspace = ManagedSession.workspace(this)
+        return ManagedWorldReport.read(workspace.worldReport, workspace.working(),
+            worlds.selectedItem as? String ?: prefs.getString("world", "Adventure"))
     }
 
     private fun render() {
@@ -173,10 +190,16 @@ class ManagedActivity : Activity() {
         if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         val app = applicationContext
-        if (requestCode == EXPORT_REPORT || requestCode == EXPORT_STORAGE_REPORT) {
+        if (requestCode == EXPORT_REPORT || requestCode == EXPORT_STORAGE_REPORT || requestCode == EXPORT_WORLD_REPORT) {
+            val selectedWorld = worlds.selectedItem as? String ?: prefs.getString("world", "Adventure")
             Thread({
                 val result = runCatching { app.contentResolver.openOutputStream(uri, "wt")!!.bufferedWriter().use {
-                    it.write(if (requestCode == EXPORT_REPORT) ManagedSession.report(app) else ManagedSession.workspace(app).storageReport())
+                    val workspace = ManagedSession.workspace(app)
+                    it.write(when (requestCode) {
+                        EXPORT_REPORT -> ManagedSession.report(app)
+                        EXPORT_WORLD_REPORT -> ManagedWorldReport.read(workspace.worldReport, workspace.working(), selectedWorld)
+                        else -> workspace.storageReport()
+                    })
                 } }
                 main.post { toast(if (result.isSuccess) "Report saved." else "Export failed: ${result.exceptionOrNull()?.message}") }
             }, "wurm-export-report").start()
@@ -221,5 +244,6 @@ class ManagedActivity : Activity() {
         private const val EXPORT_CHECKPOINT = 52
         private const val EXPORT_REPORT = 53
         private const val EXPORT_STORAGE_REPORT = 54
+        private const val EXPORT_WORLD_REPORT = 55
     }
 }

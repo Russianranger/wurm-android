@@ -35,7 +35,7 @@ public final class StorageAudit {
                 world.chars().anyMatch(Character::isISOControl) || !Files.isDirectory(root.resolve(world), LinkOption.NOFOLLOW_LINKS))
             throw new IOException("Select an existing world");
         String scope = root + "\n" + world;
-        StringBuilder report = new StringBuilder("Wurm Server 0.5.0 — stopped storage audit\n")
+        StringBuilder report = new StringBuilder("Wurm Server 0.6.0 — stopped storage audit\n")
                 .append("Time: ").append(Instant.now()).append("\nMode: ").append(mode)
                 .append("\nWorking copy: ").append(root.getFileName()).append("\nWorld: ").append(world)
                 .append("\nScope: every regular file in the complete working runtime, including other worlds and localhost/sqlite.\n")

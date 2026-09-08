@@ -20,10 +20,21 @@ public final class ManagedServerMain {
         shutdown.setAccessible(true);
         Method instance = server.getMethod("getInstance");
         System.out.println("[managed] Shutdown API resolved: Server.shutDown()V; saves require device verification.");
+        java.util.concurrent.atomic.AtomicBoolean inspecting = new java.util.concurrent.atomic.AtomicBoolean();
         Thread controls = new Thread(() -> {
             try (BufferedReader input = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
                 String command;
                 while ((command = input.readLine()) != null) {
+                    if ("INSPECT".equals(command)) {
+                        if (inspecting.compareAndSet(false, true)) {
+                            Thread observation = new Thread(() -> {
+                                try { WorldProbe.capture(); } finally { inspecting.set(false); }
+                            }, "wurm-world-observation");
+                            observation.setDaemon(true); // Inspection must never delay STOP or JVM exit.
+                            observation.start();
+                        }
+                        continue;
+                    }
                     if (!"STOP".equals(command)) continue;
                     System.out.println("[managed] SHUTDOWN_REQUESTED");
                     shutdown.invoke(instance.invoke(null));

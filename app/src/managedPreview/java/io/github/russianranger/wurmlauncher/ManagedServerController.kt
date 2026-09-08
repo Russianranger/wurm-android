@@ -14,9 +14,18 @@ class ManagedServerController(private val context: Context, private val config: 
     @Volatile private var forced = false
     @Volatile private var child: Process? = null
     @Volatile private var pocReturned = false
+    private var worldReport: ManagedWorldReport? = null
+    @Volatile private var reportFailed = false
     private val workspace = ManagedSession.workspace(context)
     private fun log(line: String) = ManagedSession.log(line)
     private fun status(phase: String, message: String) = ManagedSession.status(phase, message)
+    private fun report(action: (ManagedWorldReport) -> Unit) {
+        if (reportFailed) return
+        runCatching { worldReport?.let(action) }.onFailure {
+            reportFailed = true
+            log("[app] World report could not be updated: ${it.javaClass.simpleName}. Server control remains available.")
+        }
+    }
 
     @Synchronized fun requestStop(restart: Boolean) {
         restartRequested = restart
@@ -42,6 +51,9 @@ class ManagedServerController(private val context: Context, private val config: 
                 if (!beginRestart(cleanStop)) break
                 log("[app] Previous child exited. Taking a new checkpoint before restart.")
             } while (true)
+        } catch (failure: Exception) {
+            report { it.state("Session failed: ${failure.javaClass.simpleName}; see session report") }
+            throw failure
         } finally {
             // Never release session ownership while its child could still write a world.
             child?.let { process ->
@@ -117,6 +129,9 @@ class ManagedServerController(private val context: Context, private val config: 
             cancelled()
             workspace.ensureWorking { cancelled(); status("Preparing", it); log("[app] $it") }
         }
+        reportFailed = false
+        worldReport = ManagedWorldReport(workspace.worldReport, runtime, config)
+        report { it.prepare() }
         // Pin the exact device-proven inputs. In particular, never replace the
         // owner's patched server/common JARs with unpatched desktop files.
         val pins = linkedMapOf(
@@ -167,9 +182,11 @@ class ManagedServerController(private val context: Context, private val config: 
             cancelled()
             status("Starting", "Wurm process starting; waiting for POC initialization and TCP ${config.port}.")
             workspace.recoveryRequired.writeText("Wurm may have opened this working world. Clear only after requested normal exit or successful restore.\n")
+            report { it.state("Starting; waiting for initialization and TCP") }
             val server = launch(config.arguments(native, home, tmp, runtime, helper, false), runtime, home, native, tmp)
             val serverReader = read(server) { line ->
                 if (line == "[WurmARM64] runServer() returned.") pocReturned = true
+                report { it.observe(line) }
             }
             var wasReady = false
             var sentStop = false
@@ -178,6 +195,7 @@ class ManagedServerController(private val context: Context, private val config: 
             while (!server.waitFor(500, TimeUnit.MILLISECONDS)) {
                 if (stopRequested && !sentStop) {
                     sentStop = true; stopTime = System.nanoTime()
+                    report { it.state("Stop requested; waiting for child exit") }
                     if (wasReady && !forced) {
                         log("[app] Asking Wurm Server.shutDown() to save and stop.")
                         runCatching { server.outputStream.write("STOP\n".toByteArray()); server.outputStream.flush() }
@@ -191,7 +209,16 @@ class ManagedServerController(private val context: Context, private val config: 
                 if (!stopRequested) {
                     val reachable = portOpen()
                     if (pocReturned && reachable) {
-                        if (!wasReady) log("[app] TCP_READY port=${config.port}; POC returned. Wurm protocol/playability not yet tested.")
+                        if (!wasReady) {
+                            log("[app] TCP_READY port=${config.port}; POC returned. Wurm protocol/playability not yet tested.")
+                            report {
+                                it.event("LOOPBACK_READY 127.0.0.1:${config.port}; POC returned")
+                                it.state("Running observed; requesting child file/listener snapshot")
+                                it.event("INSPECT_REQUESTED")
+                            }
+                            runCatching { server.outputStream.write("INSPECT\n".toByteArray()); server.outputStream.flush() }
+                                .onFailure { failure -> report { it.event("INSPECT_REQUEST_FAILED ${failure.javaClass.simpleName}") } }
+                        }
                         wasReady = true
                         status("Running", "Process alive · TCP ${config.port} reachable · ${config.world}")
                     } else if (wasReady) status("Running", "Process alive; TCP ${config.port} is not currently reachable.")
@@ -204,6 +231,7 @@ class ManagedServerController(private val context: Context, private val config: 
             child = null
             log("[app] SERVER_EXIT=$exit; stopRequested=$stopRequested; force=$forced; startupCancelled=$cancelledStartup")
             val clean = stopRequested && exit == 0 && !forced && !cancelledStartup
+            report { it.state("Child exited $exit; requested=$stopRequested; normalStop=$clean; forced=$forced; startupCancelled=$cancelledStartup") }
             if (clean) workspace.recoveryRequired.delete()
             status(if (stopRequested) "Stopped" else "Error",
                 "Child exited ($exit). " + if (clean) "Shutdown requested; verify world persistence on device." else "Save not confirmed; original and before-start checkpoint retained.")

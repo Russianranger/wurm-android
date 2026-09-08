@@ -1,5 +1,15 @@
 # From the working POC to Wurm Server
 
+**Current implemented milestone: 0.6.0 world/configuration observation.**
+The existing controller now records candidate configuration identities, POC
+GameFolder and JDBC log evidence, loopback readiness and a best-effort snapshot
+of the Java child's open/mapped game files and owned TCP listeners. View/export
+persists across Stop and app reopening. Unknown/denied observations stay explicit;
+configuration writes and world/database relocation are not introduced. See
+[WORLD_CONFIGURATION_TEST.md](WORLD_CONFIGURATION_TEST.md) for implementation,
+every changed file, report limitations and the next physical test. Effective
+configuration selection and bound interface remain open where evidence is absent.
+
 **Next small milestone implemented:** 0.5.0 adds stopped-runtime baseline/check
 controls, persistent file comparisons and SQLite-copy checks using the existing
 foreground service/native child/lock. See [STORAGE_VERIFICATION.md](STORAGE_VERIFICATION.md)
@@ -11,8 +21,8 @@ The post-stop and post-reopen checks match all 12,007 files, pass all 36 databas
 and report `SOURCE_UNCHANGED`. Four Adventure map files and three databases under
 `localhost/sqlite` changed from baseline and retained those bytes after reopening.
 The corresponding server session reached TCP 3724 and exited 0 after normal Stop.
-The next small milestone should identify the effective world/map/database paths
-and configuration read-only before adding world switching or editable settings.
+The 0.6.0 read-only report above now collects world/map/database observations and
+configuration candidates for device review before editable settings/world switching.
 A specific gameplay change still needs verification through a supported external
 client/admin route across a server restart.
 

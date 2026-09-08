@@ -19,6 +19,7 @@ class ManagedWorkspace(val home: File) {
     val recoveryRequired get() = File(home, "recovery-required")
     val auditDirectory get() = File(home, "storage-audit")
     val auditReport get() = File(auditDirectory, "report.txt")
+    val worldReport get() = File(home, "world-report.txt")
 
     fun storageReport(): String = if (auditReport.isFile) auditReport.readText() else "No storage audit completed yet."
 

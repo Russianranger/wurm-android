@@ -1,16 +1,18 @@
 # Managed server preview: AYN Thor test
 
-**Current milestone: 0.5.0 storage verification.** Follow
-[STORAGE_VERIFICATION.md](STORAGE_VERIFICATION.md) to export the stopped 0.4.1
-working runtime, install the new separate package and run the baseline/check
-procedure. The lifecycle guide below describes the tested 0.4.1 foundation.
+**Current milestone: 0.6.0 world/configuration observation.** Follow
+[WORLD_CONFIGURATION_TEST.md](WORLD_CONFIGURATION_TEST.md) to export the stopped
+0.5.0 working runtime, install alongside it and collect world/configuration and
+session reports. The [0.5.0 file-persistence test passed](THOR_STORAGE_PASS.md).
+The lifecycle guide below describes the tested 0.4.1 foundation.
 
 **Device update:** 0.4.1 passed Java/SQLite/network preflight, Wurm initialization,
 TCP 3724 readiness, same-working-copy reopen, Restart and requested Stop with exit
 0 on the Thor. The cumulative report has three successful cycles. See [the evidence
 and remaining checks](THOR_SERVER_PASS.md). The user confirmed five minutes in
 other apps and two minutes with the screen locked, returning to Running after
-both. Changed-world saving remains unproven; the new storage audit adds evidence.
+both. Changed-file persistence subsequently passed in 0.5.0; verification of a
+specific gameplay change across Wurm restart remains open.
 
 The tested lifecycle release is **0.4.1**. The 0.4.0 Thor report passed Java 17.0.20/SQLite
 and reached Wurm's `Loading servers`, then aborted with a truncated pointer tag.

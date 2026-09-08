@@ -1,5 +1,12 @@
 # Wurm Server for Android
 
+**0.6.0 adds world/configuration reporting:** Start captures recognized GameFolder,
+SQLite paths, map/database file observations, port evidence and candidate
+configuration identities. View/export the saved report while running or stopped.
+See [the exact Thor steps and every changed file](docs/WORLD_CONFIGURATION_TEST.md).
+Install alongside 0.5.0 and import its stopped working-runtime ZIP; keep 0.5.0
+and its tested data. No root or Termux command is needed.
+
 **0.5.0 storage persistence passed on the Thor:** after a server run and normal
 Stop, the post-stop and post-reopen reports match across all **12,007 files**.
 Both checks passed all **36 SQLite databases**; the maps and database files that
@@ -39,7 +46,8 @@ a before-start checkpoint and provides live logs, working-copy export and restor
 No proprietary Wurm files or functioning Wurm client are bundled. The Client tab
 retains its import-reference and Settings groundwork.
 
-- [Download Wurm-Server.apk 0.5.0](https://github.com/Russianranger/wurm-android/releases/tag/v0.5.0-storage-preview)
+- [Download Wurm-Server.apk 0.6.0](https://github.com/Russianranger/wurm-android/releases/tag/v0.6.0-world-preview)
+- [World/configuration report: exact Thor procedure and every changed file](docs/WORLD_CONFIGURATION_TEST.md)
 - [Storage verification: exact Thor procedure and every changed file](docs/STORAGE_VERIFICATION.md)
 - [Thor startup/reopen/Restart/Stop PASS and remaining checks](docs/THOR_SERVER_PASS.md)
 - [0.4.1 correction, every changed file and next device test](docs/THOR_NATIVE_HEAP_FIX.md)

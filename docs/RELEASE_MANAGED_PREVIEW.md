@@ -1,42 +1,39 @@
-# Wurm Server 0.5.0 — storage verification preview
+# Wurm Server 0.6.0 — world and configuration preview
 
-Adds **Capture storage baseline**, **Check stored data**, and **View/Export storage
-report**. While stopped, the app fingerprints the complete working runtime,
-compares with its baseline/last check and checks disposable SQLite database copies.
-The report records file changes, database check results and aggregate row counts
-without including table contents. The audit never opens the source databases
-through SQLite or applies game/SQL repairs.
+Adds **View world/configuration report** and **Export world/configuration report**.
+Every Start records configuration file identities, the recognized GameFolder,
+logged SQLite paths, Steam shim ports and loopback readiness. Once Running, the
+owned Java child observes its open/mapped game files and, where Android allows
+it, its own TCP listeners. Unavailable observations are explicit. The report
+persists after Stop and app reopening; imported settings are read-only.
 
-The 0.4.1 foundation passed startup, working-copy reopen, Restart, TCP 3724 and
-requested exit 0 on the Thor. The user also confirmed five minutes in another
-app and two minutes with the screen locked, returning to Running after both.
-POC bytes, Java 17.0.20, input pins, heap compatibility and client groundwork stay
-the same. The new storage checks still require their own physical-device test.
+0.5.0 passed the Thor storage test: all 12,007 files matched after reopening, all
+36 databases passed checks, and changed map/database bytes persisted. This build
+retains that audit, exact POC and patched inputs, Java 17.0.20 and existing
+managed Start/Stop/Restart/recovery behavior. The Android client remains groundwork.
 
-1. In **0.4.1**, stop normally and **Export working runtime ZIP** to Downloads as
-   `wurm-working-runtime.zip`. Keep that app and its data installed.
-2. Install this **Wurm-Server.apk** alongside it. Open the screen showing **0.5.0**
-   (package `io.github.russianranger.wurmlauncher.storagepreview`), import the
-   working ZIP and select **Adventure**, heap **4096 MiB**, TCP **3724**. Keep at
-   least **4 GiB free storage** for this runtime. Larger databases need more.
-3. While stopped, **Capture storage baseline** and wait for completion. Expect
-   `BASELINE_CAPTURED`, database checks with `FAILED=0`, and `SOURCE_UNCHANGED`.
-4. Start, wait for Running, then Stop normally. **Check stored data** while stopped.
-   Export both storage and session reports. `BASELINE_DIFF` can be expected after
-   a server run; it is a report of changed file bytes, not a save-failure verdict.
-5. Close/reopen 0.5.0, leaving the server stopped. **Check stored data again**
-   without starting, restoring or recapturing the baseline. Expect
-   `LAST_CHECK_MATCH`. Export this storage report and send both checks plus the
-   session report for review. No root, Termux command or separate Java install.
+1. In **0.5.0**, Stop normally and **Export working runtime ZIP** to Downloads.
+   Keep the older app/data and exported ZIP.
+2. Install **Wurm-Server.apk** alongside it. Open **0.6.0** (package suffix
+   `.worldpreview`), import that ZIP, select Adventure, heap 4096 MiB and expected
+   TCP 3724. Keep at least 4 GiB free internal storage for this tested runtime.
+3. Start and wait for Running. **View world/configuration report**; wait for
+   `SNAPSHOT_END`. Expect GameFolder, JDBC paths and loopback readiness.
+   `TCP_UNAVAILABLE` is expected where Android blocks proc network access; it
+   does not indicate server failure or prove no listener exists.
+4. Stop normally, close/reopen and view the saved report. It should retain the
+   same launch ID and record the exit. Don't Start again before exporting.
+5. Export **world/configuration report (`wurm-world-report.txt`)** and
+   **session report (`wurm-server-report.txt`)**. Send those two files.
+   **No Storage report or new baseline is needed for this milestone.**
 
-If a check fails, export both reports before changing anything. Source runtime
-files remain untouched; prior accepted snapshots are retained on failed checks.
-The audit uses the same foreground service and native lock as the server, and
-Stop cancels it. SQLite quick_check/file hashes do not certify game-level saving;
-an identifiable Wurm change still needs verification after restart.
+No root, Termux command or separate Java installation. See
+[WORLD_CONFIGURATION_TEST.md](https://github.com/Russianranger/wurm-android/blob/main/docs/WORLD_CONFIGURATION_TEST.md)
+for exact steps, every changed file, report definitions and remaining device tests.
+GameFolder and database paths are separate evidence; no database is moved or
+merged. Literal configuration values are not proof of effective settings.
+LAN/client login and a particular gameplay save still need testing.
 
-See **STORAGE_VERIFICATION.md** for scope, WAL handling, limitations, build/test
-instructions and every changed file. Existing lifecycle/recovery instructions
-are in MANAGED_SERVER_TEST.md. The release includes corresponding JRE sources,
-notices and checksums. Development signing remains ephemeral, hence the separate
-package and deliberate working-ZIP transfer; durable signing is subsequent work.
+The release includes runtime source provenance and checksums. Development signing
+remains ephemeral; the separate package and working-ZIP import preserve 0.5.0.
+Durable signing and seamless upgrades remain later work.
