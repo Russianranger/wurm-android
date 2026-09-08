@@ -1,5 +1,12 @@
 # Wurm Server 0.5.0: stopped storage verification
 
+**Physical acceptance passed, 2026-09-08:** the first post-stop storage report and
+`wurm-storage-report (1).txt`, identified by the user as taken after closing and
+reopening the app, show 12,007 matching files, 36 successful database checks and
+`LAST_CHECK_MATCH` on the second check. See [the evidence and scope](THOR_STORAGE_PASS.md).
+The procedure below remains the reproducible test; it does not need repeating
+for this already-accepted result.
+
 The 0.4.1 Thor result now includes startup, same-working-copy reopen, Restart and
 requested exit 0. The user also confirmed **five minutes in another app** and
 **two minutes with the screen locked**, returning to Running after both. Those
@@ -138,8 +145,9 @@ corruption without baseline replacement, changed-world/working-copy rejection,
 symlinks and missing databases. Kotlin tests check audit arguments and classpath
 separation alongside the existing recovery tests. CI compiles/tests/lints all
 variants, checks the ARM64 runtime/POC/helper assets and verifies APK signing.
-The audit's Android SQLite behavior, duration and storage cost still need this
-physical Thor test.
+The Android baseline/check/reopen sequence now passed on the Thor for the supplied
+runtime. All 36 databases reported `wal=false`; physical WAL/journal recovery,
+large-world resource costs and interruption/low-storage behavior remain untested.
 
 ## Every file changed
 

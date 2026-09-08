@@ -6,13 +6,24 @@ foreground service/native child/lock. See [STORAGE_VERIFICATION.md](STORAGE_VERI
 for every changed file, migration from the stopped 0.4.1 working export and the
 physical acceptance procedure. No POC, runtime pin, SQL patch or client rewrite.
 
-**Latest device result:** [0.4.1 managed startup, same-copy reopen, Restart and
+**Latest device result:** [0.5.0 changed-file persistence passed on the Thor](THOR_STORAGE_PASS.md).
+The post-stop and post-reopen checks match all 12,007 files, pass all 36 databases
+and report `SOURCE_UNCHANGED`. Four Adventure map files and three databases under
+`localhost/sqlite` changed from baseline and retained those bytes after reopening.
+The corresponding server session reached TCP 3724 and exited 0 after normal Stop.
+The next small milestone should identify the effective world/map/database paths
+and configuration read-only before adding world switching or editable settings.
+A specific gameplay change still needs verification through a supported external
+client/admin route across a server restart.
+
+**Earlier device result:** [0.4.1 managed startup, same-copy reopen, Restart and
 requested shutdown passed on the Thor](THOR_SERVER_PASS.md). The source-built Java 17.0.20 runtime passed
 Java/SQLite/network preflight; Wurm reached TCP 3724 under UID 10197 and exited 0
 after normal Stop. The cumulative follow-up records three successful cycles,
 including controller-managed Restart. The user confirmed five minutes of app
 switching and two minutes of screen lock, returning to Running after both.
-Changed-world persistence and extended memory/background behavior remain open.
+Changed-file persistence is now covered by the 0.5.0 result above. Gameplay-level
+save verification and extended memory/background behavior remain open.
 
 **Implemented next milestone:** the 0.4.0 `managedPreview` variant now connects
 imports to a protected working copy, source-built Android Java 17.0.20, preflight,
@@ -21,8 +32,9 @@ foreground server controls, checkpoints/export/restore and live logs. See
 for the current behavior and every changed file. The sections below retain the
 original import-preview plan and history; statements about disabled controls
 apply to the old `debug`/0.2.0 preview. Managed Wurm startup, same-copy reopen,
-Restart and requested normal exit now passed; real SQL item paths, changed-world
-saving and background lifetime remain device acceptance gates.
+Restart, requested normal exit and changed-file persistence now passed. Real SQL
+item paths, gameplay-save semantics and extended background lifetime remain device
+acceptance gates.
 
 **Device progress, 2026-09-08:** the Thor import and Adventure selection
 persistence passed. All four source server/common/SQLite hashes match the import
@@ -179,8 +191,10 @@ steps and expected results.
 4. Hash-identical patched runtime reached GameFolder/database loading, Steam shim,
    personal/offline startup and TCP 3724 under the app UID in the 0.4.1 report.
    Exercise item insert/update paths to prove the earlier SQL fix still works.
-5. Save/stop/restart persistence, process death, lock behavior, screen-off and OEM
-   power management, notification behavior and peak memory at the selected heap.
+5. Same-copy restart, short app-switch/screen-lock operation and changed-file
+   persistence after normal Stop/app reopening passed. Verification of a specific
+   gameplay change, process death, lock contention, extended OEM power management,
+   notification behavior and peak memory at the selected heap remain open.
 6. LAN reachability and Wurm-level behavior beyond a listening socket. No current
    test or a TCP probe establishes a complete playable server/client session.
 

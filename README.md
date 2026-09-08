@@ -1,5 +1,11 @@
 # Wurm Server for Android
 
+**0.5.0 storage persistence passed on the Thor:** after a server run and normal
+Stop, the post-stop and post-reopen reports match across all **12,007 files**.
+Both checks passed all **36 SQLite databases**; the maps and database files that
+changed during the run retained their bytes after closing/reopening the app.
+See [the report comparison, active data paths and next milestone](docs/THOR_STORAGE_PASS.md).
+
 **0.5.0 adds stopped storage verification:** capture a persistent file baseline,
 compare after Start/Stop and app reopening, and check disposable copies of the
 runtime's SQLite databases. View/export an audit report without editing game
@@ -19,8 +25,9 @@ underlying native pointer bug is not yet located or repaired. See the
 [original abort analysis and compatibility change](docs/THOR_NATIVE_HEAP_FIX.md).
 It installs alongside 0.4.0 under package suffix `.managedfix1`, retaining earlier
 data. The user also confirmed **five minutes in another app** and **two minutes
-with the screen locked**, returning to Running after both. Changed-world
-persistence and extended background/memory behavior still need validation.
+with the screen locked**, returning to Running after both. File persistence after
+normal Stop and app reopening also passed in 0.5.0. Verification of a specific
+gameplay change and extended background/memory behavior remain open.
 
 0.5.0 installs separately as `.storagepreview`. Export the stopped working runtime
 from 0.4.1 and import that ZIP into 0.5.0; keep the earlier installation and backup.
