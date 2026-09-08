@@ -1,5 +1,11 @@
 # Thor native heap abort: 0.4.1 compatibility test
 
+**Follow-up result:** the Thor's 0.4.1 report passed this compatibility test,
+reached TCP 3724 and exited with code 0 after normal Stop. Read
+[THOR_SERVER_PASS.md](THOR_SERVER_PASS.md) for the evidence and next test using
+the same APK. The sections below preserve the original diagnosis and first-test
+procedure; changed-world persistence and extended stability remain unqualified.
+
 ## Evidence from 0.4.0
 
 The supplied `wurm-server-report.txt` records the AYN Thor / Android 13 / ARM64 run

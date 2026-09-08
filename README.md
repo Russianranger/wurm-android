@@ -1,16 +1,18 @@
 # Wurm Server for Android
 
-**0.4.1 tests a native heap compatibility correction.** The Thor's 0.4.0 run
-passed Java 17.0.20/SQLite preflight, checkpoint creation, Adventure selection,
-Steam shim initialization and SQLite loading. It then aborted at `Loading servers`
-with a truncated native pointer tag, before TCP readiness.
+**0.4.1 passed its first managed server startup and requested shutdown on the Thor.**
+Java 17.0.20, SQLite and networking preflight passed under an ordinary app UID.
+Wurm loaded Adventure, progressed past the earlier native abort, reached TCP 3724,
+then exited with code 0 after normal Stop. See the
+[physical-device evidence and next lifecycle test](docs/THOR_SERVER_PASS.md).
 
 The new build opts out of heap-pointer tagging only inside the Java child before
 Java loads and adds a networking preflight. This is a compatibility test; the
 underlying native pointer bug is not yet located or repaired. See the
-[report analysis and exact next Thor test](docs/THOR_NATIVE_HEAP_FIX.md).
+[original abort analysis and compatibility change](docs/THOR_NATIVE_HEAP_FIX.md).
 It installs alongside 0.4.0 under package suffix `.managedfix1`, retaining earlier
-data. **Physical startup beyond the abort and successful saving remain unproven.**
+data. **Changed-world persistence, Restart and background stability still need
+device validation.** Continue with the same APK and working copy for these tests.
 
 The 0.4.0 foundation remains: import your prepared runtime ZIP, select a world and
 Start/Stop/Restart through a foreground service, without root or Termux. The app
@@ -20,6 +22,7 @@ No proprietary Wurm files or functioning Wurm client are bundled. The Client tab
 retains its import-reference and Settings groundwork.
 
 - [Download the managed Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.4.1-managed-preview)
+- [Thor startup/Stop PASS and what to test next without reinstalling](docs/THOR_SERVER_PASS.md)
 - [0.4.1 correction, every changed file and next device test](docs/THOR_NATIVE_HEAP_FIX.md)
 - [Exactly what to copy/install/run on the AYN Thor, recovery and changed files](docs/MANAGED_SERVER_TEST.md)
 - [Managed preview release notes](docs/RELEASE_MANAGED_PREVIEW.md)

@@ -1,5 +1,10 @@
 # Managed server preview: AYN Thor test
 
+**Device update:** 0.4.1 passed Java/SQLite/network preflight, Wurm initialization,
+TCP 3724 readiness and requested Stop with exit 0 on the Thor. The next test uses
+the same installed APK and working copy; see [the evidence and reopen/Restart/
+background procedure](THOR_SERVER_PASS.md). Changed-world saving remains unproven.
+
 The current release is **0.4.1**. The 0.4.0 Thor report passed Java 17.0.20/SQLite
 and reached Wurm's `Loading servers`, then aborted with a truncated pointer tag.
 Read [the correction, complete new file inventory and next test](THOR_NATIVE_HEAP_FIX.md)
@@ -20,7 +25,7 @@ files are preserved. The Client tab reuses the existing document/settings UI.
 | Lifecycle/UI | A non-sticky foreground service owns one child, notification and wake lock. Start runs Java/SQLite/network preflight, writes a checkpoint, then calls the existing POC. Stop requests Wurm shutdown; Restart waits for a requested exit 0 and creates a fresh checkpoint. Logs are bounded and exportable. |
 | World/configuration | Persisted imported-world selection, maximum heap (default 4096 MiB), expected TCP port (default 3724). The port setting only controls readiness checks. Existing Wurm configuration bytes remain untouched. |
 | Recovery | Export the stopped working runtime or the before-start ZIP. Restore original/checkpoint atomically. Unconfirmed exit leaves a recovery marker and blocks the next Start until restore, protecting the last checkpoint. |
-| Device gates | The 0.4.0 report passed JRE preflight and reached Wurm GameFolder/SQLite/Steam shim. The compatibility correction, progress past the abort, real item SQL operations, port binding, save/reopen and background behavior still need the Thor. |
+| Device gates | 0.4.1 passed Java/SQLite/network preflight, the compatibility setting, Wurm initialization, local TCP readiness and requested exit 0. Reopen/Restart, changed-world saving, real item SQL operations and background behavior still need testing. |
 
 The first preview accepts the exact server/common/SQLite/POC hashes previously
 recorded on the Thor. This prevents an accidental switch to stock, unpatched

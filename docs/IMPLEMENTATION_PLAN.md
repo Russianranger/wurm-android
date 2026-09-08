@@ -1,13 +1,20 @@
 # From the working POC to Wurm Server
 
+**Latest device result:** [0.4.1 managed startup and requested shutdown passed on
+the Thor](THOR_SERVER_PASS.md). The source-built Java 17.0.20 runtime passed
+Java/SQLite/network preflight; Wurm reached TCP 3724 under UID 10197 and exited 0
+after normal Stop. The next checks are same-copy reopen, Restart, background
+behavior and changed-world persistence, using the existing APK.
+
 **Implemented next milestone:** the 0.4.0 `managedPreview` variant now connects
 imports to a protected working copy, source-built Android Java 17.0.20, preflight,
 foreground server controls, checkpoints/export/restore and live logs. See
 [the concrete implementation and Thor acceptance procedure](MANAGED_SERVER_TEST.md)
 for the current behavior and every changed file. The sections below retain the
 original import-preview plan and history; statements about disabled controls
-apply to the old `debug`/0.2.0 preview. Physical Wurm startup, real SQL item paths,
-saving/reopening and background lifetime remain device acceptance gates.
+apply to the old `debug`/0.2.0 preview. First managed Wurm startup and requested
+normal exit now passed; real SQL item paths, saving/reopening and background
+lifetime remain device acceptance gates.
 
 **Device progress, 2026-09-08:** the Thor import and Adventure selection
 persistence passed. All four source server/common/SQLite hashes match the import
@@ -156,22 +163,24 @@ steps and expected results.
    selection persistence passed. Interrupted/large imports, backup/export and
    recovery still need their own device tests.
 2. Embedded ARM64 Java startup, boot modules, ordinary-UID execution and normal
-   exit passed with the 17.0.10 diagnostic candidate and a 256 MiB heap. Repeat
-   with a maintained runtime; server-scale memory/lifecycle behavior remains open.
+   exit passed with both the 17.0.10 diagnostic and maintained 17.0.20 managed
+   runtime. The latter reached Wurm TCP readiness with a 4096 MiB maximum heap;
+   extended memory/lifecycle behavior remains open.
 3. SQLite 3.53.2.1 Android native loading and disposable database persistence
    passed. This does not establish Wurm-specific item SQL compatibility.
-4. Hash-identical patched runtime reaches GameFolder/database loading, Steam shim,
-   personal/offline startup, persistent threads and TCP 3724 under the app UID.
+4. Hash-identical patched runtime reached GameFolder/database loading, Steam shim,
+   personal/offline startup and TCP 3724 under the app UID in the 0.4.1 report.
    Exercise item insert/update paths to prove the earlier SQL fix still works.
 5. Save/stop/restart persistence, process death, lock behavior, screen-off and OEM
    power management, notification behavior and peak memory at the selected heap.
 6. LAN reachability and Wurm-level behavior beyond a listening socket. No current
    test or a TCP probe establishes a complete playable server/client session.
 
-The maintained embedded JRE build, protected world lifecycle and Wurm-specific
-device results remain open. The exact SQL patch recipe is also needed before
-supporting unpatched stock imports; the first server test should preserve the
-already working patched runtime. The POC Java source and current JAR are present.
+The maintained embedded JRE build and first managed startup/requested-stop result
+are complete. The remaining lifecycle and persistence gates above need further
+device evidence. The exact SQL patch recipe is also needed before supporting
+unpatched stock imports; retain the already working patched runtime. The POC
+Java source and current JAR are present.
 See [the post-PASS milestone](THOR_JVM_PASS.md#next-implementation-milestone) for
 the ordered implementation and device acceptance criteria.
 
