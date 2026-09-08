@@ -1,5 +1,13 @@
 # Thor 0.4.1: startup, working-copy reopen and Restart passed
 
+**User-observed background result:** after the cumulative report, the user
+confirmed switching to other apps for **five minutes** and returning to Running,
+then locking the screen for **two minutes** and returning to Running. These short
+checks passed by direct observation; they are not inferred from the untimestamped
+server log. Extended background operation and memory-pressure survival remain
+unqualified. The next implemented milestone is
+[0.5.0 stopped storage verification](STORAGE_VERIFICATION.md).
+
 ## Follow-up: the same working copy reopened and Restart completed
 
 `wurm-server-report (2).txt` contains the original successful run plus two new
@@ -28,10 +36,11 @@ was selected or independently verify its saved contents.
 
 The report does not record Activity close/reopen events, Home presses, screen
 lock/unlock, continuous port-health samples or exact run durations. It cannot
-independently establish that app switching or screen-off survival passed; those
-need the user's observation. No new APK or repeat of the passed startup/Restart
-sequence is needed just to provide that observation. Keep 0.4.1 and the working
-copy. Changed-world persistence still requires an identifiable saved change to be
+independently establish that app switching or screen-off survival passed; the
+user has now supplied the observations recorded above. No repeat of the passed
+startup/Restart sequence is needed for that result. Keep the 0.4.1 working copy
+and follow the 0.5.0 export/import guide for storage tests. Changed-world
+persistence still requires an identifiable saved change to be
 verified after reopening; repeated TCP readiness alone is not that evidence.
 
 This follow-up updates `README.md`, `docs/IMPLEMENTATION_PLAN.md`,
@@ -85,8 +94,8 @@ of the underlying pointer-handling code or proof of long-term stability.
 ## Lifecycle procedure used for the follow-up
 
 The report above now demonstrates working-copy reopen and Restart from this
-procedure. App-switch/screen-lock observations remain to be confirmed; do not
-repeat the whole sequence if it was already completed successfully.
+procedure. App-switch/screen-lock observations are now confirmed above; do not
+repeat the whole sequence for qualification of 0.4.1.
 
 No new APK, runtime ZIP, Java installation, root access or Termux command is
 required. Continue in **0.4.1** with **Adventure**, **4096 MiB**, TCP **3724**.

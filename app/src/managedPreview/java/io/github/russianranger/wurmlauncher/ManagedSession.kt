@@ -56,15 +56,16 @@ object ManagedSession {
         return true
     }
 
-    fun start(context: Context, config: ManagedLaunch, finished: () -> Unit): Boolean {
-        if (!claim(context, "Preparing")) return false
+    fun start(context: Context, config: ManagedLaunch, auditCapture: Boolean? = null, finished: () -> Unit): Boolean {
+        if (!claim(context, if (auditCapture == null) "Preparing" else "Checking storage")) return false
         val owner = ManagedServerController(context.applicationContext, config)
         synchronized(this) { controller = owner }
         Thread({
-            try { owner.run() }
+            try { if (auditCapture == null) owner.run() else owner.audit(auditCapture) }
             catch (failure: Exception) {
-                status("Error", failure.message ?: "Server launch failed")
-                log("[app] Server launch failed: $failure")
+                status(if (auditCapture != null && failure is InterruptedException) "Stopped" else "Error",
+                    if (auditCapture != null && failure is InterruptedException) "Storage audit cancelled. No server was started." else failure.message ?: "Operation failed")
+                log("[app] ${if (auditCapture == null) "Server launch" else "Storage audit"} failed: $failure")
             } finally {
                 synchronized(this) { controller = null; busy = false }
                 finished()
@@ -79,7 +80,7 @@ object ManagedSession {
     fun report(context: Context): String {
         val state = snapshot()
         val saved = File(context.filesDir, "managed-session.txt")
-        return "Wurm Server managed preview 0.4.1\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm Server managed preview 0.5.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nWorld saving is not yet physically qualified.\n\n" +
             if (saved.isFile) saved.readText() else state.log
     }

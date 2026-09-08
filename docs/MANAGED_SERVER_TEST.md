@@ -1,12 +1,18 @@
 # Managed server preview: AYN Thor test
 
+**Current milestone: 0.5.0 storage verification.** Follow
+[STORAGE_VERIFICATION.md](STORAGE_VERIFICATION.md) to export the stopped 0.4.1
+working runtime, install the new separate package and run the baseline/check
+procedure. The lifecycle guide below describes the tested 0.4.1 foundation.
+
 **Device update:** 0.4.1 passed Java/SQLite/network preflight, Wurm initialization,
 TCP 3724 readiness, same-working-copy reopen, Restart and requested Stop with exit
 0 on the Thor. The cumulative report has three successful cycles. See [the evidence
-and remaining checks](THOR_SERVER_PASS.md); background observations need user
-confirmation, and changed-world saving remains unproven. Keep the existing APK.
+and remaining checks](THOR_SERVER_PASS.md). The user confirmed five minutes in
+other apps and two minutes with the screen locked, returning to Running after
+both. Changed-world saving remains unproven; the new storage audit adds evidence.
 
-The current release is **0.4.1**. The 0.4.0 Thor report passed Java 17.0.20/SQLite
+The tested lifecycle release is **0.4.1**. The 0.4.0 Thor report passed Java 17.0.20/SQLite
 and reached Wurm's `Loading servers`, then aborted with a truncated pointer tag.
 Read [the correction, complete new file inventory and next test](THOR_NATIVE_HEAP_FIX.md)
 for the child-only heap compatibility setting and added networking preflight.
@@ -26,7 +32,7 @@ files are preserved. The Client tab reuses the existing document/settings UI.
 | Lifecycle/UI | A non-sticky foreground service owns one child, notification and wake lock. Start runs Java/SQLite/network preflight, writes a checkpoint, then calls the existing POC. Stop requests Wurm shutdown; Restart waits for a requested exit 0 and creates a fresh checkpoint. Logs are bounded and exportable. |
 | World/configuration | Persisted imported-world selection, maximum heap (default 4096 MiB), expected TCP port (default 3724). The port setting only controls readiness checks. Existing Wurm configuration bytes remain untouched. |
 | Recovery | Export the stopped working runtime or the before-start ZIP. Restore original/checkpoint atomically. Unconfirmed exit leaves a recovery marker and blocks the next Start until restore, protecting the last checkpoint. |
-| Device gates | 0.4.1 passed Java/SQLite/network preflight, the compatibility setting, Wurm initialization, local TCP readiness, same-copy reopen, Restart and requested exit 0. Changed-world saving and real item SQL operations remain open; app-switch/screen-lock observations need user confirmation. |
+| Device gates | 0.4.1 passed Java/SQLite/network preflight, the compatibility setting, Wurm initialization, local TCP readiness, same-copy reopen, Restart and requested exit 0. Short app-switch/screen-lock checks passed by user observation. Changed-world saving, real item SQL operations and extended background behavior remain open. |
 
 The first preview accepts the exact server/common/SQLite/POC hashes previously
 recorded on the Thor. This prevents an accidental switch to stock, unpatched

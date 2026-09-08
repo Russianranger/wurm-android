@@ -38,7 +38,13 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
-      - name: Test supervisor and native JVM layout
+      - name: Fetch pinned public JDBC fixture for storage tests
+        run: |
+          curl -fLsS --retry 3 --max-time 120 \
+            https://repo.maven.apache.org/maven2/org/xerial/sqlite-jdbc/3.53.2.1/sqlite-jdbc-3.53.2.1.jar \
+            -o "$RUNNER_TEMP/sqlite-jdbc-test.jar"
+          echo "WURM_TEST_SQLITE_JAR=$RUNNER_TEMP/sqlite-jdbc-test.jar" >> "$GITHUB_ENV"
+      - name: Test supervisor, native helpers and storage audit
         run: python3 -m unittest discover -s tests -v
       - name: Build, unit test and lint
         run: bash ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleJvmProbe :app:testJvmProbeUnitTest :app:lintJvmProbe :app:assembleManagedPreview :app:testManagedPreviewUnitTest :app:lintManagedPreview
@@ -113,6 +119,7 @@ jobs:
           cp docs/RELEASE_MANAGED_PREVIEW.md managed-dist/release-notes.md
           cp docs/MANAGED_SERVER_TEST.md managed-dist/MANAGED_SERVER_TEST.md
           cp docs/THOR_NATIVE_HEAP_FIX.md managed-dist/THOR_NATIVE_HEAP_FIX.md
+          cp docs/STORAGE_VERIFICATION.md managed-dist/STORAGE_VERIFICATION.md
           cp runtime-build/runtime.json managed-dist/runtime.json
           # The source bundle must correspond to the binary pin, not a later
           # mutable branch snapshot. Check every downloaded companion source.
@@ -136,7 +143,7 @@ jobs:
           tar -czf managed-dist/Runtime-corresponding-source.tar.gz -C managed-dist runtime-sources
           rm -r managed-dist/runtime-sources
           cd managed-dist
-          sha256sum Wurm-Server.apk MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
+          sha256sum Wurm-Server.apk MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md STORAGE_VERIFICATION.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
       - name: Upload managed server APK and matching runtime source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -220,13 +227,13 @@ jobs:
     steps:
       - name: Publish first passing managed server preview
         run: |
-          tag=v0.4.1-managed-preview
+          tag=v0.5.0-storage-preview
           if gh release view "$tag" >/dev/null 2>&1; then
             echo 'Managed preview already published; keeping its APK and tag immutable.'
             exit 0
           fi
           gh run download "$GITHUB_RUN_ID" --name wurm-managed-server --dir dist
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title 'Wurm Server 0.4.1 — native heap compatibility test' --notes-file dist/release-notes.md \
+            --title 'Wurm Server 0.5.0 — storage verification preview' --notes-file dist/release-notes.md \
             'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/MANAGED_SERVER_TEST.md \
-            dist/THOR_NATIVE_HEAP_FIX.md dist/runtime.json dist/Runtime-corresponding-source.tar.gz
+            dist/THOR_NATIVE_HEAP_FIX.md dist/STORAGE_VERIFICATION.md dist/runtime.json dist/Runtime-corresponding-source.tar.gz

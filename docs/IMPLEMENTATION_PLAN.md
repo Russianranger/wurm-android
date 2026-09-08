@@ -1,11 +1,18 @@
 # From the working POC to Wurm Server
 
+**Next small milestone implemented:** 0.5.0 adds stopped-runtime baseline/check
+controls, persistent file comparisons and SQLite-copy checks using the existing
+foreground service/native child/lock. See [STORAGE_VERIFICATION.md](STORAGE_VERIFICATION.md)
+for every changed file, migration from the stopped 0.4.1 working export and the
+physical acceptance procedure. No POC, runtime pin, SQL patch or client rewrite.
+
 **Latest device result:** [0.4.1 managed startup, same-copy reopen, Restart and
 requested shutdown passed on the Thor](THOR_SERVER_PASS.md). The source-built Java 17.0.20 runtime passed
 Java/SQLite/network preflight; Wurm reached TCP 3724 under UID 10197 and exited 0
 after normal Stop. The cumulative follow-up records three successful cycles,
-including controller-managed Restart. Background observations need confirmation;
-changed-world persistence remains open. Keep the existing APK and working copy.
+including controller-managed Restart. The user confirmed five minutes of app
+switching and two minutes of screen lock, returning to Running after both.
+Changed-world persistence and extended memory/background behavior remain open.
 
 **Implemented next milestone:** the 0.4.0 `managedPreview` variant now connects
 imports to a protected working copy, source-built Android Java 17.0.20, preflight,

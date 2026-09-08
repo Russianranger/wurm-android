@@ -52,6 +52,60 @@ class ManagedServerController(private val context: Context, private val config: 
         }
     }
 
+    /** Same foreground ownership and native lock as Wurm; this child only reads runtime files. */
+    fun audit(capture: Boolean) {
+        var run: File? = null
+        try {
+            val runtime = workspace.exclusive {
+                val imported = requireNotNull(workspace.imports.current()) { "Import your stopped runtime ZIP first." }
+                config.validate(imported.worlds)
+                check(!capture || !workspace.recoveryRequired.exists()) { "Export/recover the interrupted world before replacing its baseline." }
+                if (!capture) check(File(workspace.auditDirectory, "baseline.bin").isFile) { "Capture a storage baseline first." }
+                requireNotNull(workspace.working()) { "No working runtime exists." }
+            }
+            ProbeInputs.BASELINE.forEach { (name, expected) ->
+                check(ProbeInputs.sha256(File(runtime, "poc-lib/$name")) == expected) { "SQLite input differs from the Thor baseline." }
+            }
+            val home = ProbeRuntime.install(context, ::log)
+            cancelled()
+            val native = File(context.applicationInfo.nativeLibraryDir)
+            val session = File(context.filesDir, "session-${UUID.randomUUID()}")
+            run = session
+            check(session.mkdirs())
+            val tmp = File(session, "tmp").apply { check(mkdirs()) }
+            val helper = File(session, "runtime-probe.jar")
+            context.assets.open("runtime-probe.jar").use { input -> helper.outputStream().use { input.copyTo(it) } }
+            status("Checking storage", "Reading stopped runtime files and checking disposable database copies. Stop cancels this audit.")
+            log("[audit] ${java.time.Instant.now()} — ${if (capture) "Capture baseline" else "Check stored data"}; world=${config.world}")
+            val process = launch(config.auditArguments(native, home, tmp, runtime, helper, workspace.auditDirectory, capture), session, home, native, tmp)
+            val complete = java.util.concurrent.atomic.AtomicBoolean(false)
+            val expected = if (capture) "[audit] BASELINE_CAPTURED" else "[audit] STORAGE_CHECK_COMPLETE"
+            val reader = read(process) { if (it == expected) complete.set(true) }
+            val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(15)
+            while (!process.waitFor(200, TimeUnit.MILLISECONDS)) {
+                cancelled()
+                check(System.nanoTime() < deadline) { "Storage audit timed out; source world was not opened by SQLite." }
+            }
+            reader.join(3000)
+            child = null
+            check(process.exitValue() == 0 && complete.get()) { "Storage audit failed (exit ${process.exitValue()}). Export storage and session reports." }
+            status("Stopped", if (capture) "Storage baseline captured. Start/Stop, then Check stored data." else "Storage check complete. Open or export the storage report for results.")
+        } catch (failure: Exception) {
+            // Do not present an older successful report as this failed/cancelled attempt.
+            child?.let { if (it.isAlive) it.destroyForcibly(); it.waitFor() }
+            val old = workspace.storageReport().take(256 * 1024)
+            workspace.auditDirectory.mkdirs()
+            val pending = File(workspace.auditDirectory, "controller-report.pending")
+            pending.writeText("Latest audit did not complete at ${java.time.Instant.now()}: ${failure.message}\n\nLast available audit report (may be from this attempt):\n$old")
+            java.nio.file.Files.move(pending.toPath(), workspace.auditReport.toPath(),
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            throw failure
+        } finally {
+            child?.let { if (it.isAlive) it.destroyForcibly(); it.waitFor() }; child = null
+            run?.deleteRecursively()
+        }
+    }
+
     private fun runOnce(): Boolean {
         status("Preparing", "Validating import and creating a recoverable working copy.")
         val runtime = workspace.exclusive {

@@ -1,42 +1,42 @@
-# Wurm Server 0.4.1 — native heap compatibility test
+# Wurm Server 0.5.0 — storage verification preview
 
-The Thor's 0.4.0 report passed Java 17.0.20/SQLite preflight, created a checkpoint,
-selected Adventure, initialized the Steam shim and opened nine SQLite databases.
-Wurm then aborted at `Loading servers` with `Pointer tag ... was truncated`
-(exit 134), before TCP readiness. The exact offending native call is still unknown.
+Adds **Capture storage baseline**, **Check stored data**, and **View/Export storage
+report**. While stopped, the app fingerprints the complete working runtime,
+compares with its baseline/last check and checks disposable SQLite database copies.
+The report records file changes, database check results and aggregate row counts
+without including table contents. The audit never opens the source databases
+through SQLite or applies game/SQL repairs.
 
-This correction opts out of Android heap-pointer tagging **only in the app-owned
-Java child**, before loading Java. The child verifies the allocator accepted the
-setting and fails before Java if it did not. This is a compatibility experiment;
-it removes that child's heap-tag checks, not the underlying invalid-pointer bug.
-It changes no global Android settings. A new preflight exercises native networking,
-localhost resolution and a TCP loopback exchange before opening Wurm.
+The 0.4.1 foundation passed startup, working-copy reopen, Restart, TCP 3724 and
+requested exit 0 on the Thor. The user also confirmed five minutes in another
+app and two minutes with the screen locked, returning to Running after both.
+POC bytes, Java 17.0.20, input pins, heap compatibility and client groundwork stay
+the same. The new storage checks still require their own physical-device test.
 
-The source-built JRE, handwritten POC, imported Wurm files and SQLite fixes are
-unchanged. No root, Termux or separate Java installation is needed. Physical
-startup beyond the abort and Wurm save/reopen remain unproven in this version.
+1. In **0.4.1**, stop normally and **Export working runtime ZIP** to Downloads as
+   `wurm-working-runtime.zip`. Keep that app and its data installed.
+2. Install this **Wurm-Server.apk** alongside it. Open the screen showing **0.5.0**
+   (package `io.github.russianranger.wurmlauncher.storagepreview`), import the
+   working ZIP and select **Adventure**, heap **4096 MiB**, TCP **3724**. Keep at
+   least **4 GiB free storage** for this runtime. Larger databases need more.
+3. While stopped, **Capture storage baseline** and wait for completion. Expect
+   `BASELINE_CAPTURED`, database checks with `FAILED=0`, and `SOURCE_UNCHANGED`.
+4. Start, wait for Running, then Stop normally. **Check stored data** while stopped.
+   Export both storage and session reports. `BASELINE_DIFF` can be expected after
+   a server run; it is a report of changed file bytes, not a save-failure verdict.
+5. Close/reopen 0.5.0, leaving the server stopped. **Check stored data again**
+   without starting, restoring or recapturing the baseline. Expect
+   `LAST_CHECK_MATCH`. Export this storage report and send both checks plus the
+   session report for review. No root, Termux command or separate Java install.
 
-1. **Keep 0.4.0 installed**, including its report and checkpoint. Install this APK
-   alongside it; the new package is `io.github.russianranger.wurmlauncher.managedfix1`.
-   Choose the Wurm Server screen displaying **0.4.1**.
-2. Import the same **wurm-runtime-20260908-052948.zip** from Downloads. Nothing new
-   needs to be copied from Termux. Allow at least **4 GiB free internal storage**.
-3. Select **Adventure**, heap **4096 MiB**, expected TCP **3724**. Stop any other
-   server using that port. Tap **Start Server**, allow notifications, and keep the
-   app open for this first attempt.
-4. Look for `HEAP_TAGGING_OFF` with `after=0x00`, `NETWORK_OK`, `PREFLIGHT_PASS`,
-   progress beyond `Loading servers`, and ideally `TCP_READY` / Running.
-5. **Export and share `wurm-server-report.txt` after the first attempt**, even if
-   startup fails. If Running, use normal **Stop Server** and export again after
-   exit. Do not use Force Stop to test saving.
-6. If recovery is required, export the working runtime and before-start checkpoint
-   before restoring. Do not repeatedly retry the old 0.4.0 build.
+If a check fails, export both reports before changing anything. Source runtime
+files remain untouched; prior accepted snapshots are retained on failed checks.
+The audit uses the same foreground service and native lock as the server, and
+Stop cancels it. SQLite quick_check/file hashes do not certify game-level saving;
+an identifiable Wurm change still needs verification after restart.
 
-`THOR_NATIVE_HEAP_FIX.md` contains the diagnosis, exact device procedure and every
-changed file. `MANAGED_SERVER_TEST.md` covers lifecycle, recovery and building.
-The Client tab keeps its import/Settings groundwork; client execution is pending.
-
-Development builds use ephemeral CI debug signing. The separate package preserves
-earlier installs but does not migrate their private data. The release retains the
-matching OpenJDK/Android-port/FreeType/CUPS sources, patch, recipe and APK notices.
-`SHA256SUMS` identifies the downloadable APK and its companion files.
+See **STORAGE_VERIFICATION.md** for scope, WAL handling, limitations, build/test
+instructions and every changed file. Existing lifecycle/recovery instructions
+are in MANAGED_SERVER_TEST.md. The release includes corresponding JRE sources,
+notices and checksums. Development signing remains ephemeral, hence the separate
+package and deliberate working-ZIP transfer; durable signing is subsequent work.

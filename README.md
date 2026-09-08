@@ -1,5 +1,10 @@
 # Wurm Server for Android
 
+**0.5.0 adds stopped storage verification:** capture a persistent file baseline,
+compare after Start/Stop and app reopening, and check disposable copies of the
+runtime's SQLite databases. View/export an audit report without editing game
+files. See [the exact migration, test and file-change guide](docs/STORAGE_VERIFICATION.md).
+
 **0.4.1 passed managed startup, working-copy reopen, Restart and requested shutdown on the Thor.**
 Java 17.0.20, SQLite and networking preflight passed under an ordinary app UID.
 Wurm loaded Adventure, progressed past the earlier native abort, reached TCP 3724,
@@ -13,8 +18,12 @@ Java loads and adds a networking preflight. This is a compatibility test; the
 underlying native pointer bug is not yet located or repaired. See the
 [original abort analysis and compatibility change](docs/THOR_NATIVE_HEAP_FIX.md).
 It installs alongside 0.4.0 under package suffix `.managedfix1`, retaining earlier
-data. **Changed-world persistence still needs validation; app-switch/screen-lock
-results need the user's observation.** Keep the same APK and working copy.
+data. The user also confirmed **five minutes in another app** and **two minutes
+with the screen locked**, returning to Running after both. Changed-world
+persistence and extended background/memory behavior still need validation.
+
+0.5.0 installs separately as `.storagepreview`. Export the stopped working runtime
+from 0.4.1 and import that ZIP into 0.5.0; keep the earlier installation and backup.
 
 The 0.4.0 foundation remains: import your prepared runtime ZIP, select a world and
 Start/Stop/Restart through a foreground service, without root or Termux. The app
@@ -23,7 +32,8 @@ a before-start checkpoint and provides live logs, working-copy export and restor
 No proprietary Wurm files or functioning Wurm client are bundled. The Client tab
 retains its import-reference and Settings groundwork.
 
-- [Download the managed Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.4.1-managed-preview)
+- [Download Wurm-Server.apk 0.5.0](https://github.com/Russianranger/wurm-android/releases/tag/v0.5.0-storage-preview)
+- [Storage verification: exact Thor procedure and every changed file](docs/STORAGE_VERIFICATION.md)
 - [Thor startup/reopen/Restart/Stop PASS and remaining checks](docs/THOR_SERVER_PASS.md)
 - [0.4.1 correction, every changed file and next device test](docs/THOR_NATIVE_HEAP_FIX.md)
 - [Exactly what to copy/install/run on the AYN Thor, recovery and changed files](docs/MANAGED_SERVER_TEST.md)

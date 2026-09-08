@@ -17,6 +17,10 @@ class ManagedWorkspace(val home: File) {
     val lockFile get() = File(home, "server.lock")
     val checkpoint get() = File(home, "before-start.zip")
     val recoveryRequired get() = File(home, "recovery-required")
+    val auditDirectory get() = File(home, "storage-audit")
+    val auditReport get() = File(auditDirectory, "report.txt")
+
+    fun storageReport(): String = if (auditReport.isFile) auditReport.readText() else "No storage audit completed yet."
 
     fun <T> exclusive(action: () -> T): T {
         check(home.isDirectory || home.mkdirs())

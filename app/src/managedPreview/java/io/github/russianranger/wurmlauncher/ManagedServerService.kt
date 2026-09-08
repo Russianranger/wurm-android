@@ -21,7 +21,7 @@ class ManagedServerService : Service() {
     @SuppressLint("WakelockTimeout")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { ManagedSession.stop(); if (!owns) stopSelf(); return START_NOT_STICKY }
-        if (intent?.action != START) { if (!owns) stopSelf(); return START_NOT_STICKY }
+        if (intent?.action !in listOf(START, BASELINE, CHECK)) { if (!owns) stopSelf(); return START_NOT_STICKY }
         if (owns) return START_NOT_STICKY
         getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL, "Managed Wurm server", NotificationManager.IMPORTANCE_LOW))
@@ -37,7 +37,8 @@ class ManagedServerService : Service() {
         try {
             wake = getSystemService(PowerManager::class.java)
                 .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$packageName:managed-server").apply { acquire() }
-            owns = ManagedSession.start(this, config) { main.post { finish() } }
+            val auditCapture = when (intent?.action) { BASELINE -> true; CHECK -> false; else -> null }
+            owns = ManagedSession.start(this, config, auditCapture) { main.post { finish() } }
             if (!owns) finish()
         } catch (failure: Exception) {
             ManagedSession.log("[service] $failure")
@@ -60,6 +61,8 @@ class ManagedServerService : Service() {
     companion object {
         const val START = "wurm.managed.START"
         const val STOP = "wurm.managed.STOP"
+        const val BASELINE = "wurm.managed.BASELINE"
+        const val CHECK = "wurm.managed.CHECK"
         private const val CHANNEL = "wurm_managed_server"
     }
 }

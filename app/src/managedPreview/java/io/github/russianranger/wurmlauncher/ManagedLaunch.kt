@@ -25,4 +25,10 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
             "-cp", cp.joinToString(":"), if (preflight) "probe.RuntimeProbe" else "server.ManagedServerMain",
             if (preflight) tmp.parentFile!!.absolutePath else world)
     }
+
+    fun auditArguments(native: File, home: File, tmp: File, runtime: File, helper: File, store: File, capture: Boolean): List<String> {
+        val probe = arguments(native, home, tmp, runtime, helper, true)
+        return probe.take(probe.indexOf("probe.RuntimeProbe")).filterNot { it == "-Dwurm.probe.network=true" } +
+            listOf("persistence.StorageAudit", runtime.absolutePath, store.absolutePath, world, if (capture) "baseline" else "check")
+    }
 }

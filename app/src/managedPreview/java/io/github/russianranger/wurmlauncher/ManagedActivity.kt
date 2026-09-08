@@ -43,7 +43,7 @@ class ManagedActivity : Activity() {
         page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 12, 20, 12) }
         setContentView(ScrollView(this).apply { addView(page) })
         label("Wurm Server", 25f)
-        label("0.4.1 · native heap compatibility preview · no root or Termux required", 13f)
+        label("0.5.0 · storage verification preview · no root or Termux required", 13f)
         button("Client tab") { startActivity(Intent(this, HomeActivity::class.java).putExtra("clientOnly", true)) }
         label("Use a test world copy. Each Start saves a complete before-start checkpoint. The original import stays separate. Wurm saving and background stability need this device test.")
         idleButtons += button("Import Server ZIP") {
@@ -73,10 +73,34 @@ class ManagedActivity : Activity() {
         idleButtons += button("Export before-start checkpoint ZIP") { document(Intent.ACTION_CREATE_DOCUMENT, "application/zip", "wurm-before-start.zip", EXPORT_CHECKPOINT) }
         idleButtons += button("Restore before-start checkpoint") { restore(false) }
         idleButtons += button("Restore original import") { restore(true) }
+        label("Storage verification", 20f)
+        label("Capture a baseline while stopped, run and stop the server, then check what changed. Database checks use disposable copies. These checks do not prove a particular gameplay change was saved.")
+        idleButtons += button("Capture storage baseline") {
+            AlertDialog.Builder(this).setTitle("Capture storage baseline?")
+                .setMessage("This replaces the previous comparison baseline for this working copy and world. Export the current storage report first if you need it.")
+                .setPositiveButton("Capture") { _, _ -> audit(ManagedServerService.BASELINE) }.setNegativeButton("Cancel", null).show()
+        }
+        idleButtons += button("Check stored data") { audit(ManagedServerService.CHECK) }
+        button("View storage report") {
+            val text = TextView(this).apply {
+                setTextIsSelectable(true); setPadding(20, 12, 20, 12)
+                text = ManagedSession.workspace(this@ManagedActivity).storageReport()
+            }
+            AlertDialog.Builder(this).setTitle("Storage report").setView(ScrollView(this).apply { addView(text) })
+                .setPositiveButton("Close", null).show()
+        }
+        button("Export storage report") { document(Intent.ACTION_CREATE_DOCUMENT, "text/plain", "wurm-storage-report.txt", EXPORT_STORAGE_REPORT) }
         button("Export session report") { document(Intent.ACTION_CREATE_DOCUMENT, "text/plain", "wurm-server-report.txt", EXPORT_REPORT) }
         label("Live output (last 500 lines)")
         logs = label("", 12f).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(true) }
         render()
+    }
+
+    private fun audit(action: String) {
+        if (!saveWorld()) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 70)
+        startForegroundService(Intent(this, ManagedServerService::class.java).setAction(action))
     }
 
     private fun render() {
@@ -149,10 +173,12 @@ class ManagedActivity : Activity() {
         if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         val app = applicationContext
-        if (requestCode == EXPORT_REPORT) {
+        if (requestCode == EXPORT_REPORT || requestCode == EXPORT_STORAGE_REPORT) {
             Thread({
-                val result = runCatching { app.contentResolver.openOutputStream(uri, "wt")!!.bufferedWriter().use { it.write(ManagedSession.report(app)) } }
-                main.post { toast(if (result.isSuccess) "Session report saved." else "Export failed: ${result.exceptionOrNull()?.message}") }
+                val result = runCatching { app.contentResolver.openOutputStream(uri, "wt")!!.bufferedWriter().use {
+                    it.write(if (requestCode == EXPORT_REPORT) ManagedSession.report(app) else ManagedSession.workspace(app).storageReport())
+                } }
+                main.post { toast(if (result.isSuccess) "Report saved." else "Export failed: ${result.exceptionOrNull()?.message}") }
             }, "wurm-export-report").start()
             return
         }
@@ -194,5 +220,6 @@ class ManagedActivity : Activity() {
         private const val EXPORT_WORKING = 51
         private const val EXPORT_CHECKPOINT = 52
         private const val EXPORT_REPORT = 53
+        private const val EXPORT_STORAGE_REPORT = 54
     }
 }

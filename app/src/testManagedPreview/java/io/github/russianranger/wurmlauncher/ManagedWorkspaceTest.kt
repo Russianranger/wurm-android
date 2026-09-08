@@ -116,5 +116,10 @@ class ManagedWorkspaceTest {
         val probeCp = probe[probe.indexOf("-cp") + 1]
         assertFalse("server.jar" in probeCp)
         assertFalse("common.jar" in probeCp)
+        val audit = config.auditArguments(File("/native"), File("/java"), File("/session/tmp"), File("/work"), File("/helper.jar"), File("/audit"), false)
+        assertEquals(listOf("persistence.StorageAudit", "/work", "/audit", "My Adventure", "check"), audit.takeLast(5))
+        assertFalse("-Dwurm.probe.network=true" in audit)
+        assertEquals(probeCp, audit[audit.indexOf("-cp") + 1])
+        assertFalse("server.ManagedServerMain" in audit)
     }
 }
