@@ -1,6 +1,18 @@
 # From the working POC to Wurm Server
 
-## Current priority: in-app client integration (0.8.0)
+## Current priority: native client graphics after the 0.8.0 Thor test
+
+[The two new Thor reports](THOR_CLIENT_080_PASS.md) qualify controller delivery
+to the diagnostic JVM, actual Java Steam handler/ticket compatibility, resource
+JAR validation and TCP reachability. The client fails during Profile display
+initialization with `no lwjgl in java.library.path`, before login. No repeated
+import or server change is needed to explain this failure.
+
+**Next smallest source milestone implemented:** [graphics-compat](../graphics-compat/README.md)
+builds the pinned Pojav Java candidate, audits the supplied client's symbolic
+references and adds the four missing method signatures/two missing class names.
+All 38 scoped classes and 317 members are covered. This is not native linkage or
+rendering; the candidate is not packaged and the APK version is unchanged.
 
 The user's matching `client.jar` has now been inspected privately. It is not an
 opaque dependency: the actual launch/profile/resource, connection and client Steam
@@ -29,16 +41,16 @@ login → rendered world → controller gameplay**, entirely on the AYN Thor.
    engine-facing utility surface. Use typed calls to avoid resolving unrelated
    JavaFX signatures. Persist a synthetic local identity; make bounded synthetic
    ticket data explicitly scoped to `127.0.0.1:3724`. No browsing/full Steamworks.
-   Host compatibility with the real JAR passes; personal-server ticket acceptance
+   Host and Thor compatibility with the real JAR pass; personal-server ticket acceptance
    requires the real connection path and remains unverified.
 4. **Graphics/input.** Keep the Pojav LWJGLX/GLFW + native Surface/dual-VM + GL4ES
    investigation and license/source obligations. Next build a source-pinned
    isolated Android render host; an exec child cannot consume another process's
    raw `ANativeWindow*`. Qualify native context/swap and Wurm's desktop display
-   queries before claiming rendering. Preserve the reusable mapper. Start
-   Controller Test now starts its JVM diagnostic receiver automatically. Require
-   `INPUT_READY` and `INPUT_RECEIVED` on Thor before calling transport qualified;
-   gameplay input still needs the renderer's keyboard/mouse queue adapter.
+   queries before claiming rendering. Preserve the reusable mapper. **Start
+   Controller Test** starts its JVM diagnostic receiver automatically. The Thor
+   report now contains `INPUT_READY` and `INPUT_RECEIVED`; diagnostic transport
+   passed. Gameplay input still needs the renderer's keyboard/mouse queue adapter.
 5. **UI and local connection.** Client tab has import/start/local-start/stop,
    editable persisted player name, controller settings/test and Client Report
    export. Default player is Thor with blank passwords in this preview. Start
@@ -48,15 +60,18 @@ login → rendered world → controller gameplay**, entirely on the AYN Thor.
    SQL compatibility, world selection/configuration and stop controls are intact.
 6. **Completed code milestone.** Gate 1 core import and resource JAR checks;
    Gate 2 verified parameterized launch adapter and detailed failures; Gate 3
-   local shim with real-JAR host compatibility; Gate 4 automatic receiver test;
+   local shim with real-JAR Thor compatibility; Gate 4 diagnostic receiver delivery
+   passed on Thor, and a compiled Pojav Java API candidate passes static coverage;
    Gate 5 local orchestration and endpoint handoff. These are implementation
    milestones, not a full Gate 2 game launch, Gate 3 server-auth or Gate 4/5 gameplay pass.
-7. **Next physical test.** Install 0.8.0 alongside existing apps, run the controller
-   test without an import, then import the same complete client ZIP and attempt
-   Local Game with the old 0.6.0 server running. Return Client Report. Native
-   LWJGL/OpenGL/desktop window sizing, OpenAL/JInput, dual-VM Android lifecycle,
+7. **Next physical test.** The 0.8.0 procedure is complete; retain its import and
+   the working 0.6.0 server. First implement the isolated native render host,
+   matching ARM64 LWJGL/GLFW libraries and pinned GL4ES backend. The next APK must
+   prove a JVM-created context, clear/swap/resize and surface recreation before
+   the Wurm retry. Native desktop window sizing, OpenAL/JInput, dual-VM lifecycle,
    complete resources, memory with server, ticket acceptance and world entry
-   remain. No PC, Termux, root or separate Java installation is required.
+   remain. No new copy/install/run is needed for the current reports. The next
+   APK's device procedure must need no PC, Termux, root or separate Java installation.
 
 [CLIENT_THOR_TEST.md](CLIENT_THOR_TEST.md) has the exact procedure and markers.
 

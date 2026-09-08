@@ -1,12 +1,17 @@
 # Wurm Server for Android
 
-**0.8.0 client launch preview:** **Start Controller Test** now starts its JVM
-receiver automatically. The new source-built client adapter supplies the real
-profile/resources launch contract, replaces the JavaFX launcher's utility methods,
-and adds a local-only Steam identity/ticket shim. Its compatibility check passes
-against the user's matching client JAR on the development host; Thor acceptance
-is next. The profile setup itself reaches LWJGL native loading, so rendering and
-world entry still require the Android graphics bridge.
+**0.8.0 Thor results:** controller events reached the diagnostic JVM, local Steam
+handler/ticket initialization passed, resource JAR checks passed, and the server
+answered at `127.0.0.1:3724`. Client startup fails before login with
+`no lwjgl in java.library.path` during profile/display initialization. See
+[the two reports and exact scope of these passes](docs/THOR_CLIENT_080_PASS.md).
+
+**Next graphics work:** the pinned Pojav Java API candidate now compiles. Small
+handwritten adapters bring the scoped audit against the user's client to 38/38
+classes and 317/317 member signatures. [Build/audit tools and findings](graphics-compat/README.md)
+are committed; the native Android render host, matching libraries and GL4ES context
+remain to be integrated. This source milestone does not change the APK. The
+current Thor reports need no repeat test or new import.
 
 [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.8.0-client-launch),
 follow [the exact no-PC Thor test](docs/CLIENT_THOR_TEST.md), and export
@@ -18,9 +23,9 @@ owned client ZIP imported into this new package.
 
 [Architecture, remaining gates and every 0.8.0 changed file](docs/CLIENT_INTEGRATION.md)
 include the reusable Pojav/LWJGLX/GL4ES path. No proprietary JARs or assets are
-committed or bundled. **This is not yet a playable client.** Physical receiver
-delivery, Android native graphics, local ticket acceptance and Wurm login remain
-unpassed gates. [0.7.0 findings](docs/THOR_CLIENT_FINDINGS.md) retain the earlier
+committed or bundled. **This is not yet a playable client.** Android native graphics,
+gameplay input, server ticket acceptance and Wurm login remain unpassed gates.
+[0.7.0 findings](docs/THOR_CLIENT_FINDINGS.md) retain the earlier
 device evidence and now record private inspection of the supplied client JAR.
 
 **0.6.0 passed on the Thor:** the world report survived app reopening, five

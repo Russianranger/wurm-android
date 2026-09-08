@@ -13,13 +13,22 @@ are committed. The supplied JAR, its disassembly and game implementation stay ou
 of Git and release assets. Prior source/history and upstream research are retained
 in the sections below and [THOR_CLIENT_FINDINGS.md](THOR_CLIENT_FINDINGS.md).
 
+**Latest physical evidence:** [0.8.0 controller transport, imported Steam
+handler/ticket construction, resource JAR checks and loopback TCP passed](THOR_CLIENT_080_PASS.md).
+The client fails before login while Profile loads native LWJGL. The next
+source milestone compiles/audits the pinned Pojav Java API and restores the four
+missing member signatures and two class names with handwritten adapters. See
+[graphics-compat](../graphics-compat/README.md) for 317/317 scoped member coverage,
+reproduction, test boundaries and source/license requirements. These developer
+artifacts are not yet APK assets; the native render host is the next executable gate.
+
 | Gate | Implemented/evidence | Still required |
 | --- | --- | --- |
-| 1 — Import | Previous Thor import passed; transactional ZIP, class providers/hashes; now validate and list local resource JARs | Real resource completeness during startup |
-| 2 — JVM/bootstrap | Verified profile/resources adapter, real engine entry attempt, game-thread join and async error capture | Thor attempt; graphics currently loads during Profile setup, before launch can be invoked |
-| 3 — Local Steam | Source-built Steam_api and launcher utilities; actual supplied SteamHandler initialization and SteamAuthTicket creation passed on host | Thor compatibility stage and server acceptance of the synthetic local ticket |
-| 4 — Graphics/input | Persisted editable mapper, Android GLES probe; Start Controller Test automatically starts JVM receiver | Thor INPUT_RECEIVED; Android LWJGL/window/OpenGL/audio bridge and gameplay input |
-| 5 — Local connection | Existing TCP orchestration; real engine's WurmMain.getServerIp/getServerPort receive loopback target | Protocol authentication, login, rendered world |
+| 1 — Import | Thor import passed; class providers/hashes and sound/pmk/graphics resource JAR checks passed | Real resource completeness during gameplay |
+| 2 — JVM/bootstrap | Thor JVM reaches real Profile initialization; exact native failure exported | LWJGL loads during Profile setup, before launch can be invoked |
+| 3 — Local Steam | Actual supplied SteamHandler initialization and SteamAuthTicket creation passed on Thor (compat exit 0) | Server acceptance of the synthetic local ticket |
+| 4 — Graphics/input | Thor INPUT_READY/INPUT_RECEIVED; Android GLES probe; pinned public Java API with adapters passes scoped static audit | Native LWJGL/window/OpenGL/audio bridge, display queries and gameplay input |
+| 5 — Local connection | Thor TCP loopback probe passed; engine-facing accessors provide loopback target | Protocol authentication, login, rendered world |
 
 A successful `STEAM_COMPAT_OK` means the actual imported Java handler/ticket ABI
 worked against our local shim. It does not mean Steam authenticated a user or the
@@ -121,7 +130,7 @@ work is the intended starting point rather than writing a desktop GL stack.
 
 | Component/source examined | Reusable functionality | Integration limits |
 | --- | --- | --- |
-| [Pojav LWJGL fork, 39272d4d](https://github.com/PojavLauncherTeam/lwjgl3/tree/39272d4d0ca119379024e3ca7207699fd3fce237) | Modified LWJGL3 with LWJGLX exposing legacy LWJGL2 APIs; documented ARM64/NDK build | Compare the imported Wurm API requirements, utilities and natives with this adapter. Stock LWJGL3 alone is not a LWJGL2 replacement. Root license is BSD 3-clause; preserve dependency notices too. |
+| [Pojav LWJGL fork, 39272d4d](https://github.com/PojavLauncherTeam/lwjgl3/tree/39272d4d0ca119379024e3ca7207699fd3fce237) | Modified LWJGL3 with LWJGLX already under org.lwjgl; public Java source now compiled and audited, with our four missing signature adapters | 317/317 scoped member signatures covered; matching native build, behavior and unscanned dependencies remain. Stock LWJGL3 alone is not a LWJGL2 replacement. Root license is BSD 3-clause; preserve dependency notices too. |
 | [Pojav native host, b12ad048](https://github.com/PojavLauncherTeam/PojavLauncher/tree/b12ad048157b3aa255d078c235dd4571e1900309) | `egl_bridge.c` obtains `ANativeWindow` from Android Surface; `input_bridge_v3.c` and Java `CallbackBridge` connect window/input callbacks to the runtime VM; existing GL4ES/Zink backend plumbing | Depends on Pojav native environment, thread/JNI attachment and GLFW callbacks. Root LICENSE is LGPLv3. Package corresponding source/notices and satisfy applicable linking requirements when incorporating it. |
 | [GL4ES](https://github.com/ptitSeb/gl4es) | Desktop GL 1.5/2.x translation to GLES, including Android support | Candidate first backend, not proof of Wurm shader/extension compatibility. Upstream documents feature limitations. Pin a tested source revision/backend, preserve MIT notices and qualify Wurm frames on Thor. |
 
@@ -142,9 +151,12 @@ Android's Bionic/EGL as-is. Software rendering still needs window/API adaptation
 
 Concrete follow-up after the Thor report:
 
-1. Compare exact Wurm class/method/native requirements against pinned LWJGLX and
-   its GLFW implementation. Resolve missing methods before shadowing imported
-   LWJGL JARs. Preserve original client JAR bytes and record adapter classpath order.
+1. **Java API step implemented:** compile the pinned public fork and compare
+   supplied Wurm class/member references. Four missing members and two class
+   names now have adapters; seven fixture tests cover audit/wrapper contracts.
+   This is static coverage only. Native procedures, dynamic calls and dependencies
+   outside the scanned Wurm classes remain. Do not add the candidate to the APK
+   until matching native/window support is available. Preserve imported JAR bytes.
 2. Build a minimal source-pinned ARM64 render-host/native bridge and compatible
    LWJGLX/GLFW artifacts in CI, with full source/notices. Prove clear/swap/resize,
    surface destruction/recreation and isolated client exit with the server running.
