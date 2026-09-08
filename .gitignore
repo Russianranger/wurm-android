@@ -1,0 +1,18 @@
+.gradle/
+.idea/
+**/build/
+local.properties
+*.iml
+*.apk
+*.aab
+*.jks
+*.keystore
+# Never commit a game installation, server databases, or logs.
+runtime/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.db
+*.sqlite*
+*.log
+__pycache__/
+*.pyc
