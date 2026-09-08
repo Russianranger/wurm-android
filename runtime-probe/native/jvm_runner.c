@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include "jvm_layout.h"
 #include "world_lock.h"
+#include "heap_compat.h"
 
 /* OpenJDK libjli's public launcher entry point (java.h, JDK 17). */
 typedef int (*jli_launch_fn)(int, char **, int, const char **, int, const char **,
@@ -27,6 +28,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "[native] This diagnostic must run as an ordinary app UID.\n");
         return 71;
     }
+    if (wurm_configure_heap(getenv("WURM_HEAP_TAGGING")) != 0) return 78;
     if (wurm_world_lock(getenv("WURM_WORLD_LOCK")) < 0) {
         fprintf(stderr, "[native] Workspace is busy or inaccessible.\n");
         return 77;

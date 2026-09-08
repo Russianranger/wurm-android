@@ -22,9 +22,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert hashlib.sha256(apk.read("lib/arm64-v8a/" + name)).hexdigest() == digest, name
     runner = apk.read("lib/arm64-v8a/libwurmjvm_runner.so")
     assert runner[:6] == b"\x7fELF\x02\x01" and int.from_bytes(runner[18:20], "little") == 183
+    assert b"HEAP_TAGGING_OFF" in runner and b"HEAP_TAGGING_ERROR" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
-        for name in ("probe/RuntimeProbe.class", "server/ManagedServerMain.class"):
+        for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
     assert "assets/server.jar" not in apk.namelist() and "assets/common.jar" not in apk.namelist()
 print("Verified maintained runtime, notices, native runner, Java 17 helper classes and exact POC artifact.")

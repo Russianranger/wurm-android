@@ -20,7 +20,8 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
             "-Dorg.sqlite.tmpdir=${tmp.absolutePath}", "-Duser.home=${tmp.parentFile!!.absolutePath}",
             "-Djava.library.path=${home.absolutePath}/lib:${home.absolutePath}/lib/server:${native.absolutePath}",
             "-Dsun.boot.library.path=${home.absolutePath}/lib:${native.absolutePath}",
-            "-XX:ErrorFile=${tmp.parentFile!!.absolutePath}/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
+            "-XX:ErrorFile=${tmp.parentFile!!.absolutePath}/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash") +
+            (if (preflight) listOf("-Dwurm.probe.network=true") else emptyList()) + listOf(
             "-cp", cp.joinToString(":"), if (preflight) "probe.RuntimeProbe" else "server.ManagedServerMain",
             if (preflight) tmp.parentFile!!.absolutePath else world)
     }

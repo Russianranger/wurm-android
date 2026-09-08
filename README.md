@@ -1,19 +1,26 @@
 # Wurm Server for Android
 
-**0.4.0 adds a protected managed-server preview:** import your prepared runtime
-ZIP, select a world and Start/Stop/Restart through a foreground service, without
-root or Termux. It bundles source-built Android OpenJDK 17.0.20, runs Java/SQLite
-preflight before Wurm, retains the original import and saves a before-start
-checkpoint. Live logs, working-copy export and restore are included.
+**0.4.1 tests a native heap compatibility correction.** The Thor's 0.4.0 run
+passed Java 17.0.20/SQLite preflight, checkpoint creation, Adventure selection,
+Steam shim initialization and SQLite loading. It then aborted at `Loading servers`
+with a truncated native pointer tag, before TCP readiness.
 
-**Physical Wurm startup/saving are the next Thor test.** The separate 0.3.2 JVM
-diagnostic [passed Java/SQLite on the Thor](docs/THOR_JVM_PASS.md) with an older
-runtime. That PASS does not qualify the new JRE, Wurm saving or server lifecycle.
-The new APK installs alongside both earlier apps under package suffix `.managed`.
+The new build opts out of heap-pointer tagging only inside the Java child before
+Java loads and adds a networking preflight. This is a compatibility test; the
+underlying native pointer bug is not yet located or repaired. See the
+[report analysis and exact next Thor test](docs/THOR_NATIVE_HEAP_FIX.md).
+It installs alongside 0.4.0 under package suffix `.managedfix1`, retaining earlier
+data. **Physical startup beyond the abort and successful saving remain unproven.**
+
+The 0.4.0 foundation remains: import your prepared runtime ZIP, select a world and
+Start/Stop/Restart through a foreground service, without root or Termux. The app
+bundles source-built Android OpenJDK 17.0.20, retains the original import, creates
+a before-start checkpoint and provides live logs, working-copy export and restore.
 No proprietary Wurm files or functioning Wurm client are bundled. The Client tab
 retains its import-reference and Settings groundwork.
 
-- [Download the managed Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.4.0-managed-preview)
+- [Download the managed Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.4.1-managed-preview)
+- [0.4.1 correction, every changed file and next device test](docs/THOR_NATIVE_HEAP_FIX.md)
 - [Exactly what to copy/install/run on the AYN Thor, recovery and changed files](docs/MANAGED_SERVER_TEST.md)
 - [Managed preview release notes](docs/RELEASE_MANAGED_PREVIEW.md)
 - [Implementation plan: packaging, imports, JVM, UI, worlds and device gates](docs/IMPLEMENTATION_PLAN.md)
@@ -24,7 +31,7 @@ Import a complete ZIP of your **stopped, working, SQLite-patched** runtime from
 Downloads. Game files are copied unchanged into private storage; the app supplies
 the tracked POC JAR. The managed preview requires the known Thor JAR hashes and
 does not patch stock Wurm files. Keep the ZIP and exported working copies. The
-0.4.0 package retains one original import; replacing it is not enabled.
+managed package retains one original import; replacing it is not enabled.
 
 The [0.2.0 import-only APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.2.0-import-preview)
 and [0.3.2 diagnostic APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.3.2-jvm-probe)

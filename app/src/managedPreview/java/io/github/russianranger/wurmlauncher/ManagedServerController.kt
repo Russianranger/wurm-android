@@ -85,7 +85,7 @@ class ManagedServerController(private val context: Context, private val config: 
         log("[app] World=${config.world}; heap=${config.heapMiB} MiB; expected TCP=${config.port}")
         log("[app] UID=${android.os.Process.myUid()}; runtime is an independent working copy.")
         try {
-            status("Preflight", "Testing packaged Java and SQLite before Wurm opens this world.")
+            status("Preflight", "Testing packaged Java, SQLite and loopback networking before Wurm opens this world.")
             val markers = java.util.Collections.synchronizedSet(mutableSetOf<String>())
             val preflight = launch(config.arguments(native, home, tmp, runtime, helper, true), run, home, native, tmp)
             val reader = read(preflight) { line ->
@@ -93,16 +93,17 @@ class ManagedServerController(private val context: Context, private val config: 
                     "[probe] JAVA_OK" -> markers.add("JAVA_OK")
                     "[probe] SQLITE_OK: create/insert/update/commit/close/reopen" -> markers.add("SQLITE_OK")
                     "[probe] PROBE_OK" -> markers.add("PROBE_OK")
+                    "[network] NETWORK_OK: localhost resolution and TCP loopback exchange" -> markers.add("NETWORK_OK")
                 }
             }
             val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(90)
             while (!preflight.waitFor(200, TimeUnit.MILLISECONDS)) {
                 cancelled()
-                check(System.nanoTime() < deadline) { "Java/SQLite preflight timed out; world not opened." }
+                check(System.nanoTime() < deadline) { "Java/SQLite/network preflight timed out; world not opened." }
             }
             reader.join(3000)
-            check(preflight.exitValue() == 0 && markers.containsAll(listOf("JAVA_OK", "SQLITE_OK", "PROBE_OK"))) {
-                "Java/SQLite preflight failed (exit ${preflight.exitValue()}); world not opened. Export session report."
+            check(preflight.exitValue() == 0 && markers.containsAll(listOf("JAVA_OK", "SQLITE_OK", "NETWORK_OK", "PROBE_OK"))) {
+                "Java/SQLite/network preflight failed (exit ${preflight.exitValue()}); world not opened. Export session report."
             }
             child = null
             cancelled()
@@ -171,6 +172,7 @@ class ManagedServerController(private val context: Context, private val config: 
             environment().clear()
             environment().putAll(ProbeEnvironment.create(home, native, tmp))
             environment()["WURM_WORLD_LOCK"] = workspace.lockFile.absolutePath
+            environment()["WURM_HEAP_TAGGING"] = "off"
         }.start().also { child = it }
     }
 

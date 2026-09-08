@@ -79,7 +79,7 @@ object ManagedSession {
     fun report(context: Context): String {
         val state = snapshot()
         val saved = File(context.filesDir, "managed-session.txt")
-        return "Wurm Server managed preview 0.4.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm Server managed preview 0.4.1\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nWorld saving is not yet physically qualified.\n\n" +
             if (saved.isFile) saved.readText() else state.log
     }

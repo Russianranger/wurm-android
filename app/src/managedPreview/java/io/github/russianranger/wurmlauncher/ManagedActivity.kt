@@ -43,7 +43,7 @@ class ManagedActivity : Activity() {
         page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 12, 20, 12) }
         setContentView(ScrollView(this).apply { addView(page) })
         label("Wurm Server", 25f)
-        label("0.4.0 · managed server preview · no root or Termux required", 13f)
+        label("0.4.1 · native heap compatibility preview · no root or Termux required", 13f)
         button("Client tab") { startActivity(Intent(this, HomeActivity::class.java).putExtra("clientOnly", true)) }
         label("Use a test world copy. Each Start saves a complete before-start checkpoint. The original import stays separate. Wurm saving and background stability need this device test.")
         idleButtons += button("Import Server ZIP") {

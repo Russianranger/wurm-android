@@ -110,5 +110,11 @@ class ManagedWorkspaceTest {
         val cp = args[args.indexOf("-cp") + 1].split(':')
         assertEquals("wurm-arm64-poc.jar", cp.first())
         assertTrue(cp.indexOf("poc-lib/sqlite-jdbc-3.53.2.1.jar") < cp.indexOf("lib/*"))
+        assertFalse("-Dwurm.probe.network=true" in args)
+        val probe = config.arguments(File("/native"), File("/java"), File("/session/tmp"), File("/work"), File("/helper.jar"), true)
+        assertTrue("-Dwurm.probe.network=true" in probe)
+        val probeCp = probe[probe.indexOf("-cp") + 1]
+        assertFalse("server.jar" in probeCp)
+        assertFalse("common.jar" in probeCp)
     }
 }

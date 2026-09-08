@@ -112,6 +112,7 @@ def build_runner(ndk, native):
                     "-Wl,--export-dynamic-symbol=dladdr", str(ROOT / "runtime-probe/native/jvm_runner.c"),
                     str(ROOT / "runtime-probe/native/jvm_layout.c"),
                     str(ROOT / "runtime-probe/native/world_lock.c"),
+                    str(ROOT / "runtime-probe/native/heap_compat.c"),
                     "-ldl", "-o", str(native / "libwurmjvm_runner.so")], check=True)
     readelf = compiler.parent / "llvm-readelf"
     symbols = subprocess.check_output([str(readelf), "--dyn-syms", str(native / "libwurmjvm_runner.so")], text=True)

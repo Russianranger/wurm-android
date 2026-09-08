@@ -55,6 +55,7 @@ public final class RuntimeProbe {
         }
         System.out.println("[probe] SQLITE_OK: create/insert/update/commit/close/reopen");
         System.out.println("[probe] This does not test Wurm's item SQL patch or world saving.");
+        if (Boolean.getBoolean("wurm.probe.network")) NetworkProbe.run();
         System.out.println("[probe] PROBE_OK");
     }
 }

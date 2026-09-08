@@ -1,8 +1,13 @@
 # Managed server preview: AYN Thor test
 
+The current release is **0.4.1**. The 0.4.0 Thor report passed Java 17.0.20/SQLite
+and reached Wurm's `Loading servers`, then aborted with a truncated pointer tag.
+Read [the correction, complete new file inventory and next test](THOR_NATIVE_HEAP_FIX.md)
+for the child-only heap compatibility setting and added networking preflight.
+
 ## What is implemented
 
-The 0.4.0 `managedPreview` build installs separately from both earlier apps.
+The 0.4.1 `managedPreview` build installs separately from all earlier apps.
 It integrates the existing importer and POC with an APK-installed native Java
 runner. The original root controller, source/artifact pins and SQL-patched user
 files are preserved. The Client tab reuses the existing document/settings UI.
@@ -12,10 +17,10 @@ files are preserved. The Client tab reuses the existing document/settings UI.
 | POC classes | Gradle decodes and verifies the tracked base64 asset. Both handwritten classes remain byte-identical. A separately compiled Java 17 helper supplies diagnostic/control entry points without compiling against Wurm. |
 | User files | Document picker imports the stopped prepared ZIP into private storage. The original import is retained; Wurm receives a separate copied runtime. No game download, game upload or proprietary CI dependency. |
 | Java/process | OpenJDK 17.0.20 GA plus the pinned FCL Android port, built by `runtime-build/build.sh`. ELF files execute from the APK's installed native library directory. The Thor-tested JLI environment and image-layout adapter are reused. |
-| Lifecycle/UI | A non-sticky foreground service owns one child, notification and wake lock. Start runs Java/SQLite preflight, writes a checkpoint, then calls the existing POC. Stop requests Wurm shutdown; Restart waits for a requested exit 0 and creates a fresh checkpoint. Logs are bounded and exportable. |
+| Lifecycle/UI | A non-sticky foreground service owns one child, notification and wake lock. Start runs Java/SQLite/network preflight, writes a checkpoint, then calls the existing POC. Stop requests Wurm shutdown; Restart waits for a requested exit 0 and creates a fresh checkpoint. Logs are bounded and exportable. |
 | World/configuration | Persisted imported-world selection, maximum heap (default 4096 MiB), expected TCP port (default 3724). The port setting only controls readiness checks. Existing Wurm configuration bytes remain untouched. |
 | Recovery | Export the stopped working runtime or the before-start ZIP. Restore original/checkpoint atomically. Unconfirmed exit leaves a recovery marker and blocks the next Start until restore, protecting the last checkpoint. |
-| Device gates | New JRE preflight; Wurm GameFolder/SQLite/Steam shim; real item SQL operations; port binding; save/reopen; background behavior, memory and recovery. These require the Thor. |
+| Device gates | The 0.4.0 report passed JRE preflight and reached Wurm GameFolder/SQLite/Steam shim. The compatibility correction, progress past the abort, real item SQL operations, port binding, save/reopen and background behavior still need the Thor. |
 
 The first preview accepts the exact server/common/SQLite/POC hashes previously
 recorded on the Thor. This prevents an accidental switch to stock, unpatched
@@ -24,10 +29,10 @@ imported resources and library overlays are copied unchanged.
 
 ## Copy, install and run
 
-1. Keep both installed preview apps and the successful 0.3.2 report. Do not clear
-   their storage. Download **Wurm-Server.apk** from the **v0.4.0-managed-preview**
-   release and install it. It has package suffix `.managed`, so no uninstall is
-   required. Its screen identifies version 0.4.0 despite sharing the Wurm Server label.
+1. Keep all earlier apps, including 0.4.0 and its report/checkpoint. Do not clear
+   their storage. Download **Wurm-Server.apk** from the **v0.4.1-managed-preview**
+   release and install it. It has package suffix `.managedfix1`, so no uninstall is
+   required. Its screen identifies version 0.4.1 despite sharing the Wurm Server label.
 2. Keep your existing **wurm-runtime-20260908-052948.zip** in Downloads. No new
    Termux commands or additional runtime downloads are required. Stop any server
    already occupying TCP 3724 before testing. The source runtime must be stopped
@@ -35,7 +40,7 @@ imported resources and library overlays are copied unchanged.
 3. Ensure at least **4 GiB free internal storage** for this test. Your approximately
    661 MiB import needs an original copy, working copy, JRE, checkpoint and temporary
    recovery space. Large changed worlds need more; the app checks available space.
-4. Open the 0.4.0 app and **Import Server ZIP**. Select the existing ZIP and wait.
+4. Open the 0.4.1 app and **Import Server ZIP**. Select the existing ZIP and wait.
    This preview intentionally retains one original import. Replacing that original
    is not enabled. Select **Adventure**, close/reopen once, and confirm selection.
 5. In **Server Settings**, leave maximum heap **4096 MiB** and expected TCP **3724**.
@@ -47,6 +52,8 @@ imported resources and library overlays are copied unchanged.
 
 | Log evidence | What it establishes |
 | --- | --- |
+| `HEAP_TAGGING_OFF` with `after=0x00` | The Java child's allocator accepted the compatibility setting before Java loaded. |
+| `NETWORK_OK` | Localhost resolved and a TCP loopback exchange succeeded in preflight. Interface enumeration may separately report permission restrictions. |
 | Java version 17.0.20, `JAVA_OK`, `SQLITE_OK`, `PREFLIGHT_PASS` | New runtime can initialize, run threads and commit/reopen its disposable SQLite database under the app UID. No Wurm world was opened by this test. |
 | `WORLD_LOCK_OK` | The native child owns the private runtime's POSIX record lock. Copy/export/restore and another child cannot acquire it concurrently. |
 | GameFolder recognized/current, personal-server/offline messages | Progress through the unchanged POC entry point. |
@@ -129,6 +136,9 @@ apps, but it is not a live-world migration promise. Establish a durable signing
 key and upgrade/export flow before keeping long-lived worlds here.
 
 ## File-change inventory
+
+This table records the **0.4.0 foundation**. The complete **0.4.1 correction**
+inventory is in [THOR_NATIVE_HEAP_FIX.md](THOR_NATIVE_HEAP_FIX.md).
 
 Paths below are relative to the repository root; launcher Kotlin files share
 `app/src/managedPreview/java/io/github/russianranger/wurmlauncher/` unless noted.
