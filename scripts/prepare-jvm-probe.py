@@ -98,6 +98,11 @@ def prepare(ndk, cache):
                 "dataSha256": hashlib.sha256((assets / "jre17-data.zip").read_bytes()).hexdigest(),
                 "nativeSha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(native.glob("*.so"))}}
     (assets / "jvm-runtime.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    build_runner(ndk, native)
+    print("Prepared pinned Android OpenJDK 17.0.10 and native runner; no game files included.")
+
+
+def build_runner(ndk, native):
     # Leave upstream binaries byte-identical, including notices in jre17-data.zip.
     compiler = Path(ndk) / "toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
     if not compiler.is_file():
@@ -106,6 +111,7 @@ def prepare(ndk, cache):
                     "-Wl,-z,max-page-size=16384", "-Wl,--export-dynamic-symbol=dl_iterate_phdr",
                     "-Wl,--export-dynamic-symbol=dladdr", str(ROOT / "runtime-probe/native/jvm_runner.c"),
                     str(ROOT / "runtime-probe/native/jvm_layout.c"),
+                    str(ROOT / "runtime-probe/native/world_lock.c"),
                     "-ldl", "-o", str(native / "libwurmjvm_runner.so")], check=True)
     readelf = compiler.parent / "llvm-readelf"
     symbols = subprocess.check_output([str(readelf), "--dyn-syms", str(native / "libwurmjvm_runner.so")], text=True)
@@ -113,7 +119,6 @@ def prepare(ndk, cache):
         if not any(line.split()[-1:] == [name] and " GLOBAL " in line and " UND " not in line
                    for line in symbols.splitlines()):
             raise ValueError(f"Native runner missing exported layout adapter: {name}")
-    print("Prepared pinned Android OpenJDK 17.0.10 and native runner; no game files included.")
 
 
 if __name__ == "__main__":

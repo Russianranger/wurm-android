@@ -65,6 +65,14 @@ val prepareJvmProbe by tasks.registering(Exec::class) {
     commandLine("python3", rootProject.file("scripts/prepare-jvm-probe.py").absolutePath)
 }
 
+val prepareManagedRuntime by tasks.registering(Exec::class) {
+    inputs.files(rootProject.file("scripts/prepare-managed-runtime.py"), rootProject.file("scripts/prepare-jvm-probe.py"),
+        rootProject.file("runtime-build/runtime.json"), rootProject.fileTree("runtime-probe/native"))
+    outputs.dir(layout.buildDirectory.dir("generated/managedRuntime"))
+    workingDir(rootProject.projectDir)
+    commandLine("python3", rootProject.file("scripts/prepare-managed-runtime.py").absolutePath)
+}
+
 android {
     namespace = "io.github.russianranger.wurmlauncher"
     compileSdk = 34
@@ -75,8 +83,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 5
-        versionName = "0.3.2"
+        versionCode = 6
+        versionName = "0.4.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -86,6 +94,12 @@ android {
     buildFeatures { buildConfig = false }
     sourceSets.getByName("main").assets.srcDir(pocAssets)
     buildTypes {
+        create("managedPreview") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".managed"
+            versionNameSuffix = "-managed-preview"
+            matchingFallbacks += listOf("debug")
+        }
         create("jvmProbe") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".jvmprobe"
@@ -98,6 +112,14 @@ android {
         assets.srcDir(layout.buildDirectory.dir("generated/jvmProbe/assets"))
         jniLibs.srcDir(layout.buildDirectory.dir("generated/jvmProbe/jniLibs"))
     }
+    sourceSets.getByName("managedPreview") {
+        // Reuse the tested installer/environment and diagnostic helpers. The
+        // diagnostic Activity is not registered in this variant's manifest.
+        java.srcDir("src/jvmProbe/java")
+        assets.srcDir(probeAssets)
+        assets.srcDir(layout.buildDirectory.dir("generated/managedRuntime/assets"))
+        jniLibs.srcDir(layout.buildDirectory.dir("generated/managedRuntime/jniLibs"))
+    }
     packaging {
         jniLibs {
             useLegacyPackaging = true
@@ -108,6 +130,7 @@ android {
 
 tasks.named("preBuild").configure { dependsOn(packagePoc) }
 tasks.matching { it.name == "preJvmProbeBuild" }.configureEach { dependsOn(prepareJvmProbe, packageProbe) }
+tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe) }
 
 dependencies {
     testImplementation("junit:junit:4.13.2")

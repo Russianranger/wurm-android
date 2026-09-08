@@ -1,5 +1,14 @@
 # From the working POC to Wurm Server
 
+**Implemented next milestone:** the 0.4.0 `managedPreview` variant now connects
+imports to a protected working copy, source-built Android Java 17.0.20, preflight,
+foreground server controls, checkpoints/export/restore and live logs. See
+[the concrete implementation and Thor acceptance procedure](MANAGED_SERVER_TEST.md)
+for the current behavior and every changed file. The sections below retain the
+original import-preview plan and history; statements about disabled controls
+apply to the old `debug`/0.2.0 preview. Physical Wurm startup, real SQL item paths,
+saving/reopening and background lifetime remain device acceptance gates.
+
 **Device progress, 2026-09-08:** the Thor import and Adventure selection
 persistence passed. All four source server/common/SQLite hashes match the import
 report; the successful Termux JVM is OpenJDK 17.0.20. The separate

@@ -2,7 +2,7 @@ name: Android Java 17.0.20
 on:
   push:
     branches: [main]
-    paths: ['runtime-build/**', '.github/workflows/runtime.yml']
+    paths: ['runtime-build/build.sh', 'runtime-build/*.patch', '.github/workflows/runtime.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,13 +16,24 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Check immutable runtime release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if test "$GITHUB_EVENT_NAME" = push && gh release view runtime-17.0.20-android-1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          fi
       - name: Install cross-build dependencies
+        if: steps.release.outputs.exists != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y autoconf python3 python-is-python3 unzip zip systemtap-sdt-dev libxtst-dev libasound2-dev libelf-dev libfontconfig1-dev libx11-dev libxext-dev libxrandr-dev libxrender-dev libxt-dev
       - name: Build pinned Java sources for Android ARM64
+        if: steps.release.outputs.exists != 'true'
         run: bash runtime-build/build.sh "$RUNNER_TEMP/wurm-jdk"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: steps.release.outputs.exists != 'true'
         with:
           name: android-java17.0.20
           path: ${{ runner.temp }}/wurm-jdk/dist/

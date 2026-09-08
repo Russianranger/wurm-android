@@ -41,7 +41,7 @@ jobs:
       - name: Test supervisor and native JVM layout
         run: python3 -m unittest discover -s tests -v
       - name: Build, unit test and lint
-        run: bash ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleJvmProbe :app:testJvmProbeUnitTest :app:lintJvmProbe
+        run: bash ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleJvmProbe :app:testJvmProbeUnitTest :app:lintJvmProbe :app:assembleManagedPreview :app:testManagedPreviewUnitTest :app:lintManagedPreview
       - name: Prepare import preview
         run: |
           python3 - <<'PY'
@@ -104,6 +104,45 @@ jobs:
           path: diagnostic-dist/
           if-no-files-found: error
 
+      - name: Verify and prepare managed server release
+        run: |
+          python3 scripts/verify-managed-apk.py app/build/outputs/apk/managedPreview/app-managedPreview.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/managedPreview/app-managedPreview.apk
+          mkdir -p managed-dist/runtime-sources
+          cp app/build/outputs/apk/managedPreview/app-managedPreview.apk managed-dist/Wurm-Server.apk
+          cp docs/RELEASE_MANAGED_PREVIEW.md managed-dist/release-notes.md
+          cp docs/MANAGED_SERVER_TEST.md managed-dist/MANAGED_SERVER_TEST.md
+          cp runtime-build/runtime.json managed-dist/runtime.json
+          # The source bundle must correspond to the binary pin, not a later
+          # mutable branch snapshot. Check every downloaded companion source.
+          python3 - <<'PY'
+          import hashlib, json, pathlib, subprocess
+          pin = json.loads(pathlib.Path('runtime-build/runtime.json').read_text())
+          base = pin['url'].rsplit('/', 1)[0] + '/'
+          dest = pathlib.Path('managed-dist/runtime-sources')
+          subprocess.run(['curl', '-fsSL', '--retry', '3', base + 'SHA256SUMS', '-o', str(dest/'SHA256SUMS')], check=True)
+          entries = {}
+          for line in (dest/'SHA256SUMS').read_text().splitlines():
+              digest, name = line.split(None, 1)
+              entries[name.removeprefix('./')] = digest
+          assert entries['android-jre17.0.20-arm64.tar.xz'] == pin['sha256']
+          for name in ['OpenJDK17-source.tar.gz', 'Android-build-source.tar.gz', 'freetype-source.tar.gz',
+                       'cups-source.tar.gz', 'android-17.0.20.patch', 'build.sh', 'README.md']:
+              target = dest/name
+              subprocess.run(['curl', '-fsSL', '--retry', '3', '--max-time', '300', base + name, '-o', str(target)], check=True)
+              assert hashlib.sha256(target.read_bytes()).hexdigest() == entries[name], name
+          PY
+          tar -czf managed-dist/Runtime-corresponding-source.tar.gz -C managed-dist runtime-sources
+          rm -r managed-dist/runtime-sources
+          cd managed-dist
+          sha256sum Wurm-Server.apk MANAGED_SERVER_TEST.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
+      - name: Upload managed server APK and matching runtime source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wurm-managed-server
+          path: managed-dist/
+          if-no-files-found: error
+
   publish-import-preview:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -162,3 +201,31 @@ jobs:
             --title 'Wurm Server 0.3.2 — JVM image layout fix' --notes-file dist/release-notes.md \
             'dist/Wurm-Server-JVM-Test.apk#Wurm Server JVM Test APK' dist/SHA256SUMS \
             dist/RUNTIME_PROVENANCE.md dist/OpenJDK17-base-source.tar.gz dist/Android-OpenJDK-build-source.tar.gz
+
+  publish-managed-server:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: publish-wurm-managed-server
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Publish first passing managed server preview
+        run: |
+          tag=v0.4.0-managed-preview
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'Managed preview already published; keeping its APK and tag immutable.'
+            exit 0
+          fi
+          gh run download "$GITHUB_RUN_ID" --name wurm-managed-server --dir dist
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+            --title 'Wurm Server 0.4.0 — managed server preview' --notes-file dist/release-notes.md \
+            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/MANAGED_SERVER_TEST.md \
+            dist/runtime.json dist/Runtime-corresponding-source.tar.gz

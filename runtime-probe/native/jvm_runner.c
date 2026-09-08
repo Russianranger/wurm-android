@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include "jvm_layout.h"
+#include "world_lock.h"
 
 /* OpenJDK libjli's public launcher entry point (java.h, JDK 17). */
 typedef int (*jli_launch_fn)(int, char **, int, const char **, int, const char **,
@@ -25,6 +26,10 @@ int main(int argc, char **argv) {
     if (getuid() == 0 || geteuid() == 0) {
         fprintf(stderr, "[native] This diagnostic must run as an ordinary app UID.\n");
         return 71;
+    }
+    if (wurm_world_lock(getenv("WURM_WORLD_LOCK")) < 0) {
+        fprintf(stderr, "[native] Workspace is busy or inaccessible.\n");
+        return 77;
     }
     printf("[native] uid=%u euid=%u pid=%u; starting APK-packaged Java launcher\n",
            (unsigned)getuid(), (unsigned)geteuid(), (unsigned)getpid());

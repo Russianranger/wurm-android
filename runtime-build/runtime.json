@@ -1,0 +1,8 @@
+{
+  "url": "https://github.com/Russianranger/wurm-android/releases/download/runtime-17.0.20-android-1/android-jre17.0.20-arm64.tar.xz",
+  "sha256": "36b82145bfc23f597ef5d996b73e458a5b0faf84ecdcb054079dff4a96b78a5b",
+  "sourceCommit": "8cbbca61432426a3441aa08838d930ef954ea1ba",
+  "recipeCommit": "b9a87bedf1defb09ebdf661a16b5b7c8462559ee",
+  "workflowRun": 34226155258,
+  "javaVersion": "17.0.20"
+}

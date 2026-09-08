@@ -42,7 +42,7 @@ class HomeActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        clientTab = savedInstanceState?.getBoolean("clientTab") ?: false
+        clientTab = intent.getBooleanExtra("clientOnly", false) || (savedInstanceState?.getBoolean("clientTab") ?: false)
         pendingReport = savedInstanceState?.getString("pendingReport")
         showTab()
     }
@@ -54,7 +54,10 @@ class HomeActivity : Activity() {
         listOf("Server", "Client").forEachIndexed { index, name ->
             tabs.addView(Button(this).apply {
                 text = if (clientTab == (index == 1)) "$name •" else name
-                setOnClickListener { clientTab = index == 1; showTab() }
+                setOnClickListener {
+                    if (index == 0 && intent.getBooleanExtra("clientOnly", false)) finish()
+                    else { clientTab = index == 1; showTab() }
+                }
             }, LinearLayout.LayoutParams(0, -2, 1f))
         }
         page.addView(tabs)

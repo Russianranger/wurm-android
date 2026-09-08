@@ -15,7 +15,7 @@ object ProbeRuntime {
         val id = info.getString("id")
         require(id.matches(Regex("[a-zA-Z0-9-]+")))
         log("[runtime] Candidate Android Java ${info.getString("javaVersion")}; Termux baseline Java 17.0.20")
-        log("[runtime] Source: FCL-Team/FoldCraftLauncher ${info.getString("sourceCommit")}")
+        log("[runtime] Source: ${info.optString("provider", "FCL-Team/FoldCraftLauncher")} ${info.getString("sourceCommit")}")
         val nativeDir = File(context.applicationInfo.nativeLibraryDir)
         val pins = info.getJSONObject("nativeSha256")
         pins.keys().forEach { name ->
@@ -62,7 +62,7 @@ object ProbeRuntime {
         }
         val modules = File(home, "lib/modules")
         require(modules.isFile && ProbeInputs.sha256(modules) == info.getString("modulesSha256")) {
-            "Installed Java boot modules are missing or corrupt; reinstall Wurm Server JVM Test."
+            "Installed Java boot modules are missing or corrupt; export the report before reinstalling this preview."
         }
         log("[runtime] Boot modules verified: ${modules.length()} bytes, SHA-256 ${info.getString("modulesSha256")}")
         log("[runtime] JRE data and APK native libraries verified")

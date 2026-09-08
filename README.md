@@ -1,33 +1,34 @@
 # Wurm Server for Android
 
-**Thor result, 2026-09-08:** the separate **Wurm Server JVM Test 0.3.2** APK
-[passed Java and SQLite execution without root or Termux](docs/THOR_JVM_PASS.md).
-The test committed, closed and reopened a disposable SQLite database. The next
-milestone is protected managed Wurm server integration; Wurm itself has not run
-inside this APK yet. See the [repeatable diagnostic procedure](docs/JVM_PROBE_TEST.md) and
-[runtime provenance and version difference](docs/RUNTIME_PROVENANCE.md).
+**0.4.0 adds a protected managed-server preview:** import your prepared runtime
+ZIP, select a world and Start/Stop/Restart through a foreground service, without
+root or Termux. It bundles source-built Android OpenJDK 17.0.20, runs Java/SQLite
+preflight before Wurm, retains the original import and saves a before-start
+checkpoint. Live logs, working-copy export and restore are included.
 
-Minimal Kotlin app bringing the proven Wurm Unlimited ARM64 server POC into
-app-managed storage. **0.2.0 is an import preview**: no-root prepared-runtime ZIP
-import, packaged source-backed POC, world selection, diagnostic export and a
-Client tab with ZIP-reference/settings groundwork. No proprietary Wurm files,
-embedded Java runtime or functioning Wurm client are included.
+**Physical Wurm startup/saving are the next Thor test.** The separate 0.3.2 JVM
+diagnostic [passed Java/SQLite on the Thor](docs/THOR_JVM_PASS.md) with an older
+runtime. That PASS does not qualify the new JRE, Wurm saving or server lifecycle.
+The new APK installs alongside both earlier apps under package suffix `.managed`.
+No proprietary Wurm files or functioning Wurm client are bundled. The Client tab
+retains its import-reference and Settings groundwork.
 
-**Managed server startup is not implemented yet.** Start/Stop/Restart on the new
-home screen are disabled. The existing rooted Termux launcher remains available
-through **Open rooted POC controls and live logs**, with its proven command intact.
-
-- [Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.2.0-import-preview)
-- [Exactly what to copy/install/test on the AYN Thor](docs/THOR_IMPORT_TEST.md)
+- [Download the managed Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.4.0-managed-preview)
+- [Exactly what to copy/install/run on the AYN Thor, recovery and changed files](docs/MANAGED_SERVER_TEST.md)
+- [Managed preview release notes](docs/RELEASE_MANAGED_PREVIEW.md)
 - [Implementation plan: packaging, imports, JVM, UI, worlds and device gates](docs/IMPLEMENTATION_PLAN.md)
 - [Handwritten POC source and current JAR](poc/README.md)
+- [Maintained Java source build and provenance](runtime-build/README.md)
 
 Import a complete ZIP of your **stopped, working, SQLite-patched** runtime from
 Downloads. Game files are copied unchanged into private storage; the app supplies
-the tracked POC JAR. A conflicting POC is rejected. Import does not patch stock
-Wurm files and cannot independently verify the earlier SQL fix. World selection
-is saved for future managed startup and does not change the rooted Adventure
-launch. Keep an external backup; re-import replaces the previous private copy.
+the tracked POC JAR. The managed preview requires the known Thor JAR hashes and
+does not patch stock Wurm files. Keep the ZIP and exported working copies. The
+0.4.0 package retains one original import; replacing it is not enabled.
+
+The [0.2.0 import-only APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.2.0-import-preview)
+and [0.3.2 diagnostic APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.3.2-jvm-probe)
+remain available unchanged. Their existing installation/data are not migrated.
 
 ## Existing rooted launcher
 
@@ -44,7 +45,7 @@ standard `com.termux` installation in the primary Android user profile. Minimum
 and target SDK are 33; compile SDK is 34. This is a sideloading POC, not a Play
 Store submission or a claim of testing on later Android versions.
 
-## Build the APK on your device
+## Build the legacy import/root APK on your device
 
 Follow **[the complete native Termux build guide](docs/BUILD_TERMUX.md)**. No
 computer, Android Studio, proot distribution or NDK is required. A standard
@@ -58,6 +59,11 @@ bash scripts/build-termux.sh
 ```
 
 The debug-signed APK is `app/build/outputs/apk/debug/app-debug.apk`.
+
+For the embedded managed APK, use the Linux x86_64 SDK/NDK workflow in
+[MANAGED_SERVER_TEST.md](docs/MANAGED_SERVER_TEST.md#build-and-verification), or
+download the GitHub Release. The native embedded packager requires NDK host tools;
+the Termux script continues to build the legacy `debug` variant.
 
 There is also a [GitHub Actions build](../../actions) that compiles, runs unit
 tests and lint, and uploads the APK. The passing 0.2.0 build publishes an import
