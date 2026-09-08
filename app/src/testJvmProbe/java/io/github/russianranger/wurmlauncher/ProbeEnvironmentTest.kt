@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
  */
 class ProbeEnvironmentTest {
     @Test fun jliAvoidsReexecWithTheAppEnvironment() {
-        assumeTrue(System.getProperty("os.name") == "Linux" && Runtime.version().feature() == 17)
+        assumeTrue(System.getProperty("os.name") == "Linux" && System.getProperty("java.specification.version") == "17")
         val home = File(System.getProperty("java.home"))
         val native = File(home, "lib")
         val environment = ProbeEnvironment.create(home, native, File(System.getProperty("java.io.tmpdir")))
