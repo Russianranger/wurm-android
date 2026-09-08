@@ -161,6 +161,11 @@ Do not pass the Termux `aapt2` override on desktop.
 - [Termux OpenJDK 17 package](https://github.com/termux/termux-packages/tree/master/packages/openjdk-17)
 # Import preview note
 
+The new `jvmProbe` diagnostic is an additional build type requiring a Linux
+x86_64 Android NDK toolchain. Use its prebuilt APK from Releases on the Thor;
+see [JVM_PROBE_TEST.md](JVM_PROBE_TEST.md). The normal `assembleDebug`/Termux
+instructions below continue to build the existing import/root application.
+
 The APK is now named **Wurm Server**. These build instructions still apply.
 Building requires no proprietary Wurm JARs: Gradle verifies and decodes the
 tracked `poc/artifacts/wurm-arm64-poc.jar.base64` into an APK asset. It is Java 17

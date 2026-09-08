@@ -1,5 +1,13 @@
 # From the working POC to Wurm Server
 
+**Device progress, 2026-09-08:** the Thor import and Adventure selection
+persistence passed. All four source server/common/SQLite hashes match the import
+report; the successful Termux JVM is OpenJDK 17.0.20. The next implemented gate is
+the separate [embedded JVM diagnostic](JVM_PROBE_TEST.md), using a pinned Android
+17.0.10 candidate. Physical Java/SQLite execution is still pending. The `jvmProbe`
+build leaves the existing import and rooted launch paths intact; a maintained
+runtime is required before promoting this backend to Wurm server use.
+
 ## Inspection and boundary
 
 The existing platform-widget Kotlin app, foreground `ServerService`, root

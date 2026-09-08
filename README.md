@@ -1,5 +1,11 @@
 # Wurm Server for Android
 
+**Next device test:** [Embedded JVM diagnostic](docs/JVM_PROBE_TEST.md), available
+as a separate **Wurm Server JVM Test** APK. This installs alongside the verified
+import preview and tests Android Java 17 plus the owner's SQLite JARs in a
+disposable database. It does not start Wurm. See the
+[runtime provenance and version difference](docs/RUNTIME_PROVENANCE.md).
+
 Minimal Kotlin app bringing the proven Wurm Unlimited ARM64 server POC into
 app-managed storage. **0.2.0 is an import preview**: no-root prepared-runtime ZIP
 import, packaged source-backed POC, world selection, diagnostic export and a

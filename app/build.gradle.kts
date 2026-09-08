@@ -42,6 +42,29 @@ val packagePoc by tasks.registering {
     }
 }
 
+// An additional install-alongside APK keeps the verified import preview intact.
+val probeAssets = layout.buildDirectory.dir("generated/probeClassesAsset")
+val compileProbe by tasks.registering(JavaCompile::class) {
+    source(rootProject.fileTree("runtime-probe/src") { include("**/*.java") })
+    classpath = files()
+    destinationDirectory.set(layout.buildDirectory.dir("generated/probeClasses"))
+    options.release.set(17)
+}
+val packageProbe by tasks.registering(Jar::class) {
+    dependsOn(compileProbe)
+    from(compileProbe.flatMap { it.destinationDirectory })
+    destinationDirectory.set(probeAssets)
+    archiveFileName.set("runtime-probe.jar")
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+val prepareJvmProbe by tasks.registering(Exec::class) {
+    inputs.files(rootProject.file("scripts/prepare-jvm-probe.py"), rootProject.file("runtime-probe/native/jvm_runner.c"))
+    outputs.dir(layout.buildDirectory.dir("generated/jvmProbe"))
+    workingDir(rootProject.projectDir)
+    commandLine("python3", rootProject.file("scripts/prepare-jvm-probe.py").absolutePath)
+}
+
 android {
     namespace = "io.github.russianranger.wurmlauncher"
     compileSdk = 34
@@ -52,8 +75,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 2
-        versionName = "0.2.0-import-preview"
+        versionCode = 3
+        versionName = "0.3.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -62,9 +85,29 @@ android {
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { buildConfig = false }
     sourceSets.getByName("main").assets.srcDir(pocAssets)
+    buildTypes {
+        create("jvmProbe") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".jvmprobe"
+            versionNameSuffix = "-jvm-probe"
+            matchingFallbacks += listOf("debug")
+        }
+    }
+    sourceSets.getByName("jvmProbe") {
+        assets.srcDir(probeAssets)
+        assets.srcDir(layout.buildDirectory.dir("generated/jvmProbe/assets"))
+        jniLibs.srcDir(layout.buildDirectory.dir("generated/jvmProbe/jniLibs"))
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+            keepDebugSymbols += "**/*.so" // Preserve pinned upstream binary identity.
+        }
+    }
 }
 
 tasks.named("preBuild").configure { dependsOn(packagePoc) }
+tasks.matching { it.name == "preJvmProbeBuild" }.configureEach { dependsOn(prepareJvmProbe, packageProbe) }
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
