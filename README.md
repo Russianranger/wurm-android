@@ -1,5 +1,17 @@
 # Wurm Server for Android
 
+**0.7.0 client integration preview:** managed client ZIP import, real client/JVM
+linkage attempts, an independent LWJGL2 initialization attempt, editable handheld
+controller mappings, Android GLES surface diagnostics and keyboard/mouse IPC to
+a JVM receiver. Export `wurm-client-report.txt` entirely on the Thor.
+**Wurm rendering, client Steam compatibility and game login remain unimplemented.**
+This build gathers the exact imported client ABI/native blocker needed next.
+See [the install and physical test](docs/CLIENT_THOR_TEST.md),
+[architecture and reusable Pojav components](docs/CLIENT_INTEGRATION.md), and
+[download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.7.0-client-preview).
+Keep 0.6.0 installed: the new `.clientpreview` package can probe its running
+server at `127.0.0.1:3724` without migrating the world or requiring a PC.
+
 **0.6.0 passed on the Thor:** the world report survived app reopening, five
 Adventure map files and the active `localhost/sqlite` databases were observed,
 and the Java child exposed listeners on TCP 3724 and 48020. Normal Stop exited 0.

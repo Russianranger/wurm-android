@@ -25,7 +25,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert b"HEAP_TAGGING_OFF" in runner and b"HEAP_TAGGING_ERROR" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
-        for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/WorldProbe.class", "persistence/StorageAudit.class"):
+        for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClassInventory.class", "client/DesktopInput.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
-    assert "assets/server.jar" not in apk.namelist() and "assets/common.jar" not in apk.namelist()
+    assert not any(name in apk.namelist() for name in ("assets/server.jar", "assets/common.jar", "assets/client.jar"))
 print("Verified maintained runtime, notices, native runner, Java 17 helper classes and exact POC artifact.")

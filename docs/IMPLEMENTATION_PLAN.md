@@ -1,13 +1,71 @@
 # From the working POC to Wurm Server
 
+## Current priority: in-app client integration (0.7.0)
+
+The user has no separate PC. The next acceptance target is **Android server →
+Android Wurm client → local login → rendered world → controller input**.
+Earlier references below to external-PC/LAN testing describe historical plans;
+they are not prerequisites for this milestone. Keep the tested server, POC,
+source-backed artifact, SQL compatibility work and managed world unchanged.
+
+1. **Files and packaging.** Keep compiling all handwritten JVM helper sources
+   as `runtime-probe.jar`, separate from Android/D8. Continue packaging the exact
+   source-pinned POC JAR for the server only. Import the user's complete client
+   ZIP into an independent transactional `managed-client` generation. Require
+   `client.jar`, `common.jar`, `lib/`, one engine provider and one LWJGL2 Display
+   provider, hash the classpath and list asset candidates. Proprietary game
+   files and desktop native libraries never become repository dependencies.
+2. **Bootstrap.** Reuse the APK-installed Android ARM64 Java 17.0.20 executable,
+   environment, heap-tagging workaround and safe process ownership. An independent
+   client foreground service holds a client-only lock. Run API metadata discovery,
+   actual `WurmClientBase` initialization/direct-launch attempt, and actual imported
+   LWJGL2 `Display.create()` in separately bounded children. A prior stage's failure
+   must not suppress later diagnostics. Obtain exact `launch(...)` and Steam ABI
+   from the imported files; do not invent parameter values for unknown signatures.
+3. **Local Steam adapter.** The existing server shim stays untouched and off the
+   client classpath. After ABI discovery, implement only the observed client local
+   init/identity/ticket call path as a separate source-built client adapter. Use a
+   persistent synthetic identity scoped to this local/offline mode, with explicit
+   shim-state logs. Ticket format and whether this personal server accepts it are
+   device gates. No Steam browsing, full Steamworks or license bypass is planned.
+4. **Graphics/input.** Qualify the Android GLES surface and gamepad events now.
+   Reuse the investigated Pojav LWJGLX/GLFW + native surface/input + GL4ES path
+   after API coverage and native host integration are verified. A plain exec child
+   cannot use a raw Android `ANativeWindow*` from another process. The likely next
+   isolated render host is an Android `:client` process with its own Surface and
+   ART/OpenJDK JNI bridge; this does not replace the server process architecture.
+   Preserve the tested mapper/protocol when replacing the diagnostic receiver
+   with the renderer's LWJGL keyboard/mouse adapter. See the source pins, licensing,
+   alternatives and concrete integration checklist in [CLIENT_INTEGRATION.md](CLIENT_INTEGRATION.md).
+5. **UI and local orchestration.** Client tab exposes Import, Start Client, Start
+   Local Game, Stop, controller settings/test and persistent client report export.
+   Start Local Game uses an existing local listener or starts this package's
+   managed server and waits for TCP 3724 before the client bootstrap. It does not
+   stop the server when the client stops. A TCP probe is not a Wurm connection.
+   Complete direct login only after mapping the actual launch API. World selection
+   and server configuration remain owned by the existing Server tab; client target
+   is fixed to `127.0.0.1:3724` for this gate, with no speculative INI edits.
+6. **Implemented now.** Gate 1 basic import validation; Gate 2 JVM/ABI/linkage
+   attempts; Gate 4 Android surface qualification and editable controller → JVM
+   diagnostic transport; Gate 5 TCP readiness orchestration. These are host-tested
+   implementations awaiting physical acceptance, not successful gameplay claims.
+7. **Remaining physical blockers.** Actual launch signature/argument semantics,
+   client-side Steam ABI and ticket acceptance, complete assets, LWJGLX coverage,
+   OpenGL feature requirements/GL4ES on Thor, OpenAL/JInput replacements, Android
+   surface/dual-VM lifecycle, working-set memory with server, login and world entry.
+   [CLIENT_THOR_TEST.md](CLIENT_THOR_TEST.md) specifies the exact no-PC test and
+   `wurm-client-report.txt` evidence needed for the next adapter implementation.
+
+The following sections retain the server milestones and evidence.
+
 **Latest device result: 0.6.0 observation passed.** The user confirmed the report
 survived closing/reopening. The child observed five Adventure maps, eight open
 databases with WAL/SHM under `localhost/sqlite`, and owned TCP listeners on 3724
 and 48020; all nine databases were logged at startup. Proc inspection succeeded
 on this Thor. Normal Stop exited 0. See [THOR_WORLD_PASS.md](THOR_WORLD_PASS.md).
 The additional port's role and which identical INI candidate was loaded remain
-unknown. Next: second-device LAN reachability, a supported client session, and
-a specific gameplay/item change verified across restart.
+unknown. The current next step is the in-app client integration above, followed
+by a specific gameplay/item change verified across restart.
 
 **Current implemented milestone: 0.6.0 world/configuration observation.**
 The existing controller now records candidate configuration identities, POC

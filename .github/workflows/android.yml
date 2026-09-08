@@ -116,7 +116,9 @@ jobs:
           "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/managedPreview/app-managedPreview.apk
           mkdir -p managed-dist/runtime-sources
           cp app/build/outputs/apk/managedPreview/app-managedPreview.apk managed-dist/Wurm-Server.apk
-          cp docs/RELEASE_MANAGED_PREVIEW.md managed-dist/release-notes.md
+          cp docs/RELEASE_CLIENT_PREVIEW.md managed-dist/release-notes.md
+          cp docs/CLIENT_THOR_TEST.md managed-dist/CLIENT_THOR_TEST.md
+          cp docs/CLIENT_INTEGRATION.md managed-dist/CLIENT_INTEGRATION.md
           cp docs/MANAGED_SERVER_TEST.md managed-dist/MANAGED_SERVER_TEST.md
           cp docs/THOR_NATIVE_HEAP_FIX.md managed-dist/THOR_NATIVE_HEAP_FIX.md
           cp docs/STORAGE_VERIFICATION.md managed-dist/STORAGE_VERIFICATION.md
@@ -144,7 +146,7 @@ jobs:
           tar -czf managed-dist/Runtime-corresponding-source.tar.gz -C managed-dist runtime-sources
           rm -r managed-dist/runtime-sources
           cd managed-dist
-          sha256sum Wurm-Server.apk MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md STORAGE_VERIFICATION.md WORLD_CONFIGURATION_TEST.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
+          sha256sum Wurm-Server.apk CLIENT_THOR_TEST.md CLIENT_INTEGRATION.md MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md STORAGE_VERIFICATION.md WORLD_CONFIGURATION_TEST.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
       - name: Upload managed server APK and matching runtime source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -228,13 +230,13 @@ jobs:
     steps:
       - name: Publish first passing managed server preview
         run: |
-          tag=v0.6.0-world-preview
+          tag=v0.7.0-client-preview
           if gh release view "$tag" >/dev/null 2>&1; then
             echo 'Managed preview already published; keeping its APK and tag immutable.'
             exit 0
           fi
           gh run download "$GITHUB_RUN_ID" --name wurm-managed-server --dir dist
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title 'Wurm Server 0.6.0 — world and configuration preview' --notes-file dist/release-notes.md \
-            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/MANAGED_SERVER_TEST.md \
+            --title 'Wurm Server 0.7.0 — client bootstrap and controller preview' --notes-file dist/release-notes.md \
+            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/CLIENT_THOR_TEST.md dist/CLIENT_INTEGRATION.md dist/MANAGED_SERVER_TEST.md \
             dist/THOR_NATIVE_HEAP_FIX.md dist/STORAGE_VERIFICATION.md dist/WORLD_CONFIGURATION_TEST.md dist/runtime.json dist/Runtime-corresponding-source.tar.gz

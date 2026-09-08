@@ -10,7 +10,7 @@ import java.util.zip.ZipInputStream
 
 /** JRE data is private; executable runner and native libraries stay APK-installed. */
 object ProbeRuntime {
-    fun install(context: Context, log: (String) -> Unit): File {
+    @Synchronized fun install(context: Context, log: (String) -> Unit): File {
         val info = JSONObject(context.assets.open("jvm-runtime.json").bufferedReader().use { it.readText() })
         val id = info.getString("id")
         require(id.matches(Regex("[a-zA-Z0-9-]+")))
@@ -57,8 +57,11 @@ object ProbeRuntime {
             val name = links.getProperty(path)
             require(name.matches(Regex("lib[a-zA-Z0-9_]+\\.so")))
             check(link.parentFile!!.isDirectory || link.parentFile!!.mkdirs())
-            Files.deleteIfExists(link.toPath())
-            Files.createSymbolicLink(link.toPath(), File(nativeDir, name).toPath())
+            val destination = File(nativeDir, name).toPath()
+            if (!Files.isSymbolicLink(link.toPath()) || Files.readSymbolicLink(link.toPath()) != destination) {
+                Files.deleteIfExists(link.toPath())
+                Files.createSymbolicLink(link.toPath(), destination)
+            }
         }
         val modules = File(home, "lib/modules")
         require(modules.isFile && ProbeInputs.sha256(modules) == info.getString("modulesSha256")) {
