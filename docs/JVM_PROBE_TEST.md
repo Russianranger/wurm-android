@@ -1,5 +1,19 @@
 # AYN Thor: embedded JVM diagnostic
 
+## Confirmed physical PASS, 2026-09-08
+
+The Thor's **0.3.2-jvm-probe** report at **12:02:40 UTC** reaches `JAVA_OK`,
+`SQLITE_OK`, `PROBE_OK`, child exit 0 and `RESULT: PASS`, under ordinary app
+UID/eUID 10193. Java reports `17.0.10-internal`, `aarch64`; SQLite reports engine
+version `3.53.2`. Both earlier launcher failures are resolved on the device.
+
+See [THOR_JVM_PASS.md](THOR_JVM_PASS.md) for the evidence identity, exact scope,
+remaining Wurm tests and next implementation milestone. Keep the passing APK,
+report and prepared runtime ZIP; no repeat of this unchanged test is needed.
+The installation procedure below remains available for reproducing the result
+or testing a new runtime build. This PASS does not enable the import preview's
+managed server controls.
+
 ## Verified device baseline, 2026-09-08
 
 Your import report and Termux screenshot establish Android 13 / API 33 ARM64,
@@ -17,7 +31,7 @@ match the app's import report:
 This validates import identity/persistence, not Wurm database saving or the
 behavior of the earlier item SQL patch under the app UID.
 
-## Latest device report and 0.3.2 correction
+## Earlier 0.3.1 failure and 0.3.2 correction
 
 The 0.3.1 Thor report from 2026-09-08 11:42 UTC confirms `mustsetenv: FALSE`
 and successful loading of `libjvm.so`, at ordinary UID/eUID 10183. The earlier
@@ -108,7 +122,7 @@ Expected success markers:
 [native] uid=... euid=... pid=...
 mustsetenv: FALSE
 [native] JVM_IMAGE_PATH_OK: .../lib/server/libjvm.so
-[probe] java.version=17.0.10
+[probe] java.version=17.0.10-internal
 [probe] JAVA_OK
 [probe] SQLITE_OK: create/insert/update/commit/close/reopen
 [probe] PROBE_OK
@@ -174,10 +188,14 @@ verifies the pinned open-source JRE, builds the native runner, compiles the
 handwritten `runtime-probe/src/probe/RuntimeProbe.java` as Java 17 bytecode, and
 packages its JAR as an asset. No proprietary dependency is needed for building.
 
-After a physical PASS, integrate a maintained embedded runtime with the managed
+With the physical PASS recorded, integrate a maintained embedded runtime with the managed
 import and the unchanged POC classpath. Add world backup/export and then test
 GameFolder initialization, the Steam shim, item SQLite updates, TCP 3724, and
 save/stop/restart. The currently working source-backed POC stays unchanged.
+
+The result-recording update changes `README.md`, `docs/IMPLEMENTATION_PLAN.md`,
+`docs/JVM_PROBE_TEST.md`, `docs/RUNTIME_PROVENANCE.md`, and adds
+`docs/THOR_JVM_PASS.md`. It changes no application code or release APK.
 
 ## Files changed for this milestone
 

@@ -2,16 +2,11 @@
 
 **Device progress, 2026-09-08:** the Thor import and Adventure selection
 persistence passed. All four source server/common/SQLite hashes match the import
-report; the successful Termux JVM is OpenJDK 17.0.20. The next implemented gate is
-the separate [embedded JVM diagnostic](JVM_PROBE_TEST.md), using a pinned Android
-17.0.10 candidate. The first report verifies the APK native child at normal UID
-10182 and both SQLite inputs. The 0.3.1 report then confirms the re-exec fix
-(`mustsetenv: FALSE`) and successful `libjvm.so` loading at ordinary UID 10183.
-VM initialization stops at `Failed setting boot class path.` Version 0.3.2 adds
-a process-local JVM image-path adapter and verifies the core module archive.
-Native host tests cover both library-query APIs and the original flat-path
-failure. Java initialization and SQLite execution remain pending on the Thor.
-The `jvmProbe`
+report; the successful Termux JVM is OpenJDK 17.0.20. The separate
+[embedded JVM diagnostic 0.3.2 passed on the Thor](THOR_JVM_PASS.md) at 12:02 UTC:
+the APK-owned Java 17.0.10-internal process ran as ordinary UID 10193 and SQLite
+completed create/insert/update/commit/close/reopen, with child exit 0. The earlier
+re-exec and boot-class-path failures are resolved. The `jvmProbe`
 build leaves the existing import and rooted launch paths intact; a maintained
 runtime is required before promoting this backend to Wurm server use.
 
@@ -77,15 +72,15 @@ The demonstrated Termux JVM launch is preserved as a separately labelled rooted
 screen. Copying Termux's `java` executable is insufficient for a standalone APK:
 its library paths and Android execution rules differ.
 
-Next executable milestone: select and validate an Android/Bionic ARM64 OpenJDK
-17 distribution and its redistribution notices; package the required native
-libraries in the APK. Prototype a small native launcher in a dedicated app
-process (JNI Invocation API / `JNI_CreateJavaVM`), with the JRE data extracted to
-private storage and `cwd` set to the imported runtime. Prove basic Java startup,
-SQLite native loading and clean process exit before introducing Wurm. Android's
+Completed diagnostic: the pinned Android/Bionic ARM64 OpenJDK 17.0.10 candidate
+runs through the APK-installed native JLI launcher in a separate child process,
+with private JRE data, a verified JVM image alias and disposable working directory.
+Basic Java startup, SQLite native loading and normal process exit passed on the
+Thor. Before server integration, build/package a maintained Java 17 runtime with
+explicit source/patch provenance and repeat the diagnostic. Android's
 [writable-home execution restriction](https://developer.android.com/about/versions/10/behavior-changes-10)
 rules out simply extracting an executable into `filesDir` and invoking it.
-An APK-packaged executable is an alternative only after device validation.
+The APK-packaged executable approach is now validated for this short diagnostic.
 
 Then launch the unchanged POC entry point with the proven classpath ordering,
 including the Android SQLite natives JAR and the existing SQL patch overlays.
@@ -103,7 +98,7 @@ for managed execution. It links to the unchanged rooted Start/Stop/status/live
 log screen for regression tests. Import progress/error and runtime readiness
 are distinct from a running process; imported does not mean running.
 
-When the JVM probe works, connect these controls to a managed controller behind
+With the JVM probe passing, connect these controls to a managed controller behind
 the existing service pattern. States: Stopped, Starting, Running, Stopping, Error.
 Distinguish process alive from TCP 3724 ready. Restart means request shutdown,
 wait for confirmed exit and lock release, then start; never overlap processes.
@@ -148,11 +143,14 @@ steps and expected results.
 
 ## 7. Remaining physical-device gates
 
-1. Android document-provider handling of the real multi-GB ZIP, free space,
-   progress, interrupted imports, persistence and world discovery on the Thor.
-2. Embedded ARM64 JVM 17 startup, Bionic/linker namespaces, required native/JRE
-   modules, memory overhead and app UID filesystem access on the Thor OS version.
-3. SQLite 3.53.2.1 Android native loading in the app's process/library environment.
+1. Basic prepared-ZIP import, world discovery, hash identity and Adventure
+   selection persistence passed. Interrupted/large imports, backup/export and
+   recovery still need their own device tests.
+2. Embedded ARM64 Java startup, boot modules, ordinary-UID execution and normal
+   exit passed with the 17.0.10 diagnostic candidate and a 256 MiB heap. Repeat
+   with a maintained runtime; server-scale memory/lifecycle behavior remains open.
+3. SQLite 3.53.2.1 Android native loading and disposable database persistence
+   passed. This does not establish Wurm-specific item SQL compatibility.
 4. Hash-identical patched runtime reaches GameFolder/database loading, Steam shim,
    personal/offline startup, persistent threads and TCP 3724 under the app UID.
    Exercise item insert/update paths to prove the earlier SQL fix still works.
@@ -161,8 +159,12 @@ steps and expected results.
 6. LAN reachability and Wurm-level behavior beyond a listening socket. No current
    test or a TCP probe establishes a complete playable server/client session.
 
-The exact SQL patch recipe, the embedded JRE build and device results are the
-remaining dependencies. The POC Java source and current JAR are already present.
+The maintained embedded JRE build, protected world lifecycle and Wurm-specific
+device results remain open. The exact SQL patch recipe is also needed before
+supporting unpatched stock imports; the first server test should preserve the
+already working patched runtime. The POC Java source and current JAR are present.
+See [the post-PASS milestone](THOR_JVM_PASS.md#next-implementation-milestone) for
+the ordered implementation and device acceptance criteria.
 
 The import picker follows Android's
 [Storage Access Framework](https://developer.android.com/training/data-storage/shared/documents-files).

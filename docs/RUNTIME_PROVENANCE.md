@@ -3,6 +3,11 @@
 This document describes the open-source runtime used only by the `jvmProbe`
 build type. It contains no Wurm code. Normal `debug` builds do not bundle it.
 
+**Physical validation:** [0.3.2 passed on the AYN Thor](THOR_JVM_PASS.md) on
+2026-09-08: Java `17.0.10-internal` ran under an ordinary app UID and the imported
+Android SQLite driver completed a create/update/commit/close/reopen test. This
+validates the bounded diagnostic, not Wurm server operation or runtime maintenance.
+
 - Binary provider: [FCL-Team/FoldCraftLauncher](https://github.com/FCL-Team/FoldCraftLauncher/tree/c9f4590d4a8de4b6a58a145fcc7c8b1f0f0be354/FCL/src/main/jreAssets/app_runtime/java/jre17).
 - Pinned provider commit: `c9f4590d4a8de4b6a58a145fcc7c8b1f0f0be354`.
 - `bin-arm64.tar.xz`: SHA-256 `67f4510b0fa9c64ed851f4af924a5a8898538ada453f66d64542b72a0f04f92d`.
