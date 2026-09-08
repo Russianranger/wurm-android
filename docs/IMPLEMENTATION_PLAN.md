@@ -5,10 +5,13 @@ persistence passed. All four source server/common/SQLite hashes match the import
 report; the successful Termux JVM is OpenJDK 17.0.20. The next implemented gate is
 the separate [embedded JVM diagnostic](JVM_PROBE_TEST.md), using a pinned Android
 17.0.10 candidate. The first report verifies the APK native child at normal UID
-10182 and both SQLite inputs, but JLI exits while trying to re-exec a missing
-`bin/java`. Version 0.3.1 corrects the library-path order and adds launcher
-tracing plus a host JLI regression test. Physical Java/SQLite execution is still
-pending the repeat Thor run. The `jvmProbe`
+10182 and both SQLite inputs. The 0.3.1 report then confirms the re-exec fix
+(`mustsetenv: FALSE`) and successful `libjvm.so` loading at ordinary UID 10183.
+VM initialization stops at `Failed setting boot class path.` Version 0.3.2 adds
+a process-local JVM image-path adapter and verifies the core module archive.
+Native host tests cover both library-query APIs and the original flat-path
+failure. Java initialization and SQLite execution remain pending on the Thor.
+The `jvmProbe`
 build leaves the existing import and rooted launch paths intact; a maintained
 runtime is required before promoting this backend to Wurm server use.
 

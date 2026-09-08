@@ -59,7 +59,7 @@ val packageProbe by tasks.registering(Jar::class) {
     isReproducibleFileOrder = true
 }
 val prepareJvmProbe by tasks.registering(Exec::class) {
-    inputs.files(rootProject.file("scripts/prepare-jvm-probe.py"), rootProject.file("runtime-probe/native/jvm_runner.c"))
+    inputs.files(rootProject.file("scripts/prepare-jvm-probe.py"), rootProject.fileTree("runtime-probe/native"))
     outputs.dir(layout.buildDirectory.dir("generated/jvmProbe"))
     workingDir(rootProject.projectDir)
     commandLine("python3", rootProject.file("scripts/prepare-jvm-probe.py").absolutePath)
@@ -75,8 +75,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 4
-        versionName = "0.3.1"
+        versionCode = 5
+        versionName = "0.3.2"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

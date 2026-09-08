@@ -17,6 +17,43 @@ match the app's import report:
 This validates import identity/persistence, not Wurm database saving or the
 behavior of the earlier item SQL patch under the app UID.
 
+## Latest device report and 0.3.2 correction
+
+The 0.3.1 Thor report from 2026-09-08 11:42 UTC confirms `mustsetenv: FALSE`
+and successful loading of `libjvm.so`, at ordinary UID/eUID 10183. The earlier
+re-exec problem is resolved on the device. Initialization then stops with
+`Failed setting boot class path.`, exit 1. No Java/SQLite success markers appear.
+
+In the pinned Android HotSpot, `os::jvm_path` uses the loaded library name from
+`dl_iterate_phdr` (with `dladdr` as fallback). `init_system_properties_values`
+removes three path components to derive the initial Java home and locates
+`lib/modules`. This happens before the command-line `-Djava.home` is applied.
+Android's loader reports the canonical APK path, `.../lib/arm64/libjvm.so`, even
+when the file was opened through the private `.../lib/server/libjvm.so` symlink.
+That flat layout derives the APK directory instead of the private JRE image.
+
+Version 0.3.2 adds a small adapter to the existing native runner. Its two library
+query exports forward to the system linker and report the **selected JVM only**
+through its existing JRE alias. The adapter checks that alias resolves to the
+same APK-installed native file and that boot modules exist. It preserves library
+addresses, symbols, program headers and callback return values. Every other
+library keeps its original name. No upstream native binary is patched or copied
+to writable storage, and no device-wide setting changes.
+
+The app now verifies the installed 81,720,691-byte `lib/modules` image against
+SHA-256 `2cd3abc75196790da2ad94fffbf93c43b70415d8172a824e96619b401c408139`.
+The native build verifies both adapter exports. Three host tests use synthetic
+shared libraries to check the original flat-path failure, both adapted queries,
+an unrelated same-named library, callback behavior, and invalid image rejection.
+These are loader-contract tests; they do not constitute an Android JVM PASS.
+
+Source references:
+[HotSpot image-directory derivation](https://github.com/openjdk/jdk17u/blob/ca760c86642aa2e0d9b571aaabac054c0239fbdc/src/hotspot/os/linux/os_linux.cpp),
+[boot module lookup](https://github.com/openjdk/jdk17u/blob/ca760c86642aa2e0d9b571aaabac054c0239fbdc/src/hotspot/share/runtime/os.cpp),
+[Android HotSpot path patch](https://github.com/FCL-Team/Android-OpenJDK-Build/blob/ce21ce33b4f495e678c2cfdecb6abe893bf561ee/patches/jdk17u_android.diff),
+[Bionic canonical paths](https://github.com/aosp-mirror/platform_bionic/blob/android13-release/linker/linker.cpp),
+[Android global symbol lookup](https://github.com/aosp-mirror/platform_bionic/blob/android13-release/android-changes-for-ndk-developers.md).
+
 ## First JVM device report and 0.3.1 correction
 
 The Thor report from 2026-09-08 11:18 UTC confirms both SQLite input hashes,
@@ -43,7 +80,7 @@ the Java/SQLite success markers.
 
 1. Keep your existing **Wurm Server** app and its imported Adventure world.
 2. Download **Wurm-Server-JVM-Test.apk** from
-   [v0.3.1-jvm-probe](https://github.com/Russianranger/wurm-android/releases/tag/v0.3.1-jvm-probe).
+   [v0.3.2-jvm-probe](https://github.com/Russianranger/wurm-android/releases/tag/v0.3.2-jvm-probe).
    It installs as **Wurm Server JVM Test**, package
    `io.github.russianranger.wurmlauncher.jvmprobe`. No root, Termux or additional
    Java installation is needed to run this APK.
@@ -67,8 +104,10 @@ the Java/SQLite success markers.
 Expected success markers:
 
 ```text
+[runtime] Boot modules verified: 81720691 bytes, SHA-256 ...
 [native] uid=... euid=... pid=...
 mustsetenv: FALSE
+[native] JVM_IMAGE_PATH_OK: .../lib/server/libjvm.so
 [probe] java.version=17.0.10
 [probe] JAVA_OK
 [probe] SQLITE_OK: create/insert/update/commit/close/reopen
@@ -78,7 +117,9 @@ mustsetenv: FALSE
 ```
 
 If the report stops at `dlopen`, JLI or VM initialization, investigate native
-loading/image layout next. If it reaches `JAVA_OK` but SQLite fails, investigate
+loading/image layout next. In 0.3.2, `JVM_IMAGE_PATH_OK` establishes that a query
+was translated; it alone does not establish Java initialization. If it reaches
+`JAVA_OK` but SQLite fails, investigate
 the exact imported driver, Android native selection and its shared-library
 dependencies. Export includes the beginning of a JVM fatal-error report when
 one is available. A missing final result after reopening means the prior run
@@ -139,6 +180,28 @@ GameFolder initialization, the Steam shim, item SQLite updates, TCP 3724, and
 save/stop/restart. The currently working source-backed POC stays unchanged.
 
 ## Files changed for this milestone
+
+### 0.3.2 image-layout correction
+
+| File | Change |
+| --- | --- |
+| `runtime-probe/native/jvm_layout.c` | Forward system library queries with a verified image alias for the selected JVM |
+| `runtime-probe/native/jvm_layout.h` | Adapter initialization interface |
+| `runtime-probe/native/jvm_runner.c` | Initialize image layout before loading JLI |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/ProbeEnvironment.kt` | Supply the installed JVM's exact path |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/ProbeRuntime.kt` | Verify the installed Java module image and report its identity |
+| `scripts/prepare-jvm-probe.py` | Pin modules, compile the adapter and check its dynamic exports |
+| `tests/native/jvm_layout_library.c` | Synthetic shared-library fixture for both query APIs |
+| `tests/native/jvm_layout_runner.c` | Exercise the exported adapter from dynamically loaded libraries |
+| `tests/test_jvm_layout.py` | Three host regression tests with an unadapted negative control |
+| `app/build.gradle.kts` | Native source task inputs and version 0.3.2, code 5 |
+| `.github/workflows/android.yml` | Run native tests, verify packaged modules and publish 0.3.2 |
+| `docs/IMPLEMENTATION_PLAN.md` | Record passed launcher fix and the next initialization gate |
+| `docs/JVM_PROBE_TEST.md` | Explain device evidence, source diagnosis, correction and retest steps |
+| `docs/RUNTIME_PROVENANCE.md` | Document unchanged upstream binaries, module hash and adapter source |
+| `docs/RELEASE_JVM_PROBE.md` | Updated release findings and installation instructions |
+
+### 0.3.1 launcher-path correction
 
 The 0.3.1 correction changes the following files; the original 0.3.0 inventory
 is retained below.

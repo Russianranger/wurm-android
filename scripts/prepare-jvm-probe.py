@@ -52,6 +52,7 @@ def prepare(ndk, cache):
     assets.mkdir(parents=True)
     native.mkdir(parents=True)
     links = {}
+    modules_sha256 = None
     with zipfile.ZipFile(assets / "jre17-data.zip", "w", zipfile.ZIP_DEFLATED) as data:
         with tarfile.open(archives["universal.tar.xz"]) as source:
             for entry in source:
@@ -63,7 +64,10 @@ def prepare(ndk, cache):
                     raise ValueError(f"Unsupported runtime member: {path}")
                 if path.startswith("bin/") or path.endswith(".so"):
                     raise ValueError(f"Unexpected executable in universal archive: {path}")
-                data.writestr(path, source.extractfile(entry).read())
+                contents = source.extractfile(entry).read()
+                if path == "lib/modules":
+                    modules_sha256 = hashlib.sha256(contents).hexdigest()
+                data.writestr(path, contents)
         with tarfile.open(archives["bin-arm64.tar.xz"]) as source:
             for entry in source:
                 path = safe_path(entry.name)
@@ -86,7 +90,10 @@ def prepare(ndk, cache):
                         raise ValueError("Unexpected Android runtime version/architecture")
                     data.writestr("release", release)
         data.writestr("native-links.properties", "\n".join(f"{path}={name}" for path, name in sorted(links.items())))
+    if modules_sha256 != "2cd3abc75196790da2ad94fffbf93c43b70415d8172a824e96619b401c408139":
+        raise ValueError("Missing or unexpected Java boot module image")
     manifest = {"id": "fcl-jre17-" + FCL_COMMIT[:12], "javaVersion": "17.0.10", "sourceCommit": FCL_COMMIT,
+                "modulesSha256": modules_sha256,
                 "archives": {name: {"url": BASE + name, "sha256": digest} for name, digest in ARCHIVES.items()},
                 "dataSha256": hashlib.sha256((assets / "jre17-data.zip").read_bytes()).hexdigest(),
                 "nativeSha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(native.glob("*.so"))}}
@@ -96,8 +103,16 @@ def prepare(ndk, cache):
     if not compiler.is_file():
         raise ValueError("JVM test build requires Linux x86_64 NDK 26.1.10909125; set ANDROID_NDK_HOME")
     subprocess.run([str(compiler), "-O2", "-Wall", "-Wextra", "-Werror", "-fPIE", "-pie",
-                    "-Wl,-z,max-page-size=16384", str(ROOT / "runtime-probe/native/jvm_runner.c"),
+                    "-Wl,-z,max-page-size=16384", "-Wl,--export-dynamic-symbol=dl_iterate_phdr",
+                    "-Wl,--export-dynamic-symbol=dladdr", str(ROOT / "runtime-probe/native/jvm_runner.c"),
+                    str(ROOT / "runtime-probe/native/jvm_layout.c"),
                     "-ldl", "-o", str(native / "libwurmjvm_runner.so")], check=True)
+    readelf = compiler.parent / "llvm-readelf"
+    symbols = subprocess.check_output([str(readelf), "--dyn-syms", str(native / "libwurmjvm_runner.so")], text=True)
+    for name in ("dl_iterate_phdr", "dladdr"):
+        if not any(line.split()[-1:] == [name] and " GLOBAL " in line and " UND " not in line
+                   for line in symbols.splitlines()):
+            raise ValueError(f"Native runner missing exported layout adapter: {name}")
     print("Prepared pinned Android OpenJDK 17.0.10 and native runner; no game files included.")
 
 

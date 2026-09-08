@@ -38,7 +38,7 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125" >> "$GITHUB_ENV"
-      - name: Test supervisor
+      - name: Test supervisor and native JVM layout
         run: python3 -m unittest discover -s tests -v
       - name: Build, unit test and lint
         run: bash ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleJvmProbe :app:testJvmProbeUnitTest :app:lintJvmProbe
@@ -73,10 +73,12 @@ jobs:
       - name: Verify and prepare JVM diagnostic release
         run: |
           python3 - <<'PY'
-          import hashlib, json, pathlib, zipfile
+          import hashlib, io, json, pathlib, zipfile
           with zipfile.ZipFile('app/build/outputs/apk/jvmProbe/app-jvmProbe.apk') as apk:
               info = json.loads(apk.read('assets/jvm-runtime.json'))
               assert hashlib.sha256(apk.read('assets/jre17-data.zip')).hexdigest() == info['dataSha256']
+              with zipfile.ZipFile(io.BytesIO(apk.read('assets/jre17-data.zip'))) as jre:
+                  assert hashlib.sha256(jre.read('lib/modules')).hexdigest() == info['modulesSha256']
               for name, digest in info['nativeSha256'].items():
                   assert hashlib.sha256(apk.read('lib/arm64-v8a/' + name)).hexdigest() == digest, name
               assert apk.read('lib/arm64-v8a/libwurmjvm_runner.so')[:4] == b'\x7fELF'
@@ -147,7 +149,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      PROBE_TAG: v0.3.1-jvm-probe
+      PROBE_TAG: v0.3.2-jvm-probe
     steps:
       - name: Publish first passing JVM diagnostic APK
         run: |
@@ -157,6 +159,6 @@ jobs:
           fi
           gh run download "$GITHUB_RUN_ID" --name wurm-jvm-probe --dir dist
           gh release create "$PROBE_TAG" --target "$GITHUB_SHA" --prerelease \
-            --title 'Wurm Server 0.3.1 — JVM launcher fix' --notes-file dist/release-notes.md \
+            --title 'Wurm Server 0.3.2 — JVM image layout fix' --notes-file dist/release-notes.md \
             'dist/Wurm-Server-JVM-Test.apk#Wurm Server JVM Test APK' dist/SHA256SUMS \
             dist/RUNTIME_PROVENANCE.md dist/OpenJDK17-base-source.tar.gz dist/Android-OpenJDK-build-source.tar.gz

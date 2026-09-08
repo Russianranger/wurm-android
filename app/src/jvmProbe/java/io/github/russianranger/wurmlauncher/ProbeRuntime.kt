@@ -60,6 +60,11 @@ object ProbeRuntime {
             Files.deleteIfExists(link.toPath())
             Files.createSymbolicLink(link.toPath(), File(nativeDir, name).toPath())
         }
+        val modules = File(home, "lib/modules")
+        require(modules.isFile && ProbeInputs.sha256(modules) == info.getString("modulesSha256")) {
+            "Installed Java boot modules are missing or corrupt; reinstall Wurm Server JVM Test."
+        }
+        log("[runtime] Boot modules verified: ${modules.length()} bytes, SHA-256 ${info.getString("modulesSha256")}")
         log("[runtime] JRE data and APK native libraries verified")
         return home
     }

@@ -14,6 +14,7 @@ internal object ProbeEnvironment {
         // deliberately isn't an executable in the Android writable JRE image.
         "LD_LIBRARY_PATH" to "${home.absolutePath}/lib/server:${home.absolutePath}/lib:${native.absolutePath}",
         "WURM_JLI_PATH" to File(native, "libjli.so").absolutePath,
+        "WURM_JVM_PATH" to File(native, "libjvm.so").absolutePath,
         "_JAVA_LAUNCHER_DEBUG" to "1"
     )
 }

@@ -6,6 +6,7 @@
 #include <sys/prctl.h>
 #include <signal.h>
 #include <unistd.h>
+#include "jvm_layout.h"
 
 /* OpenJDK libjli's public launcher entry point (java.h, JDK 17). */
 typedef int (*jli_launch_fn)(int, char **, int, const char **, int, const char **,
@@ -28,7 +29,10 @@ int main(int argc, char **argv) {
     printf("[native] uid=%u euid=%u pid=%u; starting APK-packaged Java launcher\n",
            (unsigned)getuid(), (unsigned)geteuid(), (unsigned)getpid());
     const char *jli_path = getenv("WURM_JLI_PATH");
-    if (jli_path == NULL || getenv("JAVA_HOME") == NULL) return 72;
+    const char *jvm_path = getenv("WURM_JVM_PATH");
+    const char *home = getenv("JAVA_HOME");
+    if (jli_path == NULL || jvm_path == NULL || home == NULL) return 72;
+    if (!wurm_jvm_layout_init(home, jvm_path)) return 76;
     void *jli = dlopen(jli_path, RTLD_NOW | RTLD_GLOBAL);
     if (jli == NULL) {
         fprintf(stderr, "[native] dlopen libjli failed: %s\n", dlerror());

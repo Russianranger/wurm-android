@@ -27,6 +27,19 @@ The JRE's desktop command-line executables are not packaged. The new handwritten
 `runtime-probe/native/jvm_runner.c` calls the JLI entry point in a fresh native
 process, without copying Fold Craft Launcher's launcher/graphics implementation.
 
+Since 0.3.2, the runner also builds the handwritten `jvm_layout.c` adapter. It
+exports `dl_iterate_phdr` and `dladdr`, forwards both to the system linker, and
+changes only the selected `libjvm.so`'s reported filename to its verified existing
+`JAVA_HOME/lib/server/libjvm.so` alias. The alias resolves to the same APK-installed
+file; mappings, symbols and native bytes are unchanged. This accommodates the
+pinned Android HotSpot's early image-directory derivation. It applies only inside
+the diagnostic child, before Java initializes. The adapter source is included in
+this repository and the release tag's source archive.
+
+The unchanged `lib/modules` image is 81,720,691 bytes, SHA-256
+`2cd3abc75196790da2ad94fffbf93c43b70415d8172a824e96619b401c408139`.
+Build and device installation both verify this core-class image.
+
 Companion source archives are published with the diagnostic APK:
 `OpenJDK17-base-source.tar.gz` and `Android-OpenJDK-build-source.tar.gz`.
 The latter includes the Android patches, build scripts, toolchain settings and

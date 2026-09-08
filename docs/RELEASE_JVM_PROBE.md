@@ -1,8 +1,14 @@
-**0.3.1 fixes the launcher path that caused the Thor's `trying to exec .../bin/java`
-failure in 0.3.0.** The JVM library directory now comes first in the child's
-library search path, avoiding OpenJDK's environment-change re-exec. A real host
-JDK 17 regression test covers both path orders. The next Thor run must establish
-whether Android Java and SQLite now pass; that result is still pending.
+**0.3.2 addresses the Thor's `Failed setting boot class path.` failure.**
+The 0.3.1 device report confirms that the earlier launcher-path fix worked and
+`libjvm.so` loaded without root. This next correction lets the pinned JVM discover
+the existing private JRE image while its native code remains in the APK install
+directory. It also checks the core Java module archive's exact hash on the device.
+
+The small native adapter changes only the selected JVM's reported library name
+inside the disposable test process. The upstream runtime binaries stay unchanged.
+Host tests exercise both library-query APIs, preserve unrelated libraries and
+callback behavior, and reject missing modules or a mismatched alias. Android Java
+initialization and SQLite still need the next Thor run; they have not passed yet.
 
 Install **Wurm-Server-JVM-Test.apk** alongside the existing Wurm Server app.
 This separate diagnostic package preserves your existing imported Adventure
@@ -28,6 +34,7 @@ If Android rejects the update due to a different signing key, uninstall
 **Wurm Server JVM Test only**, then install this APK. The original Wurm Server
 app and its Adventure import use a different package and should be kept.
 
-The new report starts with app version **0.3.1-jvm-probe** and includes JLI
-tracing. Look for `mustsetenv: FALSE`, then `JAVA_OK`, `SQLITE_OK`, `PROBE_OK`
-and `RESULT: PASS`. Export the report even if another failure appears.
+The new report starts with app version **0.3.2-jvm-probe**. Look for
+`Boot modules verified`, `mustsetenv: FALSE`, `JVM_IMAGE_PATH_OK`, then `JAVA_OK`,
+`SQLITE_OK`, `PROBE_OK` and `RESULT: PASS`. Export the report even if another
+failure appears.
