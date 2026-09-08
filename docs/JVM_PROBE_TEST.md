@@ -17,14 +17,39 @@ match the app's import report:
 This validates import identity/persistence, not Wurm database saving or the
 behavior of the earlier item SQL patch under the app UID.
 
+## First JVM device report and 0.3.1 correction
+
+The Thor report from 2026-09-08 11:18 UTC confirms both SQLite input hashes,
+the JRE data/native checks, and the APK-installed child running as ordinary
+UID/eUID 10182. It then fails with `trying to exec .../bin/java`, exit 1.
+Java initialization and SQLite execution have **not** passed on the device.
+
+The 0.3.0 environment put the APK native directory first in `LD_LIBRARY_PATH`.
+OpenJDK's [RequiresSetenv and CreateExecutionEnvironment](https://github.com/openjdk/jdk17u/blob/ca760c86642aa2e0d9b571aaabac054c0239fbdc/src/java.base/unix/native/libjli/java_md.c)
+detect the later `lib/server/libjvm.so` and request a re-exec. The Android
+[SetExecname patch](https://github.com/FCL-Team/Android-OpenJDK-Build/blob/ce21ce33b4f495e678c2cfdecb6abe893bf561ee/patches/jdk17u_android.diff)
+derives that executable as `JAVA_HOME/bin/java`. This image deliberately keeps
+executables in the APK install location; that writable-home executable is absent.
+
+Version 0.3.1 puts `JAVA_HOME/lib/server` first, followed by `JAVA_HOME/lib` and
+the APK native directory. The environment is set before starting the child.
+A regression test exercises a real Linux JDK 17 launcher with both orders:
+the old order requests re-exec; the corrected order does not. Android-specific
+loading still needs the repeat Thor test. Launcher tracing and the app version
+are now included in the exported report. Look for `mustsetenv: FALSE` before
+the Java/SQLite success markers.
+
 ## What to install and run
 
 1. Keep your existing **Wurm Server** app and its imported Adventure world.
 2. Download **Wurm-Server-JVM-Test.apk** from
-   [v0.3.0-jvm-probe](https://github.com/Russianranger/wurm-android/releases/tag/v0.3.0-jvm-probe).
+   [v0.3.1-jvm-probe](https://github.com/Russianranger/wurm-android/releases/tag/v0.3.1-jvm-probe).
    It installs as **Wurm Server JVM Test**, package
    `io.github.russianranger.wurmlauncher.jvmprobe`. No root, Termux or additional
    Java installation is needed to run this APK.
+   If Android rejects the update because its development signing key changed,
+   uninstall **Wurm Server JVM Test only**, then install the new APK. Keep the
+   original **Wurm Server** app installed; its imported Adventure is separate.
 3. Have at least 400 MiB of free internal storage and your existing prepared
    runtime ZIP in Downloads. The ZIP seen in your screenshot was about 219 MiB.
 4. Open the test app and tap **Select Runtime ZIP and Run Test**. Select that
@@ -43,6 +68,7 @@ Expected success markers:
 
 ```text
 [native] uid=... euid=... pid=...
+mustsetenv: FALSE
 [probe] java.version=17.0.10
 [probe] JAVA_OK
 [probe] SQLITE_OK: create/insert/update/commit/close/reopen
@@ -113,6 +139,22 @@ GameFolder initialization, the Steam shim, item SQLite updates, TCP 3724, and
 save/stop/restart. The currently working source-backed POC stays unchanged.
 
 ## Files changed for this milestone
+
+The 0.3.1 correction changes the following files; the original 0.3.0 inventory
+is retained below.
+
+| File | 0.3.1 change |
+| --- | --- |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/ProbeEnvironment.kt` | New shared launch environment with the JVM directory first and JLI tracing |
+| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/JvmProbeCoordinator.kt` | Apply that environment and include app version in reports |
+| `app/src/testJvmProbe/java/io/github/russianranger/wurmlauncher/ProbeEnvironmentTest.kt` | Real host JLI regression test including the failing order as a negative control |
+| `app/build.gradle.kts` | Version 0.3.1, code 4 |
+| `.github/workflows/android.yml` | Publish a new immutable 0.3.1 diagnostic release |
+| `docs/JVM_PROBE_TEST.md` | Device failure, cause, correction, install steps and file inventory |
+| `docs/RELEASE_JVM_PROBE.md` | Launcher-fix release notes and test-app update instructions |
+| `docs/IMPLEMENTATION_PLAN.md` | Record the native launch passing and JLI startup failure |
+
+### Original diagnostic milestone
 
 | File | Purpose |
 | --- | --- |

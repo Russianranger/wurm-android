@@ -4,7 +4,11 @@
 persistence passed. All four source server/common/SQLite hashes match the import
 report; the successful Termux JVM is OpenJDK 17.0.20. The next implemented gate is
 the separate [embedded JVM diagnostic](JVM_PROBE_TEST.md), using a pinned Android
-17.0.10 candidate. Physical Java/SQLite execution is still pending. The `jvmProbe`
+17.0.10 candidate. The first report verifies the APK native child at normal UID
+10182 and both SQLite inputs, but JLI exits while trying to re-exec a missing
+`bin/java`. Version 0.3.1 corrects the library-path order and adds launcher
+tracing plus a host JLI regression test. Physical Java/SQLite execution is still
+pending the repeat Thor run. The `jvmProbe`
 build leaves the existing import and rooted launch paths intact; a maintained
 runtime is required before promoting this backend to Wurm server use.
 

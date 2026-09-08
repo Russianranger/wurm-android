@@ -1,6 +1,7 @@
 package io.github.russianranger.wurmlauncher
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import java.io.File
@@ -49,7 +50,8 @@ object JvmProbeCoordinator {
         timedOut = false
         lines.clear()
         detail = "Preparing diagnostic… Keep this app open."
-        append("Wurm Server JVM Test · ${Instant.now()}")
+        val version = app.packageManager.getPackageInfo(app.packageName, PackageManager.PackageInfoFlags.of(0)).versionName
+        append("Wurm Server JVM Test $version · ${Instant.now()}")
         append("[app] Android ${Build.VERSION.RELEASE}, API ${Build.VERSION.SDK_INT}, ABIs ${Build.SUPPORTED_ABIS.joinToString()}")
         append("[app] uid=${android.os.Process.myUid()}; no Wurm world is opened")
         save(app)
@@ -91,13 +93,9 @@ object JvmProbeCoordinator {
             val builder = ProcessBuilder(args).directory(runDir).redirectErrorStream(true)
             builder.environment().apply {
                 clear()
-                put("JAVA_HOME", home.absolutePath)
-                put("TMPDIR", tmp.absolutePath)
-                put("PATH", "/system/bin")
-                put("LANG", "en_US.UTF-8")
-                put("LD_LIBRARY_PATH", "${native.absolutePath}:${home.absolutePath}/lib:${home.absolutePath}/lib/server")
-                put("WURM_JLI_PATH", File(native, "libjli.so").absolutePath)
+                putAll(ProbeEnvironment.create(home, native, tmp))
             }
+            append("[app] JLI tracing enabled; JVM directory is first in LD_LIBRARY_PATH")
             synchronized(this) {
                 if (cancelled) throw InterruptedException("Cancelled")
                 child = builder.start()

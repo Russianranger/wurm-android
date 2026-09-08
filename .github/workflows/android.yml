@@ -147,7 +147,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      PROBE_TAG: v0.3.0-jvm-probe
+      PROBE_TAG: v0.3.1-jvm-probe
     steps:
       - name: Publish first passing JVM diagnostic APK
         run: |
@@ -157,6 +157,6 @@ jobs:
           fi
           gh run download "$GITHUB_RUN_ID" --name wurm-jvm-probe --dir dist
           gh release create "$PROBE_TAG" --target "$GITHUB_SHA" --prerelease \
-            --title 'Wurm Server 0.3.0 — JVM diagnostic' --notes-file dist/release-notes.md \
+            --title 'Wurm Server 0.3.1 — JVM launcher fix' --notes-file dist/release-notes.md \
             'dist/Wurm-Server-JVM-Test.apk#Wurm Server JVM Test APK' dist/SHA256SUMS \
             dist/RUNTIME_PROVENANCE.md dist/OpenJDK17-base-source.tar.gz dist/Android-OpenJDK-build-source.tar.gz
