@@ -13,6 +13,7 @@ public final class ClientBootstrap {
     public static void main(String[] args) {
         String mode = args.length == 1 ? args[0] : "invalid";
         log("JVM_STARTED java=" + System.getProperty("java.version") + " arch=" + System.getProperty("os.arch"));
+        log("AWT_MODE headless=" + System.getProperty("java.awt.headless", "default") + "; desktop AWT mode is separate from native LWJGL window support");
         log("MODE " + mode + " target=127.0.0.1:3724; Wurm protocol connection NOT established");
         int exit = 0;
         try {

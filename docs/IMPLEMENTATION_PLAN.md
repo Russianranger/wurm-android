@@ -2,6 +2,17 @@
 
 ## Current priority: in-app client integration (0.7.0)
 
+**Physical evidence now available:** [THOR_CLIENT_FINDINGS.md](THOR_CLIENT_FINDINGS.md)
+records successful import/JVM/class initialization/GLES/TCP and the precise
+`launch(Profile.PlayerProfile, Resources, boolean)` descriptor. Engine launch
+was not invoked. The first graphics failure is missing `libawt_xawt.so`, requested
+by 0.7.0's forced desktop AWT mode despite the headless-only JRE. Source corrects
+that setting; this is not an Android LWJGL backend or a demonstrated rendering fix.
+Inspect the matching user-supplied `client.jar` privately next to determine profile
+and resource construction, the boolean's meaning and SteamAuthTicket handling.
+Do not guess these contracts or commit the game JAR. The report has Android input
+translations but no JVM receiver startup/acknowledgements; that test remains open.
+
 The user has no separate PC. The next acceptance target is **Android server →
 Android Wurm client → local login → rendered world → controller input**.
 Earlier references below to external-PC/LAN testing describe historical plans;

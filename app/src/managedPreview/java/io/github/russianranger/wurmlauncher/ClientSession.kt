@@ -24,7 +24,7 @@ object ClientSession {
     private val lines = ArrayDeque<String>()
     private var worker: Thread? = null
     fun snapshot() = state
-    fun inputReady() = inputReady
+    fun inputReady() = inputReady && child?.isAlive == true
     fun store(context: Context) = ClientStore(File(context.filesDir, "managed-client"))
     fun profileFile(context: Context) = File(context.filesDir, "controller.properties")
     @Synchronized fun log(message: String) {
@@ -93,9 +93,11 @@ object ClientSession {
         }
         child = null; inputReady = false
     }
-    fun send(event: String) {
-        if (!inputReady || child?.isAlive != true) return
-        if (!queue.offer(event)) { queue.clear(); queue.offer("RESET"); log("[input] QUEUE_RESET overflow; held input released") }
+    fun send(event: String): Boolean {
+        if (!inputReady()) return false
+        if (queue.offer(event)) return true
+        queue.clear(); queue.offer("RESET"); log("[input] QUEUE_RESET overflow; held input release queued")
+        return false
     }
     private fun checkCancelled() { if (cancelled || Thread.currentThread().isInterrupted) throw InterruptedException("Client operation cancelled") }
     private fun reachable() = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", 3724), 300) }; true }.getOrDefault(false)
@@ -144,7 +146,9 @@ object ClientSession {
                 checkCancelled(); queue.clear(); inputReady = false
                 status(if (stage == "input") "Input diagnostic" else "Starting client", "Bootstrap stage: $stage")
                 val args = listOf(File(native, "libwurmjvm_runner.so").absolutePath, "-Xms32m", "-Xmx1024m",
-                    "-Djava.home=$home", "-Djava.io.tmpdir=$tmp", "-Duser.home=$user", "-Djava.awt.headless=false",
+                    // The packaged JRE is built --enable-headless-only=yes. AWT X11 is unavailable;
+                    // native LWJGL window creation is still attempted independently below.
+                    "-Djava.home=$home", "-Djava.io.tmpdir=$tmp", "-Duser.home=$user", "-Djava.awt.headless=true",
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-cp", cp.joinToString(":"), "client.ClientBootstrap", stage)

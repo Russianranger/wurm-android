@@ -47,8 +47,8 @@ class ControllerTestActivity : Activity(), InputManager.InputDeviceListener {
         mapper = ControllerMapping(runCatching { ControllerProfile.load(ClientSession.profileFile(this)) }.getOrElse {
             ClientSession.log("[input] PROFILE_INVALID ${it.message}; diagnostic using defaults"); ControllerProfile()
         }) { event ->
-            ClientSession.send(event); canvas.accept(event)
-            if (!event.startsWith("MOVE ") || ++moves % 30 == 0) ClientSession.log("[controller] TRANSLATE $event; sink=diagnostic")
+            val queued = ClientSession.send(event); canvas.accept(event)
+            if (!event.startsWith("MOVE ") || ++moves % 30 == 0) ClientSession.log("[controller] TRANSLATE $event; queued=$queued; sink=diagnostic")
         }
     }
     override fun onResume() {

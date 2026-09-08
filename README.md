@@ -1,5 +1,12 @@
 # Wurm Server for Android
 
+**Thor 0.7.0 result:** client import, Java startup, `WurmClientBase` class
+initialization, Android GLES and local TCP reachability passed. The report exposes
+`launch(PlayerProfile, Resources, boolean)` and the client Steam API. Actual launch
+arguments, Wurm rendering/login and controller delivery into the JVM remain open.
+Source now corrects the preview's incompatible desktop-AWT setting; the published
+0.7.0 APK is unchanged. See [findings and required next input](docs/THOR_CLIENT_FINDINGS.md).
+
 **0.7.0 client integration preview:** managed client ZIP import, real client/JVM
 linkage attempts, an independent LWJGL2 initialization attempt, editable handheld
 controller mappings, Android GLES surface diagnostics and keyboard/mouse IPC to
