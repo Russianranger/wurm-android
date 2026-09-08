@@ -1,23 +1,27 @@
 # Wurm Server for Android
 
-**Thor 0.7.0 result:** client import, Java startup, `WurmClientBase` class
-initialization, Android GLES and local TCP reachability passed. The report exposes
-`launch(PlayerProfile, Resources, boolean)` and the client Steam API. Actual launch
-arguments, Wurm rendering/login and controller delivery into the JVM remain open.
-Source now corrects the preview's incompatible desktop-AWT setting; the published
-0.7.0 APK is unchanged. See [findings and required next input](docs/THOR_CLIENT_FINDINGS.md).
+**0.8.0 client launch preview:** **Start Controller Test** now starts its JVM
+receiver automatically. The new source-built client adapter supplies the real
+profile/resources launch contract, replaces the JavaFX launcher's utility methods,
+and adds a local-only Steam identity/ticket shim. Its compatibility check passes
+against the user's matching client JAR on the development host; Thor acceptance
+is next. The profile setup itself reaches LWJGL native loading, so rendering and
+world entry still require the Android graphics bridge.
 
-**0.7.0 client integration preview:** managed client ZIP import, real client/JVM
-linkage attempts, an independent LWJGL2 initialization attempt, editable handheld
-controller mappings, Android GLES surface diagnostics and keyboard/mouse IPC to
-a JVM receiver. Export `wurm-client-report.txt` entirely on the Thor.
-**Wurm rendering, client Steam compatibility and game login remain unimplemented.**
-This build gathers the exact imported client ABI/native blocker needed next.
-See [the install and physical test](docs/CLIENT_THOR_TEST.md),
-[architecture and reusable Pojav components](docs/CLIENT_INTEGRATION.md), and
-[download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.7.0-client-preview).
-Keep 0.6.0 installed: the new `.clientpreview` package can probe its running
-server at `127.0.0.1:3724` without migrating the world or requiring a PC.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.8.0-client-launch),
+follow [the exact no-PC Thor test](docs/CLIENT_THOR_TEST.md), and export
+**wurm-client-report.txt** from the Client tab. The new `.clientlaunch` package
+installs alongside earlier versions. Keep the working 0.6.0 server and its world;
+the new app can connect to its listener at `127.0.0.1:3724` without migration.
+The controller test needs no game import. Client launch needs the same complete
+owned client ZIP imported into this new package.
+
+[Architecture, remaining gates and every 0.8.0 changed file](docs/CLIENT_INTEGRATION.md)
+include the reusable Pojav/LWJGLX/GL4ES path. No proprietary JARs or assets are
+committed or bundled. **This is not yet a playable client.** Physical receiver
+delivery, Android native graphics, local ticket acceptance and Wurm login remain
+unpassed gates. [0.7.0 findings](docs/THOR_CLIENT_FINDINGS.md) retain the earlier
+device evidence and now record private inspection of the supplied client JAR.
 
 **0.6.0 passed on the Thor:** the world report survived app reopening, five
 Adventure map files and the active `localhost/sqlite` databases were observed,

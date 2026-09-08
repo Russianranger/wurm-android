@@ -1,125 +1,101 @@
-# AYN Thor: client import/bootstrap/controller test (0.7.0)
+# AYN Thor: 0.8.0 client launch and automatic controller test
 
-This is the next testable client milestone, not a playable Wurm release. It
-attempts real client class initialization and LWJGL startup and reports the
-precise blocker. It also tests physical controller mapping into a Java receiver.
-No PC, root, Termux command or separate Java installation is needed for these tests.
+No PC, root, Termux command or separate Java installation is needed. This is a
+startup/compatibility preview, not yet a playable Wurm client.
 
-## Install and prepare the exact input
+## Install
 
-1. Download `Wurm-Server.apk` from
-   [v0.7.0-client-preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.7.0-client-preview)
-   on the Thor and install it. Its label remains **Wurm Server**; Android App info
-   shows version `0.7.0-managed-preview`, package
-   `io.github.russianranger.wurmlauncher.clientpreview`.
-2. **Keep 0.6.0 installed with its world data.** The package is deliberately
-   separate because CI uses a new debug signing key. This is not an in-place
-   upgrade. The Server tab in 0.7.0 initially has no server import; the old app
-   still owns Adventure and its reports.
-3. Put one ZIP of your **legally obtained complete Wurm Unlimited client
-   installation** in Android Downloads (or another document-picker location).
-   A common installation folder is called `WurmLauncher`. The ZIP must contain
-   `client.jar`, `common.jar`, the complete `lib/` directory and **all other client
-   asset/resource directories and files**, preserving their relative paths.
-   Select the entire client folder with an Android file manager's ZIP/Compress
-   action; do not create a JAR-only archive. Both a flat ZIP and one outer
-   `WurmLauncher/` folder are accepted. Nested installer/Steam library folders
-   must be unpacked to the actual client first.
-4. In typical versions `lib/` includes LWJGL2 (such as `lwjgl-2.9.1.jar`),
-   `lwjgl_util`, `SteamClientJni.jar`, PNGDecoder and other game libraries. Keep
-   the exact matching set from your client; do not rename JARs or download guessed
-   replacements. Include `packs/`, textures, sounds, models or other resources
-   wherever your version stores them. The importer checks class providers and
-   lists resource candidates; startup must still establish asset completeness.
-5. The server runtime ZIP previously used for Adventure is **not** the client ZIP.
-   If you currently have only the server files, the controller/JVM/GLES test below
-   can still run, but Wurm bootstrap needs the owned client files. This APK does
-   not download Steam depots or supply game files. No `wurm-arm64-poc.jar`, desktop
-   JRE, extra Android Java or downloaded graphics pack is required from you.
+1. Download **Wurm-Server.apk** from
+   [v0.8.0-client-launch](https://github.com/Russianranger/wurm-android/releases/tag/v0.8.0-client-launch)
+   on the Thor and install it. Android App info must show **0.8.0-managed-preview**,
+   package `io.github.russianranger.wurmlauncher.clientlaunch`. The Client tab
+   heading shows **Wurm Client · 0.8.0**.
+2. Keep your working **0.6.0** server app and Adventure data installed. Keep 0.7.0
+   too if you want its old report/import. CI debug keys are not stable, so this
+   release uses a new package and installs alongside them; it is not an in-place
+   upgrade. Do not uninstall the working server to install this APK.
 
-Allow enough internal space for the expanded ZIP and, on replacement, both old
-and new client copies. The importer retains at least a 128 MiB free-space reserve
-and limits expanded input to 32 GiB. The full ZIP remains your source backup.
+## Test the missing receiver control first — no import required
 
-## First run: controller and Android surface (works without client files)
+1. Open the **new 0.8.0 app → Client tab → Start Controller Test**.
+   There is no separate Start JVM Receiver step. The test requests startup itself.
+2. Wait for **JVM receiver: READY**. Runtime installation/checks may take a moment.
+   If a client operation is already active, wait for it to finish or stop it,
+   then tap **Retry Receiver** in the test's top row. Swipe that row horizontally
+   if large fonts hide a control. This never replaces a running Wurm client.
+3. Move the left stick up/right (W/D), move the right stick, press A, B, X, Y,
+   LB/RB, LT/RT, D-pad, Start and Select. Default A/RT are left-click and LT is
+   right-click. The cursor/background are Android diagnostics, not Wurm frames.
+4. Switch apps and return with sticks neutral; then tap **Stop Receiver** and
+   **Exit Test** using touch. Enter Controller Settings, change one mapping or
+   sensitivity, tap Save mappings, reopen the app and confirm it persisted.
+5. On the Client tab tap **Export Client Report**. Save and send
+   **wurm-client-report.txt**. This is the Client Report, not the server Session,
+   Storage or World report. For this run it must contain `INPUT_READY` and
+   `INPUT_RECEIVED`; `TRANSLATE` or `queued=true` alone is insufficient.
 
-1. Open **0.7.0 Wurm Server → Client tab** and allow notifications.
-2. Open **Controller Settings**. Check the detected name. Keep defaults initially,
-   or edit a binding/dead zone/mouse speed/invert-Y; tap **Save mappings**.
-3. Open **Controller / JVM Input Test → Start JVM Input Receiver**.
-   Wait for **JVM receiver: READY**. Runtime installation/checks can take a moment.
-   A dark GLES background and cyan diagnostic cursor should appear. A blank
-   background alone is not evidence of Wurm rendering.
-4. Hold the left stick up/right: the diagnostic should show KEY 17/32 down and
-   release (W/D). Hold the right stick: the cursor should move continuously and
-   stop at neutral. A and RT map to left mouse; LT to right mouse. Hold A and RT
-   together, release one, then the other: only the last release ends left-click.
-   Test B, X, Y, shoulders, D-pad, Start and Select.
-5. Switch apps while a control is held, then return with sticks neutral. No held
-   input should remain. Unplug/reconnect an external controller if you use one;
-   the built-in Thor controller does not need physical disconnection.
-6. Tap **Stop Client Receiver**, then **Exit Input Test** using the touchscreen
-   (controller Escape is intentionally captured in the test). Change one setting,
-   save, close/reopen the app and verify it persists. Reopen the input test to
-   apply a changed profile. Restore defaults if desired. The receiver stops
-   automatically after ten minutes; that is the diagnostic limit.
+The diagnostic receiver stops after ten minutes. Exit/focus loss releases held
+input; exiting the screen does not itself stop the receiver. Use Stop Receiver
+before starting a client operation. Input goes to a Java diagnostic sink; it
+has not yet been attached to Wurm's keyboard/mouse queues.
 
-Expected report markers: `ANDROID_SURFACE_CREATED`, Android GL vendor/renderer/
-version, controller name and axis ranges, `TRANSLATE`, `INPUT_READY`,
-`INPUT_RECEIVED`, held counts and focus `RESET`. `sink=diagnostic` means the
-events reached our JVM receiver, **not Wurm's keyboard/mouse queues yet**.
+## Exact client files to import
 
-## Client import and real startup attempt
+Use the **same complete client ZIP** that produced the successful 0.7.0 import.
+It should already be accessible in Downloads. The new package needs its own
+import; do not copy just the uploaded client.jar or use your server-runtime ZIP.
 
-1. In Client tab tap **Import Client ZIP**, select the complete client ZIP and
-   wait for **Client import validated**. If it fails, export the client report
-   immediately. A failed replacement preserves the previous accepted import.
-2. Close/reopen 0.7.0 and confirm the client import generation is still displayed.
-3. Tap **Start Client**. Leave the app open until the stages finish. The app uses
-   its packaged Java to inspect your actual JARs, initialize `WurmClientBase`,
-   resolve/attempt its supported direct launch method, and independently invoke
-   imported LWJGL2 `Display.create()`. Each stage is capped at two minutes.
-4. The expected current result is **Blocked**, with explicit method-signature,
-   missing-class or native-library evidence. That is useful output for the next
-   adapter implementation. No Steam shim/renderer is secretly substituted, and
-   no Wurm login is claimed. Stop Client can cancel a stuck stage.
-5. Tap **Export Client Report** and save `wurm-client-report.txt` in Downloads.
-   This is the **Client Report**, not Storage, World or server Session Report.
-   Export soon after the test because logs are bounded/rotated.
+The ZIP must contain the legally obtained full client installation, preserving:
 
-The report includes client file identity/classpath, exact launch and Steam JNI
-method descriptors, JRE startup, linkage/graphics exceptions, child exit/native
-crash evidence, controller profile and persisted session logs. It does not export
-your proprietary JAR contents. Keep reports from different runs with distinct
-filenames if needed.
+- `client.jar` and `common.jar` at the client root.
+- The complete `lib/` directory, with the matching libraries from that install.
+- The complete `packs/` directory, including its original resource JARs.
+- All other original asset directories/files, including `nativelibs/` if present.
 
-## Local server + client flow on the same Thor
+Flat ZIPs and one outer `WurmLauncher/` folder are accepted. An Android file
+manager's ZIP/Compress action on the entire client folder is sufficient. The
+known client bundles LWJGL/OpenAL/JInput classes in client.jar; do not download
+or add guessed extra LWJGL JARs. No proprietary files are downloaded by the app.
+No POC JAR, separate Steam shim, desktop JRE, graphics adapter download or JavaFX
+installation is required from you; the app supplies its handwritten adapters.
+Allow room for the roughly 1.64 GB expanded client in this separate package.
 
-1. Stop any client diagnostic still running. Open the **existing 0.6.0** app and
-   start Adventure normally. Wait for its proven **Running/TCP 3724** status.
-2. Switch to **0.7.0 → Client tab → Start Local Game**. Keep the client import
-   from above. It should record `TCP_PROBE target=127.0.0.1:3724 reachable=true`
-   and run the client bootstrap. No PC or server migration is needed for this path.
-3. Wait for the explicit client result and **Export Client Report again**, preferably
-   as `wurm-client-report-local.txt`. Confirm the 0.6.0 server remains running.
-   Stop it using its own normal Stop Server when finished.
-4. To test 0.7.0 starting the server itself later: normal Stop in 0.6.0, export its
-   working runtime ZIP, import that ZIP from **0.7.0's Server tab**, keep Adventure
-   and port 3724, then use Start Local Game with no existing listener. The new app
-   starts its own managed server, waits up to three minutes, then attempts client
-   startup. Do not use a live server ZIP or erase the old app to do this test.
+## Client compatibility and local startup
 
-Return the exported **client report(s)** and whether the controller name, stick
-motion, button translations and reopened settings matched expectations. Send a
-server Session Report only if server startup/readiness failed. Reaching TCP 3724
-is currently the local orchestration pass; authenticated Wurm connection and
-entering the world remain separate, unpassed gates.
+1. In **0.8.0 → Client tab**, import that complete client ZIP and wait for
+   **Client import validated**. Close/reopen and check it remains present.
+2. Keep the default local player **Thor**, or enter a 3–20 character name using
+   letters/digits and tap **Save Player Name**. Passwords are blank in this
+   preview; existing password-protected accounts/servers are not covered yet.
+3. Open the existing **0.6.0** app and Start Adventure as usual. Wait for its
+   Running/TCP 3724 status. Return to **0.8.0 → Client tab → Start Local Game**.
+   No server reimport/migration is needed for this route. Stop any receiver first.
+4. Leave the app open until the attempt finishes. It runs independent inventory,
+   local compatibility, actual entry and graphics stages, each capped at two
+   minutes. Start Client runs the same stages without ensuring server readiness.
+5. Export Client Report again as **wurm-client-report-local.txt** and send it.
+   Confirm the old server still runs; use its normal Stop Server when finished.
 
-## What happens next with these reports
+Look for these distinctions in the report:
 
-The next implementation can use your exact launch and Steam signatures to build
-a version-specific direct launcher/offline adapter. The independent native
-failure plus Thor GLES details guide the Pojav LWJGLX/native-window/GL4ES host
-integration described in [CLIENT_INTEGRATION.md](CLIENT_INTEGRATION.md). No
-external-PC test is needed to supply that evidence. If the report shows missing
-client files instead, repair the ZIP first and repeat this APK's test.
+| Marker | What it proves |
+| --- | --- |
+| `TCP_PROBE ... reachable=true` | A local listener answered; not Wurm login |
+| `LAUNCHER_REPLACEMENT` / `COMPAT_CLASS` | The new source-built adapters are active |
+| `STEAM_HANDLER_RESULT InitSuccess` / `STEAM_COMPAT_OK` | Real imported handler/ticket APIs work with the local shim; not server acceptance |
+| `RESOURCE_PACKS_VALIDATED` | Local resource ZIPs are readable; not complete rendering assets |
+| `PROFILE_PREPARE` / `PROFILE_READY` | Which side of actual player-profile construction was reached |
+| `ENTRY_INVOKE` / `CLIENT_GAME_THREAD` | Actual game launch was invoked and its thread observed |
+| `BOOTSTRAP_FAILED`, `CLIENT_THREAD_FAILED`, `CHILD_EXIT` | Exact failing stage, exception/stack and exit |
+| `INPUT_READY` / `INPUT_RECEIVED` | Controller events reached the diagnostic JVM |
+
+**Blocked is still an expected result.** The host's actual client reaches native
+LWJGL loading while constructing its Profile, before the final launch call.
+The Thor report must identify the next native/graphics failure after the AWT
+mode correction. Rendering, local-ticket acceptance, login/world entry and
+controller gameplay are not demonstrated by this release. Export soon after
+running, because logs are bounded and rotate.
+
+If local server startup fails, also export its normal server Session Report.
+Otherwise only the **Client Report** is needed. No proprietary game JAR needs
+to be sent again; the matching client.jar has already been inspected.

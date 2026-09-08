@@ -1,97 +1,122 @@
 # Client integration architecture and qualification
 
-This is the 0.7.0 **import/bootstrap/controller diagnostic milestone**. It does
-not deliver a playable Wurm client. The server's 0.6.0 physical pass remains the
-baseline; no proprietary files or server SQL/POC changes are part of this work.
+## 0.8.0: direct launch, local compatibility and automatic receiver
 
-## What was verified before implementation
+This preview fixes the inaccessible separate receiver-start workflow and implements
+the observed client launch/Steam contracts. It is not yet playable. The server's
+0.6.0 physical pass, POC artifact, SQLite patches and managed runtime remain intact.
 
-Read `poc/README.md`, the complete `AndroidServerMain.java` and `SteamServerApi.java`,
-and the base64 artifact; inspected the Android variants, runtime installer,
-import/working-copy stores, native runner, services, UI, reports, tests and history.
-The POC is source-backed and remains packaged exactly as before. Its server Steam
-shim is not a client API, and the client's classpath must not include that POC JAR.
+The user supplied the exact client JAR identified by the Thor report: SHA-256
+`79e7a5c822a4b744e56fb3aeef3a4f58d2943307163f3cd9fd4d6e9f7ea71a19`.
+Private inspection verified these APIs; only handwritten adapters and API signatures
+are committed. The supplied JAR, its disassembly and game implementation stay out
+of Git and release assets. Prior source/history and upstream research are retained
+in the sections below and [THOR_CLIENT_FINDINGS.md](THOR_CLIENT_FINDINGS.md).
 
-The checked-out history contains the client document/settings scaffold, not the
-proprietary client implementation or the precise `WurmClientBase.launch` ABI.
-Public mod-loader source at
-[`ago1024/WurmClientModLauncher`, commit 82d9bd8d](https://github.com/ago1024/WurmClientModLauncher/tree/82d9bd8d927d48ab8c1552a3f7f89c80b17a3fb4)
-references `launcherfx.WurmMain`, hooks `WurmClientBase.runGameLoop()V`, and lists
-LWJGL 2.9.1, its utilities and `SteamClientJni.jar`. This corroborates the launcher
-and engine classes and desktop dependencies. It does **not** establish the
-parameter contract of the user's client version. The imported JAR report is the
-source of truth for that ABI. Class metadata inspection runs without class
-initialization, so missing JavaFX/native dependencies cannot hide the signatures.
-
-## Gate accounting
-
-| Gate | Implemented in this APK | Still required for acceptance |
+| Gate | Implemented/evidence | Still required |
 | --- | --- | --- |
-| 1 — Import | Transactional ZIP import, required layout/class providers, JAR hashes, asset candidates, persisted inventory | Thor import pass; complete assets verified by real startup |
-| 2 — JVM/bootstrap | APK JRE child, explicit classpath/cwd, ABI inventory, actual engine class initialization; invoke `public static launch()` if present; independent LWJGL attempt; timeout/exit/crash capture | Exact adapter for the observed parameterized launch API; game launch/login UI |
-| 3 — Offline Steam | Client JNI ABI/field inventory and explicit `STEAM_SHIM not-installed`; tested server shim retained separately | Implement only observed client local init/identity/ticket path; prove ticket acceptance |
-| 4 — Graphics/input | Android GLES2 surface/GPU report; reusable persisted mapper; physical events → LWJGL2-style numeric keyboard/mouse IPC → real JVM diagnostic receiver | LWJGLX/native window/GL backend integration, audio/JInput coverage, Wurm frames and gameplay input |
-| 5 — Local connection | Start Local Game waits for local TCP 3724, starting this package's managed server if necessary | Pass endpoint through the actual Wurm launch API; Wurm login and world entry |
+| 1 — Import | Previous Thor import passed; transactional ZIP, class providers/hashes; now validate and list local resource JARs | Real resource completeness during startup |
+| 2 — JVM/bootstrap | Verified profile/resources adapter, real engine entry attempt, game-thread join and async error capture | Thor attempt; graphics currently loads during Profile setup, before launch can be invoked |
+| 3 — Local Steam | Source-built Steam_api and launcher utilities; actual supplied SteamHandler initialization and SteamAuthTicket creation passed on host | Thor compatibility stage and server acceptance of the synthetic local ticket |
+| 4 — Graphics/input | Persisted editable mapper, Android GLES probe; Start Controller Test automatically starts JVM receiver | Thor INPUT_RECEIVED; Android LWJGL/window/OpenGL/audio bridge and gameplay input |
+| 5 — Local connection | Existing TCP orchestration; real engine's WurmMain.getServerIp/getServerPort receive loopback target | Protocol authentication, login, rendered world |
 
-Gate 1's basic importer is complete in code; other gates are partial or blocked
-as listed. Host tests do not establish any Thor client/graphics/Steam pass.
-`ENTRY_INITIALIZED`, `DISPLAY_CREATED`, `ANDROID_SURFACE_CREATED`, `INPUT_RECEIVED`
-and `TCP_PROBE reachable=true` each describe different observations. None means
-the player reached the world. A final successful test needs actual game frames,
-local login/world evidence and visible controller-driven gameplay.
+A successful `STEAM_COMPAT_OK` means the actual imported Java handler/ticket ABI
+worked against our local shim. It does not mean Steam authenticated a user or the
+server accepted the ticket. Likewise `INPUT_RECEIVED` is a diagnostic JVM delivery,
+not Wurm input. No code sets a successful login/world state without evidence.
 
-## Process, storage and bootstrap contract
+### Packaging and process boundaries
 
-The managed variant includes the existing source-built Android ARM64 Java
-17.0.20 runtime. `runtime-probe/src/client/*.java` builds into the existing Java
-17 helper asset; these classes are never sent to D8 and require no Wurm build
-dependency. `ClientService` owns the client operation independently of
-`ManagedServerService`. It uses a foreground notification, bounded wake lock,
-client operation lock and a separate native process lock. The unchanged runner
-kills its child on parent death. Stop affects only the owned client child;
-client failure or timeout leaves a running server under its own controls.
+`runtime-probe/src/client` remains an ordinary Java 17 asset, separate from D8.
+`client-compat/src` builds against handwritten `client-compat/stubs` API signatures.
+Only five authored class files are packaged into `client-compat.jar`; the APK
+verification script checks the exact class set. The real console, SteamHandler,
+SteamAuthTicket, Profile and Resources must come from the user's client.
+See [client-compat/README.md](../client-compat/README.md).
 
-`managed-client/<generation>/payload` contains the working client import;
-`current` atomically points at the accepted generation. Path traversal, duplicate
-entries, excessive entry counts/expanded size and missing/duplicate core class
-providers reject the import. A failed import leaves the previous pointer/data.
-Replacement can temporarily require both old and new expanded copies. Keep the
-original ZIP as your source copy; client settings written in its working directory
-are not promised to survive replacing that import. A separate `managed-client/user`
-is Java's user home. No world database is shared with the client importer.
+The unchanged ARM64 runtime/runner owns separate bounded exec children:
+`inventory`, `compat`, `entry`, `graphics`. Each allows 1 GiB and two minutes;
+input allows ten minutes. Each failure is exported without suppressing the later
+independent graphics probe. Client Stop affects only its child and lock. The
+server keeps its own service, process, world, POC and SQL compatibility.
 
-The classpath contains the handwritten helper first, the discovered engine JAR,
-client/common JARs, and explicit imported root/lib JAR paths. Java native search
-paths contain APK-installed Android JRE libraries only. Imported Windows/Linux
-native libraries and desktop Java executables are not launched. All JAR hashes
-are checked again before startup. Server POC/shim JARs are not added.
+Inventory/graphics classpath: helper, discovered engine, client/common, explicit
+imported root/lib JARs. Compat/entry prepend `client-compat.jar`. Server processes
+never add that asset. Android JRE/APK libraries are the native search path;
+imported desktop native libraries and desktop Java executables are not launched.
+The client helper now uses `java.awt.headless=true`, matching the packaged JRE.
+This removes the forced X11 AWT mode; it does not supply LWJGL native rendering.
 
-Start runs three independent subprocesses: `inventory`, `entry`, `graphics`.
-Each has a 1 GiB maximum heap and a two-minute limit. Exceptions exit 42 with the
-actual type, stage and stack; native crashes record exit code and available
-`hs_err` header. Stop can terminate incomplete client initialization. This is a
-bounded startup experiment, not yet a long-lived playable client session.
+### Actual launch and resource contract
 
-The entry probe bypasses `WurmMain`, initializes `WurmClientBase` and resolves its
-launch methods. It invokes a verified public static zero-argument launch method
-if one exists. Otherwise it reports `ENTRY_ABI_REQUIRED`; it does not populate an
-unknown method with nulls, invented booleans or credentials. Inventory has already
-printed JVM method descriptors before this linkage attempt. The graphics child
-independently calls the imported `org.lwjgl.opengl.Display.create()`, so an engine
-failure does not conceal the native/graphics blocker.
+The known method is `launch(Profile.PlayerProfile, Resources, boolean)`.
+The desktop path passes `false`; that parameter is not read inside this method.
+The adapter uses the real Profile singleton/factory, loads the saved Android
+player name (default Thor), associates/stores its config, checks option version,
+then obtains `launchProfile()`. Passwords are blank in this preview; passworded
+accounts/servers need a later credential flow after native startup is qualified.
 
-`wurm.client.host`/`port` JVM properties identify the intended endpoint for the
-future adapter. **They are not claimed to be properties Wurm consumes.** TCP
-readiness is an actual loopback socket test, not Steam browsing or Wurm login.
-Start Local Game can use the separately installed 0.6.0 server on the same Thor.
-If no listener exists, this package needs its own server import and normal server
-settings with port 3724. It waits up to three minutes and reports server startup
-failure. It never changes imported INIs or starts a second server over a listener.
+The adapter checks top-level non-test JARs in the actual pack directory, using
+sound.jar, pmk.jar, graphics.jar first if present, then other names alphabetically.
+It validates ZIP structure/nonempty entries and logs names/size/count, without
+fetching the desktop update service. These are resource archives, not Java
+classpath entries. At least one is required; the engine establishes whether their
+contents are sufficient. It constructs `Resources(File,List)` with that list.
+
+The engine still calls WurmMain utility methods even when the JavaFX UI is bypassed.
+Our replacement provides imported client flags, its actual console stream, bounded
+console-file/recent-log output, and local endpoint getters. The real game remains
+unchanged. The adapter sets the observed username/password/window APIs, invokes
+launch and waits on its `gameThread` field. Thread failure is logged with stack
+and exit 42. If the engine catches a failure itself, its log remains evidence;
+a normal thread return alone never means login succeeded.
+
+On the host, the actual supplied JAR's Steam handler and ticket pass. Its Profile
+setup then loads Options → DisplayOption → DisplayDevice → LWJGL Sys/Display and
+hits missing native lwjgl. This occurs before the real launch invocation. Thor
+must supply its own next native result; Android GLES success is not desktop
+LWJGL/OpenGL success. Later LwjglClient paths also query AWT screen devices and
+Swing window sizing, which the render adapter must address.
+
+### Local Steam and connection
+
+`SteamJni.Steam_api` uses the exact instance constructor and ticket return type.
+It does not load SteamClientJni. It stores a local synthetic numeric identity in
+Java user home, returns a marked synthetic byte payload in the real imported
+SteamAuthTicket, and rejects activation unless explicit offline mode and
+127.0.0.1:3724 are set. No real Steam tickets, browsing or cloud stats are supplied.
+Typed ClientHooks calls avoid broad reflection resolving SteamHandler's unused
+JavaFX browser parameter classes. This failure was reproduced and fixed on host.
+
+The game itself reads WurmMain endpoint getters during performConnection, requests
+a ticket from SteamHandler, sends its normal ticket packet, waits for auth then
+logs in. No custom wire-protocol imitation is introduced. Ticket acceptance by
+the personal server remains untested because native graphics currently blocks
+startup. Start Local Game uses an existing listener (including the old 0.6.0 app)
+or starts this package's imported server and waits up to three minutes.
+
+### Storage and controller test
+
+The existing transactional managed-client generation and import limits remain.
+The user's ZIP must contain client.jar, common.jar, lib and all resource folders.
+A failed import preserves the old pointer. PlayerFiles written under the import
+root survive app reopening; replacing the import does not migrate those files.
+Java user home, synthetic identity and Android player/controller preferences live
+outside the import generation. No server database is shared with client storage.
+
+Client tab → **Start Controller Test** opens the diagnostic and requests receiver
+startup once. A running client operation is not replaced: wait or stop it and use
+Retry Receiver. Touch controls are at the top in a horizontal scrolling row.
+READY plus INPUT_RECEIVED is required; queued=true only means the app accepted an
+event for transport. Focus loss and controller removal still release held input.
+Controller Settings retain per-button actions, sticks/dead zone/invert-Y, mouse
+bindings and restore defaults. Physical gameplay integration awaits the renderer.
 
 ## Reusable graphics components: investigation and integration decision
 
 The following are inspected upstream candidates, **not included libraries in
-0.7.0**. No opaque Pojav APK binaries were copied. Their Android compatibility
+0.8.0**. No opaque Pojav APK binaries were copied. Their Android compatibility
 work is the intended starting point rather than writing a desktop GL stack.
 
 | Component/source examined | Reusable functionality | Integration limits |
@@ -131,8 +156,8 @@ Concrete follow-up after the Thor report:
    they are different encodings. Implement cursor grab, absolute positioning,
    resize scaling, text/character input and focus release for actual Wurm UI.
 5. Address observed OpenAL/JInput calls with Android-compatible backends, then
-   implement the exact direct Wurm launch adapter and minimal local Steam shim.
-   Log synthetic identity/shim mode without exposing auth tickets. Test login,
+   qualify the implemented direct Wurm launch adapter and minimal local Steam shim.
+   Log shim mode without exposing ticket data. Test login,
    world frames and input before claiming any of those gates passed.
 
 ## Controller contract
@@ -163,42 +188,42 @@ The default profile is WASD left stick, mouse right stick, A/RT left click, LT
 right click, B/Start Escape, X E, Y I, LB Shift, RB Ctrl, L3 Space, R3 F, D-pad
 1–4, Select Tab. Aux 1–16 and Mode start unbound. All these bindings are editable.
 
-## Verification and changed files
+## Verification and every file changed in 0.8.0
 
-Host verification: managed Kotlin compilation/JUnit, new Java fixture tests and
-the existing server/native/storage suite. CI builds, tests and lints debug,
-JVM-probe and managed variants; release verification checks exact POC/runtime
-pins, Java 17 client helper classes and APK signing. No proprietary fixture is
-used. Physical acceptance is the separate [Thor procedure](CLIENT_THOR_TEST.md).
+Local verification: 14 managed Kotlin/JUnit tests and 41 Python tests, including
+seven new compatibility contracts. The managed Android sources compile. The
+private real-JAR host check passes local SteamHandler/ticket compatibility;
+it does not establish a physical gameplay pass. CI builds/tests/lints all three
+variants, verifies the original runtime/POC pins and the exact five-class adapter
+asset, and verifies APK signing before publishing. The public tests use only
+handwritten fixtures and existing public JDBC test dependencies.
 
-Paths below are relative to the repository; `managed/` means
-`app/src/managedPreview/java/io/github/russianranger/wurmlauncher/` and `testsK/`
-means `app/src/testManagedPreview/java/io/github/russianranger/wurmlauncher/`.
+Paths below are relative to the repository. `managed/` abbreviates
+`app/src/managedPreview/java/io/github/russianranger/wurmlauncher/`.
 
 | File changed | Purpose |
 | --- | --- |
-| `managed/ClientStore.kt` | Client ZIP validation, transactional publication, hashes and inventory |
-| `managed/ClientSession.kt` | Own client process, bootstrap/local orchestration, input IPC, persistent logs/report |
-| `managed/ClientService.kt` | Independent foreground lifecycle, notification and Stop Client |
-| `managed/ClientActivity.kt` | Client import/start/local/stop/status/export and settings/test navigation |
-| `managed/ControllerMapping.kt` | Pure reusable mapper and atomic persistent editable profile |
-| `managed/ControllerSettingsActivity.kt` | Detected controller, mappings, sensitivities, dead zone, invert and defaults |
-| `managed/ControllerTestActivity.kt` | Android physical input adapter, focus/unplug handling and diagnostic cursor |
-| `managed/ClientSurfaceProbe.kt` | GLES context/surface/GPU lifecycle diagnostics |
-| `managed/ManagedActivity.kt` | Route Client tab to the new managed client screen |
-| `app/src/managedPreview/AndroidManifest.xml` | Register private client activities and service |
-| `app/src/jvmProbe/java/io/github/russianranger/wurmlauncher/ProbeRuntime.kt` | Serialize shared installation; retain already-correct native links while another JVM runs |
-| `runtime-probe/src/client/ClientBootstrap.java` | API/entry/Steam/LWJGL probes and explicit failures |
-| `runtime-probe/src/client/ClassInventory.java` | Bounded class-file API metadata parser without dependency resolution |
-| `runtime-probe/src/client/DesktopInput.java` | Versioned desktop event validation and JVM diagnostic receiver |
-| `testsK/ClientStoreTest.kt` | Valid import/reopen/hash and failed import preservation/path/duplicate/size cases |
-| `testsK/ControllerMappingTest.kt` | Shared presses, sticks, repeated events, reset/unplug, settings persistence and invalid input |
-| `tests/test_client_bootstrap.py` | Metadata without missing dependencies, direct call, native failure, corrupt class and input protocol fixtures |
-| `app/build.gradle.kts` | Version 0.7.0/code 10 and separate `.clientpreview` package |
-| `scripts/verify-managed-apk.py` | Verify client helper class files and absence of proprietary client asset |
-| `.github/workflows/android.yml` | Publish immutable client preview APK and matching runtime sources/guides after passing CI |
-| `docs/IMPLEMENTATION_PLAN.md` | Client-first architecture and gate plan |
-| `docs/CLIENT_INTEGRATION.md` | This architecture, reuse investigation and file-by-file accounting |
-| `docs/CLIENT_THOR_TEST.md` | Exact import/install/test/report instructions |
-| `docs/RELEASE_CLIENT_PREVIEW.md` | Honest release scope and installation notes |
-| `README.md` | Current milestone, APK and test-guide links |
+| `managed/ClientActivity.kt` | Direct Start Controller Test action, version heading and saved local player name |
+| `managed/ControllerTestActivity.kt` | Automatic receiver request, visible touch Exit/Stop/Retry row |
+| `managed/ClientSession.kt` | Compat asset/stage classpath isolation, player/offline arguments, versioned report and stage results |
+| `runtime-probe/src/client/ClientBootstrap.java` | Dispatch verified parameterized adapter and independent compat test; retain unknown-ABI failure |
+| `runtime-probe/src/client/DirectClientLaunch.java` | Real profile/resources factories, local pack validation, entry call and game-thread failure/lifetime |
+| `client-compat/src/SteamJni/Steam_api.java` | Local-only observed Steam JNI ABI replacement, typed ticket creation, no browsing |
+| `client-compat/src/com/wurmonline/client/launcherfx/WurmMain.java` | Engine-facing launcher utilities without JavaFX UI; console/log and endpoint support |
+| `client-compat/src/wurm/android/compat/LocalSession.java` | Persistent synthetic identity, marked local ticket and explicit loopback opt-in |
+| `client-compat/src/wurm/android/compat/ClientHooks.java` | Typed calls into real SteamHandler without broad JavaFX-signature reflection |
+| `client-compat/stubs/com/wurmonline/client/console/ConsoleListenerClass.java` | Compile-only listener signature, never packaged |
+| `client-compat/stubs/com/wurmonline/client/console/WurmConsoleOutputStream.java` | Compile-only console signature, never packaged |
+| `client-compat/stubs/com/wurmonline/client/steam/SteamHandler.java` | Compile-only handler/result signatures, never packaged |
+| `client-compat/stubs/com/wurmonline/client/steam/SteamAuthTicket.java` | Compile-only ticket signatures, never packaged |
+| `client-compat/README.md` | Source/packaging/ABI boundaries and local compatibility limitations |
+| `tests/test_client_compat.py` | Seven executable compatibility, async crash, resource, identity and packaging contracts |
+| `app/build.gradle.kts` | Compile/package adapter separately; version 0.8.0/code 11 and install-alongside .clientlaunch package |
+| `scripts/verify-managed-apk.py` | Exact packaged adapter class allowlist, no stubs/server contamination and new helper check |
+| `.github/workflows/android.yml` | Publish new immutable v0.8.0-client-launch after existing required gates |
+| `docs/IMPLEMENTATION_PLAN.md` | Verified client architecture, implemented scope and next native/device gates |
+| `docs/CLIENT_INTEGRATION.md` | Actual launch/Steam contracts, preserved Pojav investigation and this file accounting |
+| `docs/CLIENT_THOR_TEST.md` | Exact no-PC install, automatic receiver, owned client import, local run and Client Report steps |
+| `docs/RELEASE_CLIENT_PREVIEW.md` | Release scope, side-by-side install and remaining graphics/login limits |
+| `docs/THOR_CLIENT_FINDINGS.md` | Private matching-JAR findings and superseding receiver test instructions |
+| `README.md` | Current APK, milestone and test links |

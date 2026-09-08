@@ -42,9 +42,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.7.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.8.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: imported-file validation / JVM probes / input transport; rendering, client Steam shim and Wurm login are not qualified.\n\n" +
+            "Gate status: direct profile/resources launch adapter and local Steam shim implemented; rendering, server ticket acceptance and Wurm login are not qualified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nSession history:\n" +
             (file?.takeIf { it.isFile }?.readText() ?: recent())
@@ -135,23 +135,29 @@ object ClientSession {
         val user = File(store.home, "user").apply { mkdirs() }
         val helper = File(session, "runtime-probe.jar")
         context.assets.open("runtime-probe.jar").use { input -> helper.outputStream().use { input.copyTo(it) } }
+        val compat = File(session, "client-compat.jar")
+        context.assets.open("client-compat.jar").use { input -> compat.outputStream().use { input.copyTo(it) } }
         try {
             val cp = listOf(helper.absolutePath) + installed?.jars.orEmpty().map { File(installed!!.root, it).absolutePath }
-            log("[client] CLASSPATH ${cp.joinToString(":")}")
             log("[client] Runtime root=${installed?.root}; no server JARs, server Steam shim or JavaFX launcher added")
             log("[client] CLIENT_JVM_MODE exec; Android graphics surface adapter not installed")
-            val stages = if (mode == "input") listOf("input") else listOf("inventory", "entry", "graphics")
+            val stages = if (mode == "input") listOf("input") else listOf("inventory", "compat", "entry", "graphics")
+            val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
+            require(player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
             for (stage in stages) {
                 checkCancelled(); queue.clear(); inputReady = false
                 status(if (stage == "input") "Input diagnostic" else "Starting client", "Bootstrap stage: $stage")
+                val stageCp = if (stage in listOf("compat", "entry")) listOf(compat.absolutePath) + cp else cp
+                log("[client] CLASSPATH stage=$stage ${stageCp.joinToString(":")}")
                 val args = listOf(File(native, "libwurmjvm_runner.so").absolutePath, "-Xms32m", "-Xmx1024m",
                     // The packaged JRE is built --enable-headless-only=yes. AWT X11 is unavailable;
                     // native LWJGL window creation is still attempted independently below.
                     "-Djava.home=$home", "-Djava.io.tmpdir=$tmp", "-Duser.home=$user", "-Djava.awt.headless=true",
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
-                    "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-cp", cp.joinToString(":"), "client.ClientBootstrap", stage)
+                    "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",
+                    "-cp", stageCp.joinToString(":"), "client.ClientBootstrap", stage)
                 val process = ProcessBuilder(args).directory(installed?.root ?: session).redirectErrorStream(true).apply {
                     environment().clear(); environment().putAll(ProbeEnvironment.create(home, native, tmp))
                     environment()["WURM_HEAP_TAGGING"] = "off"
@@ -178,7 +184,7 @@ object ClientSession {
                 child = null; inputReady = false
             }
             log("[client] GATE_RESULTS $results; Wurm login/world entry NOT verified; input sink=diagnostic")
-            status(if (mode == "input") "Stopped" else "Blocked", if (mode == "input") "Input diagnostic ended." else "Bootstrap probes finished. Export client report for the exact ABI/native blocker; no Wurm connection is claimed.")
+            status(if (mode == "input") "Stopped" else "Blocked", if (mode == "input") "Input diagnostic ended." else "Client attempt finished: $results. Export Client Report for the startup/graphics result; login is not verified.")
         } finally {
             reapChild()
             session.listFiles().orEmpty().filter { it.name.startsWith("hs_err_pid") }.forEach { f -> f.useLines { it.take(120).forEach(::log) } }

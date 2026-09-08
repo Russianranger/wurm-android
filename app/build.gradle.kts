@@ -65,6 +65,26 @@ val prepareJvmProbe by tasks.registering(Exec::class) {
     commandLine("python3", rootProject.file("scripts/prepare-jvm-probe.py").absolutePath)
 }
 
+// Compile handwritten client adapters against API-only signatures. The signature
+// stubs are never packaged; actual console/profile/ticket classes come from user imports.
+val clientCompatAssets = layout.buildDirectory.dir("generated/clientCompatAssets")
+val compileClientCompat by tasks.registering(JavaCompile::class) {
+    source(rootProject.fileTree("client-compat") { include("src/**/*.java", "stubs/**/*.java") })
+    classpath = files()
+    destinationDirectory.set(layout.buildDirectory.dir("generated/clientCompatClasses"))
+    options.release.set(17)
+}
+val packageClientCompat by tasks.registering(Jar::class) {
+    dependsOn(compileClientCompat)
+    from(compileClientCompat.flatMap { it.destinationDirectory }) {
+        include("SteamJni/Steam_api.class", "com/wurmonline/client/launcherfx/WurmMain*.class", "wurm/android/compat/*.class")
+    }
+    destinationDirectory.set(clientCompatAssets)
+    archiveFileName.set("client-compat.jar")
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+
 val prepareManagedRuntime by tasks.registering(Exec::class) {
     inputs.files(rootProject.file("scripts/prepare-managed-runtime.py"), rootProject.file("scripts/prepare-jvm-probe.py"),
         rootProject.file("runtime-build/runtime.json"), rootProject.fileTree("runtime-probe/native"))
@@ -83,8 +103,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 10
-        versionName = "0.7.0"
+        versionCode = 11
+        versionName = "0.8.0"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -97,7 +117,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".clientpreview"
+            applicationIdSuffix = ".clientlaunch"
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }
@@ -118,6 +138,7 @@ android {
         // diagnostic Activity is not registered in this variant's manifest.
         java.srcDir("src/jvmProbe/java")
         assets.srcDir(probeAssets)
+        assets.srcDir(clientCompatAssets)
         assets.srcDir(layout.buildDirectory.dir("generated/managedRuntime/assets"))
         jniLibs.srcDir(layout.buildDirectory.dir("generated/managedRuntime/jniLibs"))
     }
@@ -131,7 +152,7 @@ android {
 
 tasks.named("preBuild").configure { dependsOn(packagePoc) }
 tasks.matching { it.name == "preJvmProbeBuild" }.configureEach { dependsOn(prepareJvmProbe, packageProbe) }
-tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe) }
+tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe, packageClientCompat) }
 
 dependencies {
     testImplementation("junit:junit:4.13.2")

@@ -32,7 +32,7 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.7.0").textSize = 24f
+        label("Wurm Client · 0.8.0").textSize = 24f
         label("This preview imports your client and attempts its bootstrap and LWJGL initialization. It does not yet render Wurm or complete login. Target: 127.0.0.1:3724.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
@@ -43,7 +43,19 @@ class ClientActivity : Activity() {
         button("Start Local Game", true) { launch("local") }
         button("Stop Client") { startService(Intent(this, ClientService::class.java).setAction("stop")) }
         button("Controller Settings") { startActivity(Intent(this, ControllerSettingsActivity::class.java)) }
-        button("Controller / JVM Input Test") { startActivity(Intent(this, ControllerTestActivity::class.java)) }
+        button("Start Controller Test") { startActivity(Intent(this, ControllerTestActivity::class.java)) }
+        val preferences = getSharedPreferences("client-settings", MODE_PRIVATE)
+        label("Local player name (new local profile; blank password in this preview)")
+        val player = EditText(this).apply {
+            setSingleLine(); setText(preferences.getString("player", "Thor")); column.addView(this)
+        }
+        button("Save Player Name", true) {
+            val name = player.text.toString().trim()
+            if (name.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) {
+                preferences.edit().putString("player", name).apply()
+                Toast.makeText(this, "Player name saved", Toast.LENGTH_SHORT).show()
+            } else Toast.makeText(this, "Use 3–20 letters/digits, starting with a letter", Toast.LENGTH_LONG).show()
+        }
         button("Export Client Report") {
             startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                 .setType("text/plain").putExtra(Intent.EXTRA_TITLE, "wurm-client-report.txt"), 11)

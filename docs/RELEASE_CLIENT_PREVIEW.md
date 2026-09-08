@@ -1,28 +1,33 @@
-# Wurm Server 0.7.0 — client bootstrap and controller preview
+# Wurm Server 0.8.0 — direct client launch and automatic controller test
 
 Download **Wurm-Server.apk** on the AYN Thor. No root, Termux or PC is required.
-Keep the working 0.6.0 app installed: this preview uses the separate
-`io.github.russianranger.wurmlauncher.clientpreview` package and does not migrate
-or overwrite its world. The app label remains **Wurm Server**.
+Keep the working 0.6.0 server installed: this preview installs alongside it as
+`io.github.russianranger.wurmlauncher.clientlaunch`, version **0.8.0-managed-preview**.
+The label remains **Wurm Server**. The new package needs its own client import.
 
-This release adds managed client ZIP import, actual Java client class/launch
-linkage attempts, an independent LWJGL2 startup attempt, local TCP readiness,
-editable handheld controller mappings, Android GLES surface diagnostics and a
-JVM input receiver. Export **wurm-client-report.txt** from the Client tab.
+**Client tab → Start Controller Test** now starts the JVM receiver automatically.
+Wait for READY, test the controls, stop the receiver and export Client Report.
+This test needs no Wurm files and has visible touch Exit/Stop/Retry controls.
 
-**This is not yet a playable client.** The exact imported `launch(...)` ABI,
-client Steam adapter and LWJGL/native graphics bridge still need qualification.
-The preview logs these blockers rather than disabling Start. Controller events
-currently reach a diagnostic JVM sink, not Wurm gameplay. A reachable local
-server is not reported as a successful Wurm login.
+The new source-built adapter uses the verified real player-profile/resources
+launch API, replaces the JavaFX launcher's required utility methods and supplies
+a local-only Steam compatibility shim. The actual user's SteamHandler and
+SteamAuthTicket passed the compatibility check on the development host. A new
+compat stage and detailed entry/thread logs expose failures on the Thor.
 
-Import a ZIP of your complete legally obtained client installation, including
-`client.jar`, `common.jar`, all `lib/` JARs and every client asset/resource folder.
-The prior server ZIP is not sufficient. No proprietary Wurm files are included.
+**This is not yet playable.** Real profile preparation reaches LWJGL native
+loading before game launch. An Android LWJGL/window/OpenGL bridge is still needed.
+Synthetic-ticket acceptance by the local server, Wurm login/world entry and
+controller gameplay remain unverified. Input currently reaches a JVM diagnostic.
 
-Follow **CLIENT_THOR_TEST.md** in the release assets for the exact test, including
-using your existing 0.6.0 server at `127.0.0.1:3724` without migrating it.
-**CLIENT_INTEGRATION.md** records the gate status, reusable Pojav/LWJGLX/GL4ES
-investigation and every changed file. SHA256SUMS and the corresponding runtime
-source bundle accompany the APK. Publication requires all build/test/lint and
-runtime/POC/APK checks to pass; physical client acceptance is still pending.
+For the client run, import the same complete legally obtained client ZIP including
+client.jar, common.jar, lib, packs and every original resource folder. Use the
+old app's running server at 127.0.0.1:3724; world migration is unnecessary.
+No proprietary game files, compile-only API stubs or desktop native binaries are
+bundled as client implementations. No server POC/SQL/runtime changes are included.
+
+Follow **CLIENT_THOR_TEST.md** for exact steps and export **wurm-client-report.txt**.
+**CLIENT_INTEGRATION.md** records every change, gate status and the Pojav reuse path.
+APK publication requires the existing build/test/lint/runtime checks plus the new
+compatibility contract tests and an exact adapter-class packaging check.
+SHA256SUMS and corresponding runtime source accompany the APK.

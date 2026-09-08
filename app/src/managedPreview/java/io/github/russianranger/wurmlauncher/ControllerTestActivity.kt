@@ -33,14 +33,15 @@ class ControllerTestActivity : Activity(), InputManager.InputDeviceListener {
         val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,12,12,12) }
         setContentView(column)
         status = TextView(this).apply { column.addView(this) }
-        column.addView(TextView(this).apply { text = "Input diagnostic only: desktop key/mouse events cross into the JVM receiver. No Wurm renderer is attached. Start the receiver, then move both sticks and press controls. Touch Exit to leave." })
-        fun button(text: String, action: () -> Unit) { column.addView(Button(this).apply { this.text = text; isFocusable = false; setOnClickListener { action() } }) }
-        button("Start JVM Input Receiver") {
-            if (!ClientSession.snapshot().busy) startForegroundService(Intent(this, ClientService::class.java).setAction("input"))
-            else Toast.makeText(this, "Stop the current client operation first", Toast.LENGTH_SHORT).show()
-        }
-        button("Stop Client Receiver") { startService(Intent(this, ClientService::class.java).setAction("stop")) }
-        button("Exit Input Test") { finish() }
+        // Horizontal scrolling keeps touch controls accessible on either Thor display,
+        // including large system fonts. Receiver startup no longer requires finding a button.
+        val controls = LinearLayout(this)
+        column.addView(HorizontalScrollView(this).apply { addView(controls) })
+        fun button(text: String, action: () -> Unit) { controls.addView(Button(this).apply { this.text = text; isFocusable = false; setOnClickListener { action() } }) }
+        button("Exit Test") { finish() }
+        button("Stop Receiver") { startService(Intent(this, ClientService::class.java).setAction("stop")) }
+        button("Retry Receiver") { startReceiver() }
+        column.addView(TextView(this).apply { text = "Receiver starts automatically. Wait for READY, then test controls. Input diagnostic; no Wurm renderer attached." })
         val frame = FrameLayout(this).apply { column.addView(this, LinearLayout.LayoutParams(-1, 0, 1f)) }
         surface = ClientSurfaceProbe(this).apply { frame.addView(this) }
         canvas = CursorView().apply { frame.addView(this); isFocusableInTouchMode = true; requestFocus() }
@@ -50,6 +51,14 @@ class ControllerTestActivity : Activity(), InputManager.InputDeviceListener {
             val queued = ClientSession.send(event); canvas.accept(event)
             if (!event.startsWith("MOVE ") || ++moves % 30 == 0) ClientSession.log("[controller] TRANSLATE $event; queued=$queued; sink=diagnostic")
         }
+        if (savedInstanceState == null) startReceiver()
+    }
+    private fun startReceiver() {
+        if (ClientSession.inputReady()) return
+        if (!ClientSession.snapshot().busy) {
+            ClientSession.log("[input] RECEIVER_START_REQUEST source=controller-test")
+            startForegroundService(Intent(this, ClientService::class.java).setAction("input"))
+        } else Toast.makeText(this, "A client operation is active. Wait, or stop it before retrying the receiver.", Toast.LENGTH_LONG).show()
     }
     override fun onResume() {
         super.onResume(); getSystemService(InputManager::class.java).registerInputDeviceListener(this, handler)

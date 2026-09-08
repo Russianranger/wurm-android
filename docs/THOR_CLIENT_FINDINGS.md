@@ -78,31 +78,38 @@ Keep the [Pojav LWJGLX/native-window/GL4ES integration route](CLIENT_INTEGRATION
 as the graphics work. The imported client bundles its LWJGL2 classes, so an
 adapter must deliberately take classpath precedence without rewriting that JAR.
 
-## Next input and device check
+## Matching client supplied; 0.8.0 follow-up
 
-Provide `client.jar` from the matching owned installation for private local
-inspection, so the next direct-launch/Steam adapter can use the actual profile,
-resource and ticket construction paths. No asset pack or complete runtime ZIP
-is needed for that code inspection. The JAR must stay outside Git history and
-release assets. If it cannot be uploaded, arrange a targeted class-only extract
-from the original client archive; do not replace unknown arguments with guesses.
+The matching client.jar has now been provided and inspected privately. Its
+30,177,833 bytes hash to the value above. No further JAR upload is needed.
 
-The remaining input test can use the installed 0.7.0 APK: Client tab →
-Controller / JVM Input Test → Start JVM Input Receiver, wait for **READY**, press
-controls, stop, exit and export Client Report. Confirm `INPUT_READY` and
-`INPUT_RECEIVED`. Save one controller setting and reopen Settings separately if
-testing profile persistence. Neither check needs a client reimport or server
-configuration change.
+The actual desktop launcher creates Profile.PlayerProfile through the Profile
+singleton/factory and passes Resources(File,List) plus false to launch. The
+boolean is not read in that launch method. Launch starts a separate gameThread
+and returns. The engine itself still uses WurmMain console/logging and endpoint
+utilities, so bypassing the JavaFX UI requires a small source-built utility class.
+The engine's connection path reads getServerIp/getServerPort, obtains the typed
+SteamAuthTicket, sends its normal packet and waits for auth before login.
 
-Source changes in this follow-up:
+Host testing of the authored 0.8.0 compatibility asset against this actual JAR
+passed SteamHandler.initializeSteam and creation of the real SteamAuthTicket,
+with `STEAM_COMPAT_OK` and exit 0. Broad reflection on SteamHandler first exposed
+an unused JavaFX browser method signature; typed ClientHooks fixed that without
+supplying fake JavaFX classes. Ticket acceptance by the server was not tested.
 
-- `ClientSession.kt`: headless AWT option, live-child readiness check, queue result
-  returned to the input adapter and accurate overflow message.
-- `ControllerTestActivity.kt`: distinguish locally translated events from events
-  accepted by the JVM input queue; only JVM acknowledgements establish delivery.
-- `ClientBootstrap.java`: print effective AWT mode alongside JVM startup.
-- `README.md`, `docs/IMPLEMENTATION_PLAN.md` and this file: evidence, limitations,
-  known launch/Steam ABI, source correction and remaining test/input.
+The real Profile setup then reached Options → DisplayOption → DisplayDevice →
+LWJGL Sys/Display and failed to load native lwjgl on the development host. This
+occurred before invoking launch and before loading real external resource packs.
+The supplied input was the client JAR alone, not the full client installation.
+0.8.0 also validates local packs before profile construction on the device.
+Thor native behavior after the headless-AWT correction remains to be measured.
 
-No server controller, world data, POC/SQL patch, runtime binary pin, release tag
-or published APK is changed by this follow-up.
+The user could not find the separate receiver-start option. The cause is not
+established from a screenshot. 0.8.0 removes that prerequisite: **Client tab →
+Start Controller Test** opens the screen and starts the receiver automatically.
+Touch Exit/Stop/Retry controls sit in a horizontally scrollable top row.
+Follow [CLIENT_THOR_TEST.md](CLIENT_THOR_TEST.md), wait for READY and export
+Client Report. No Wurm import is required for the controller test.
+
+[CLIENT_INTEGRATION.md](CLIENT_INTEGRATION.md) lists every 0.8.0 file change.
+The 0.7.0 release is kept immutable and the 0.8.0 package installs separately.

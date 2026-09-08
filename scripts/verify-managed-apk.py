@@ -25,7 +25,13 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert b"HEAP_TAGGING_OFF" in runner and b"HEAP_TAGGING_ERROR" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
-        for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClassInventory.class", "client/DesktopInput.class"):
+        for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/DirectClientLaunch.class", "client/ClassInventory.class", "client/DesktopInput.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
+        assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())
+    with zipfile.ZipFile(io.BytesIO(apk.read("assets/client-compat.jar"))) as compat:
+        classes = {n for n in compat.namelist() if n.endswith(".class")}
+        assert classes == {"SteamJni/Steam_api.class", "wurm/android/compat/LocalSession.class", "wurm/android/compat/ClientHooks.class",
+                           "com/wurmonline/client/launcherfx/WurmMain.class", "com/wurmonline/client/launcherfx/WurmMain$1.class"}, classes
+        assert all(int.from_bytes(compat.read(n)[6:8], "big") == 61 for n in classes)
     assert not any(name in apk.namelist() for name in ("assets/server.jar", "assets/common.jar", "assets/client.jar"))
 print("Verified maintained runtime, notices, native runner, Java 17 helper classes and exact POC artifact.")

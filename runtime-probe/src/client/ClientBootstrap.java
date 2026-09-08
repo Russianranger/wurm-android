@@ -21,6 +21,7 @@ public final class ClientBootstrap {
                 case "inventory" -> inventory();
                 case "graphics" -> graphics();
                 case "entry" -> entry();
+                case "compat" -> DirectClientLaunch.compatibilityProbe();
                 case "input" -> DesktopInput.diagnostic();
                 default -> throw new IllegalArgumentException("Unknown bootstrap mode");
             }
@@ -34,7 +35,7 @@ public final class ClientBootstrap {
     }
     private static void inventory() throws Exception {
         log("ENTRY_CANDIDATE " + ENGINE + ".launch; descriptor must be verified from imported bytes");
-        log("STEAM_SHIM not-installed; collecting actual client ABI before implementing a compatible local shim");
+        log("STEAM_SHIM inventory uses original client bytes; local-v1 is injected only in compat/entry stages");
         int classes = 0;
         Set<String> wanted = new LinkedHashSet<>(List.of(ENGINE.replace('.', '/') + ".class",
             "com/wurmonline/client/launcherfx/WurmMain.class", "org/lwjgl/opengl/Display.class",
@@ -82,14 +83,17 @@ public final class ClientBootstrap {
         log("ENTRY_INITIALIZE " + ENGINE + " (desktop JavaFX launcher bypassed)");
         Class<?> cls = Class.forName(ENGINE, true, ClientBootstrap.class.getClassLoader());
         log("ENTRY_INITIALIZED " + ENGINE);
-        // Only a verified zero-argument static launch has an unambiguous call contract.
-        // Never invent false/null/login/password arguments for another descriptor.
         for (Method m : cls.getDeclaredMethods()) {
             if (m.getName().equals("launch")) log("ENTRY_SIGNATURE " + m.toGenericString());
+            if (m.getName().equals("launch") && Modifier.isPublic(m.getModifiers()) && Modifier.isStatic(m.getModifiers()) &&
+                Arrays.stream(m.getParameterTypes()).map(Class::getName).toList().equals(List.of(
+                    "com.wurmonline.client.settings.Profile$PlayerProfile", "com.wurmonline.client.resources.Resources", "boolean"))) {
+                DirectClientLaunch.launch(cls, m); return;
+            }
             if (m.getName().equals("launch") && Modifier.isPublic(m.getModifiers()) && Modifier.isStatic(m.getModifiers()) && m.getParameterCount() == 0) {
                 log("ENTRY_INVOKE " + ENGINE + ".launch()"); m.invoke(null); return;
             }
         }
-        throw new UnsupportedOperationException("ENTRY_ABI_REQUIRED: no public static launch(); export ABI_METHOD descriptors to implement the exact launch adapter. No guessed arguments were supplied.");
+        throw new UnsupportedOperationException("ENTRY_ABI_REQUIRED: unsupported launch signature; export the client report. No guessed arguments were supplied.");
     }
 }
