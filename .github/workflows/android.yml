@@ -20,7 +20,21 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install pinned SDK packages
-        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
+        run: |
+          export ANDROID_HOME="$RUNNER_TEMP/android-sdk-wurm"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fL --retry 3 \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+            -o "$RUNNER_TEMP/android-commandline-tools.zip"
+          unzip -q "$RUNNER_TEMP/android-commandline-tools.zip" -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/12.0"
+          sdkmanager="$ANDROID_HOME/cmdline-tools/12.0/bin/sdkmanager"
+          # yes exits with SIGPIPE after sdkmanager finishes reading its answers.
+          set +o pipefail
+          yes | "$sdkmanager" --sdk_root="$ANDROID_HOME" --licenses > /dev/null
+          set -o pipefail
+          "$sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-34' 'build-tools;34.0.0'
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
       - name: Test supervisor
         run: python3 -m unittest discover -s tests -v
       - name: Build, unit test and lint
