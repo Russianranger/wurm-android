@@ -1,10 +1,11 @@
 # From the working POC to Wurm Server
 
-**Latest device result:** [0.4.1 managed startup and requested shutdown passed on
-the Thor](THOR_SERVER_PASS.md). The source-built Java 17.0.20 runtime passed
+**Latest device result:** [0.4.1 managed startup, same-copy reopen, Restart and
+requested shutdown passed on the Thor](THOR_SERVER_PASS.md). The source-built Java 17.0.20 runtime passed
 Java/SQLite/network preflight; Wurm reached TCP 3724 under UID 10197 and exited 0
-after normal Stop. The next checks are same-copy reopen, Restart, background
-behavior and changed-world persistence, using the existing APK.
+after normal Stop. The cumulative follow-up records three successful cycles,
+including controller-managed Restart. Background observations need confirmation;
+changed-world persistence remains open. Keep the existing APK and working copy.
 
 **Implemented next milestone:** the 0.4.0 `managedPreview` variant now connects
 imports to a protected working copy, source-built Android Java 17.0.20, preflight,
@@ -12,9 +13,9 @@ foreground server controls, checkpoints/export/restore and live logs. See
 [the concrete implementation and Thor acceptance procedure](MANAGED_SERVER_TEST.md)
 for the current behavior and every changed file. The sections below retain the
 original import-preview plan and history; statements about disabled controls
-apply to the old `debug`/0.2.0 preview. First managed Wurm startup and requested
-normal exit now passed; real SQL item paths, saving/reopening and background
-lifetime remain device acceptance gates.
+apply to the old `debug`/0.2.0 preview. Managed Wurm startup, same-copy reopen,
+Restart and requested normal exit now passed; real SQL item paths, changed-world
+saving and background lifetime remain device acceptance gates.
 
 **Device progress, 2026-09-08:** the Thor import and Adventure selection
 persistence passed. All four source server/common/SQLite hashes match the import

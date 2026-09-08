@@ -1,9 +1,10 @@
 # Managed server preview: AYN Thor test
 
 **Device update:** 0.4.1 passed Java/SQLite/network preflight, Wurm initialization,
-TCP 3724 readiness and requested Stop with exit 0 on the Thor. The next test uses
-the same installed APK and working copy; see [the evidence and reopen/Restart/
-background procedure](THOR_SERVER_PASS.md). Changed-world saving remains unproven.
+TCP 3724 readiness, same-working-copy reopen, Restart and requested Stop with exit
+0 on the Thor. The cumulative report has three successful cycles. See [the evidence
+and remaining checks](THOR_SERVER_PASS.md); background observations need user
+confirmation, and changed-world saving remains unproven. Keep the existing APK.
 
 The current release is **0.4.1**. The 0.4.0 Thor report passed Java 17.0.20/SQLite
 and reached Wurm's `Loading servers`, then aborted with a truncated pointer tag.
@@ -25,7 +26,7 @@ files are preserved. The Client tab reuses the existing document/settings UI.
 | Lifecycle/UI | A non-sticky foreground service owns one child, notification and wake lock. Start runs Java/SQLite/network preflight, writes a checkpoint, then calls the existing POC. Stop requests Wurm shutdown; Restart waits for a requested exit 0 and creates a fresh checkpoint. Logs are bounded and exportable. |
 | World/configuration | Persisted imported-world selection, maximum heap (default 4096 MiB), expected TCP port (default 3724). The port setting only controls readiness checks. Existing Wurm configuration bytes remain untouched. |
 | Recovery | Export the stopped working runtime or the before-start ZIP. Restore original/checkpoint atomically. Unconfirmed exit leaves a recovery marker and blocks the next Start until restore, protecting the last checkpoint. |
-| Device gates | 0.4.1 passed Java/SQLite/network preflight, the compatibility setting, Wurm initialization, local TCP readiness and requested exit 0. Reopen/Restart, changed-world saving, real item SQL operations and background behavior still need testing. |
+| Device gates | 0.4.1 passed Java/SQLite/network preflight, the compatibility setting, Wurm initialization, local TCP readiness, same-copy reopen, Restart and requested exit 0. Changed-world saving and real item SQL operations remain open; app-switch/screen-lock observations need user confirmation. |
 
 The first preview accepts the exact server/common/SQLite/POC hashes previously
 recorded on the Thor. This prevents an accidental switch to stock, unpatched

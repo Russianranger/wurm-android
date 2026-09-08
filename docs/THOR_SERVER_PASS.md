@@ -1,4 +1,43 @@
-# Thor 0.4.1: managed startup and requested shutdown passed
+# Thor 0.4.1: startup, working-copy reopen and Restart passed
+
+## Follow-up: the same working copy reopened and Restart completed
+
+`wurm-server-report (2).txt` contains the original successful run plus two new
+successful runs, including an explicit controller-managed Restart. Report SHA-256:
+`f94771cc7012e9822e77f58eed61a1ce9e545a23820574ceffc9bf3a9fc7a019`.
+
+| Run | Server PID | Result |
+| --- | --- | --- |
+| Original run retained in the cumulative report | 9765 | Preflight/checkpoint/TCP 3724, requested exit 0. |
+| Later Start after the first normal stop | 25891 | Same working Adventure path reopened; preflight/checkpoint/TCP 3724, requested exit 0. |
+| Controller-managed Restart | 26452 | Previous child exited before new preflight/checkpoint/launch; TCP 3724 returned, then requested exit 0. |
+
+All three use UID/eUID 10197, the same five verified input JAR hashes, and world
+path `work-65b29e08-be8f-44f7-a3d8-f8525b0fb7d5/Adventure`. The report records only
+the original import and no restore. The second run's `SERVER_EXIT=0` is followed
+by `Previous child exited. Taking a new checkpoint before restart.`, a fresh
+preflight/checkpoint, the new PID and another `TCP_READY`. Thus Restart itself is
+demonstrated, as well as reopening the previously used working runtime.
+
+Totals in this cumulative report are **three** `PREFLIGHT_PASS`, completed
+checkpoints, `TCP_READY port=3724`, `SHUTDOWN_REQUESTED` and requested
+`SERVER_EXIT=0` results. All exits have `force=false; startupCancelled=false`.
+The earlier pointer-tag abort does not appear. An `Exporting complete` operation
+is recorded at 15:26 UTC; the generic marker does not identify which ZIP export
+was selected or independently verify its saved contents.
+
+The report does not record Activity close/reopen events, Home presses, screen
+lock/unlock, continuous port-health samples or exact run durations. It cannot
+independently establish that app switching or screen-off survival passed; those
+need the user's observation. No new APK or repeat of the passed startup/Restart
+sequence is needed just to provide that observation. Keep 0.4.1 and the working
+copy. Changed-world persistence still requires an identifiable saved change to be
+verified after reopening; repeated TCP readiness alone is not that evidence.
+
+This follow-up updates `README.md`, `docs/IMPLEMENTATION_PLAN.md`,
+`docs/MANAGED_SERVER_TEST.md` and this file. No application code or release changes.
+
+## Original first-run evidence
 
 The supplied `wurm-server-report (1).txt` records a successful first managed
 server lifecycle on the AYN Thor, Android 13 / API 33 / ARM64, on 2026-09-08.
@@ -43,7 +82,11 @@ native operation that lost its pointer tag remains unidentified, and the setting
 still disables heap-tag checks only in the Java child. Do not label it a repair
 of the underlying pointer-handling code or proof of long-term stability.
 
-## Next Thor test: keep the same installation and working copy
+## Lifecycle procedure used for the follow-up
+
+The report above now demonstrates working-copy reopen and Restart from this
+procedure. App-switch/screen-lock observations remain to be confirmed; do not
+repeat the whole sequence if it was already completed successfully.
 
 No new APK, runtime ZIP, Java installation, root access or Termux command is
 required. Continue in **0.4.1** with **Adventure**, **4096 MiB**, TCP **3724**.
@@ -75,9 +118,10 @@ successful export or normal exit alone does not certify database consistency.
 ## World-data persistence and the following development gate
 
 Adventure selection persistence was already demonstrated; it is a saved app
-setting. Reopening the same world after Stop will establish a further lifecycle
-result. Proving **changed world data** persists requires an identifiable Wurm
-change, a normal stop and verification of that same change after reopening.
+setting. The follow-up also demonstrates reopening the same working runtime
+after Stop and through Restart. Proving **changed world data** persists requires
+an identifiable Wurm change, a normal stop and verification of that same change
+after reopening.
 
 If an existing supported external Wurm client/admin route is available, use it to
 make a small identifiable change in this test copy and verify it after restart.
