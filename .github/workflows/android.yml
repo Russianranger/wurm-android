@@ -22,6 +22,7 @@ jobs:
       - name: Install pinned SDK packages
         run: |
           export ANDROID_HOME="$RUNNER_TEMP/android-sdk-wurm"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
           mkdir -p "$ANDROID_HOME/cmdline-tools"
           curl -fL --retry 3 \
             https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
@@ -35,6 +36,7 @@ jobs:
           set -o pipefail
           "$sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-34' 'build-tools;34.0.0'
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
       - name: Test supervisor
         run: python3 -m unittest discover -s tests -v
       - name: Build, unit test and lint
