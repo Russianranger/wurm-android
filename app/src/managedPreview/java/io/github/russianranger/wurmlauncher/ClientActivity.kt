@@ -32,8 +32,8 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.12").textSize = 24f
-        label("0.10.11 server stayed running; the client had a native heap abort. This preview tests a client-only collector change. Target: 127.0.0.1:3724; login/world entry still unverified.")
+        label("Wurm Client · 0.10.13").textSize = 24f
+        label("The Thor passed both memory tests and reached login without the earlier abort. This build fixes a missing Java 17 server encoder. Use this version's imported server for Start Local Game; login/world entry still unverified.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
         button("Import Client ZIP", true) {
@@ -46,7 +46,7 @@ class ClientActivity : Activity() {
         button("Start Controller Test") { startActivity(Intent(this, ControllerTestActivity::class.java)) }
         button("LWJGL Window / Input Test") { startActivity(Intent(this, GraphicsTestActivity::class.java).putExtra("mode", "window")) }
         button("JVM Memory Test", true) { startForegroundService(Intent(this, ClientService::class.java).setAction("memory")) }
-        label("Client startup uses Serial GC for this compatibility test. Memory Test compares G1 and Serial without game files; export its report before launching Wurm.")
+        label("Client startup retains Serial GC. The optional Memory Test compares G1 and Serial without game files; no repeat is required for the server login test.")
         button("JVM Graphics Test") { startActivity(Intent(this, GraphicsTestActivity::class.java)) }
         val preferences = getSharedPreferences("client-settings", MODE_PRIVATE)
         label("Local player name (new local profile; blank password in this preview)")

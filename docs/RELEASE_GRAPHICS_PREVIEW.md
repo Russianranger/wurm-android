@@ -1,28 +1,27 @@
-# Wurm Server 0.10.12 — client GC compatibility test
+# Wurm Server 0.10.13 — Java 17 server login fix
 
-The 0.10.11 server stayed alive after the client crash and stopped on request
-without the earlier position SQL errors. The client now supplies a confirmed
-native heap-corruption abort on a GC thread. The detection frame is in G1-related
-bookkeeping; the original corrupting write or race remains unknown.
+The Thor passed both 0.10.12 memory tests and sustained the real client login
+attempt with Serial GC. The current blocker is on the server: LoginHandler
+throws NoClassDefFoundError for the removed sun.misc.BASE64Encoder, then exits.
 
-This preview tests Serial GC for actual client entry, verifies the collector
-really selected, and exports GC/safepoint logs. A new JVM Memory Test compares
-G1 and Serial without loading game files or graphics. This is an experimental
-workaround, not a proven heap-corruption repair. Login/world entry remain unverified.
+This release redirects one verified encoder reference to an authored Java 17
+adapter in a session-private overlay. SHA-1/UTF-8, password comparisons and all
+login decisions remain unchanged. The imported JAR, existing item and position
+SQLite fixes, POC, client Serial GC and graphics/controller path are retained.
+No proprietary files are bundled. Full login/world entry remains unverified;
+the previous native corruption's origin also remains unresolved.
 
-1. Install Wurm-Server.apk (0.10.12, code 26, separate clientgc package).
-2. Open Client tab → JVM Memory Test; wait for both results. No imports needed.
-3. Export Client Report as wurm-memory-0.10.12.txt. If Serial fails, send it and
-   stop here. If Serial passes, proceed even if G1 failed.
-4. Import the same complete client ZIP into 0.10.12.
-5. Start Adventure in the working 0.10.11 app. Leave it running. In 0.10.12 choose
-   Start Local Game to use that external listener at 127.0.0.1:3724.
-6. Screenshot the result and export Client Report from 0.10.12 after 60 seconds
-   or immediately on failure. Export Server Session Report from 0.10.11 too.
-7. Send all three reports. Stop client and server separately after testing.
+1. Install Wurm-Server.apk (0.10.13, code 27, separate loginbase64 package).
+2. Stop the 0.10.12 client and older servers. Keep older apps/data installed.
+3. Import your same prepared server runtime ZIP into 0.10.13; select Adventure.
+4. Import the same complete client ZIP into 0.10.13. Keep player name Thor.
+5. Choose Start Local Game in 0.10.13. Both sides must run in this version so
+   the encoder fix and owned-server diagnostics are active.
+6. Screenshot and export after 60 seconds, or immediately on failure before Retry.
+7. Send **Client Report** and **Server tab → Export session report**, both from
+   **0.10.13**, plus the screenshot. The server export is the Session Report,
+   not Storage Report. Stop client/server after exporting.
 
-Keep 0.10.11 installed with its files/checkpoint. No server migration, new game
-files, PC/root/Termux or manually patched JAR is needed. Runtime and graphics
-pins, POC, server/item/position fixes and controllers are retained. No proprietary
-Wurm files are bundled. See attached CLIENT_GC_TEST.md for exact steps, verified
-scope, source evidence and every changed file.
+No repeat memory test, new game files, PC, root, Termux or manual patching is
+needed. See attached SERVER_LOGIN_BASE64_FIX.md for evidence, file requirements,
+validation limits, recovery choices and every changed file.

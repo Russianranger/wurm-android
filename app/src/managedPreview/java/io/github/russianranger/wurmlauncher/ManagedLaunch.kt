@@ -13,7 +13,8 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
     fun arguments(native: File, home: File, tmp: File, runtime: File, helper: File, preflight: Boolean): List<String> {
         val cp = if (preflight) listOf(helper.absolutePath) + ProbeInputs.BASELINE.keys.map { File(runtime, "poc-lib/$it").absolutePath }
         else listOf("wurm-arm64-poc.jar") + ProbeInputs.BASELINE.keys.map { "poc-lib/$it" } +
-            listOf(File(tmp.parentFile, "server-sqlite.jar").absolutePath, "server.jar", "common.jar", "lib/*", helper.absolutePath)
+            listOf(File(tmp.parentFile, "server-sqlite.jar").absolutePath,
+                File(tmp.parentFile, "server-login.jar").absolutePath, "server.jar", "common.jar", "lib/*", helper.absolutePath)
         return listOf(File(native, "libwurmjvm_runner.so").absolutePath,
             if (preflight) "-Xms32m" else "-Xms512m", if (preflight) "-Xmx256m" else "-Xmx${heapMiB}m",
             "-Djava.awt.headless=true", "-Djava.home=${home.absolutePath}", "-Djava.io.tmpdir=${tmp.absolutePath}",
@@ -23,6 +24,7 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
             "-XX:ErrorFile=${tmp.parentFile!!.absolutePath}/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash") +
             (if (preflight) listOf("-Dwurm.probe.network=true") else listOf(
                 "-Dwurm.server.sqliteOverlay=${File(tmp.parentFile, "server-sqlite.jar").absolutePath}",
+                "-Dwurm.server.loginOverlay=${File(tmp.parentFile, "server-login.jar").absolutePath}",
                 "-Dwurm.server.firstErrors=${File(tmp.parentFile!!.parentFile, "managed-first-errors.txt").absolutePath}")) + listOf(
             "-cp", cp.joinToString(":"), if (preflight) "server.ServerPreflight" else "server.ManagedServerMain",
             if (preflight) tmp.parentFile!!.absolutePath else world) + if (preflight) listOf(runtime.absolutePath) else emptyList()

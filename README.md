@@ -1,6 +1,6 @@
 # Wurm Server for Android
 
-**Current test: 0.10.12 — [client GC compatibility experiment](docs/CLIENT_GC_TEST.md).** The 0.10.11 server stayed alive and stopped without the position SQL errors. The client aborted in native GC bookkeeping. This preview adds a no-import G1/Serial memory comparison and tests Serial GC for client entry. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.12-client-gc). Keep the working 0.10.11 server; login/world entry remain unverified.
+**Current test: 0.10.13 — [Java 17 server login fix](docs/SERVER_LOGIN_BASE64_FIX.md).** The Thor passed both memory tests and sustained the client connection attempt without the previous native abort. The server then failed inside login on the removed `sun.misc.BASE64Encoder`. This release redirects only that encoder reference in a verified private overlay, retaining the SQLite patches and client Serial GC. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.13-server-login). Import both existing ZIPs into this version and use its **Start Local Game**; keep older servers stopped. Login/world entry remain unverified.
 
 **Previous 0.10.9 milestone:** the Thor passed material/GUI/terrain setup and reached Connecting with at least 375 frames. Its final exit followed the two-minute app timeout. That milestone exports real authentication/login/retry messages and allows five minutes for startup. Follow the [local connection test](docs/CLIENT_CONNECTION_TEST.md). Earlier instructions below are historical.
 

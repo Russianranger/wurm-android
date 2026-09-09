@@ -1,6 +1,32 @@
 # Client integration architecture and qualification
 
-## Current milestone: 0.10.12 client GC compatibility experiment
+## Current milestone: 0.10.13 Java 17 server login compatibility
+
+The Thor's 0.10.12 report passes both isolated collectors, verifies Serial for
+client entry, and retains 196 frames through a minute of LOGIN_WAIT without the
+previous native abort. That is a successful bounded test, not proof that the
+old heap corruption is permanently repaired. The paired 0.10.11 server report
+identifies the current failure: NoClassDefFoundError for sun.misc.BASE64Encoder
+inside LoginHandler.encrypt, followed by unrequested exit zero. Authentication
+was accepted through the local shim; login and world entry were not completed.
+
+The supplied server class uses SHA-1 over UTF-8 and the legacy encode(byte[])
+ABI. A separate session-private, hash-guarded login overlay redirects one owner
+to an authored Java 17 Base64 adapter. Preflight prepares it without loading
+Wurm; bootstrap checks reverse integrity and classpath selection before world
+initialization. Hashing, authentication, login checks and all other method bytes
+remain unchanged. Preserve the existing position overlay, item fixes, POC,
+client Serial GC and graphics/controller/Steam path.
+
+The next Thor test must use **0.10.13 for both server and client**, so the encoder
+fix is active and server failures are observed by the owning app. Import the same
+server and full client ZIPs; no new proprietary files or manual patching is
+needed. The bounded Gate 5 dependency fix is implemented; actual login/world
+entry and audio still need device qualification. See
+[SERVER_LOGIN_BASE64_FIX.md](SERVER_LOGIN_BASE64_FIX.md) for exact steps,
+validation limits and every changed file.
+
+## Previous milestone: 0.10.12 client GC compatibility experiment
 
 The 0.10.11 Thor server stayed alive after the client crash and stopped on request
 without the earlier position SQL errors. The client now has a PID-matched native

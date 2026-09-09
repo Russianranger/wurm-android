@@ -25,7 +25,9 @@ class ManagedLaunchTest {
         assertEquals("wurm-arm64-poc.jar", cp.first())
         assertTrue(cp.indexOf("poc-lib/sqlite-jdbc-3.53.2.1.jar") < cp.indexOf("server.jar"))
         assertTrue(cp.indexOf("${tmp.parent}/server-sqlite.jar") in 0 until cp.indexOf("server.jar"))
+        assertTrue(cp.indexOf("${tmp.parent}/server-login.jar") in 0 until cp.indexOf("server.jar"))
         assertTrue(args.contains("-Dwurm.server.sqliteOverlay=${tmp.parent}/server-sqlite.jar"))
+        assertTrue(args.contains("-Dwurm.server.loginOverlay=${tmp.parent}/server-login.jar"))
         assertTrue(args.contains("-Dwurm.server.firstErrors=/app/files/managed-first-errors.txt"))
         assertEquals(listOf("server.ManagedServerMain", "Adventure"), args.takeLast(2))
     }

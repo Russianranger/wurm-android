@@ -8,6 +8,7 @@ public final class ServerPreflight {
         if (args.length != 2) throw new IllegalArgumentException("Expected disposable session and imported runtime");
         probe.RuntimeProbe.main(new String[]{args[0]});
         ServerSqlitePatch.prepare(Path.of(args[1], "server.jar"), Path.of(args[0], "server-sqlite.jar"));
+        ServerLoginPatch.prepare(Path.of(args[1], "server.jar"), Path.of(args[0], "server-login.jar"));
         System.out.println("[server-sqlite] SERVER_PREFLIGHT_OK");
     }
 }
