@@ -1,7 +1,7 @@
 # AYN Thor: 0.10.0 window, controller and Wurm startup test
 
 
-**Current 0.10.5:** the Thor passed the real framebuffer check in 0.10.4, then hit Java 8 buffer-cleanup calls that are incompatible with Java 17. The next build verifies the two-class ABI adapter and actual cleanup before game launch. Follow the [buffer startup test](CLIENT_BUFFERS_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.6:** the Thor rendered Wurm’s splash screen in 0.10.5. The next correction addresses Gaussian-blur shader syntax and LWJGL uniform output slots, with real material/draw verification. Follow the [material startup test](CLIENT_MATERIALS_FIX.md). Earlier milestone instructions below are historical.
 
 The previous **0.9.1 graphics gate passed on your Thor twice**: orange triangle on
 blue, six verified/displayed frames, same-context resizes and clean JVM exits.

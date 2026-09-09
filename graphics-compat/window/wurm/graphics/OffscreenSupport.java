@@ -19,6 +19,7 @@ public final class OffscreenSupport {
             if ((Boolean) option.getClass().getMethod("disabled").invoke(option))
                 throw new IllegalStateException("OFFSCREEN_FBO_DISABLED in imported client settings");
             verifyFramebuffer();
+            ShaderQueries.verify();
             log("OFFSCREEN_REQUIREMENT_PASS backend=FBO caller=verified-WurmClientBase legacyPbufferCaps=" + Pbuffer.getCapabilities() + "; not advertising LWJGL Pbuffer construction");
             return 1; // Satisfies this engine's obsolete bit test only, after a real FBO check.
         } catch (ReflectiveOperationException error) {

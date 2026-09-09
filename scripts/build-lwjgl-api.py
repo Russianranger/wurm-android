@@ -47,6 +47,29 @@ def append_methods(source, methods):
     return source[:position] + '\n' + methods + '\n' + source[position:]
 
 
+def patch_legacy_queries(source):
+    # The pinned LWJGLX convenience methods overwrite size with type, leave the
+    # second slot zero, and advance position. LWJGL2 callers expect two outputs.
+    for method in ('glGetActiveUniform', 'glGetActiveAttrib'):
+        marker = '    public static String ' + method + '(int program, int index, int maxLength,'
+        if source.count(marker) != 1:
+            raise ValueError('Pinned legacy query changed: ' + method)
+        start = source.index(marker)
+        end = source.index('\n    }', start) + len('\n    }')
+        original = source[start:end]
+        if 'sizeType.put(type.get(0));' not in original or 'IntBuffer sizeType)' not in original:
+            raise ValueError('Pinned legacy query body changed: ' + method)
+        replacement = '''    public static String METHOD(int program, int index, int maxLength, IntBuffer sizeType) {
+        if (!sizeType.isDirect() || sizeType.isReadOnly() || sizeType.remaining() < 2)
+            throw new IllegalArgumentException("sizeType requires two writable direct integers");
+        IntBuffer type = sizeType.duplicate();
+        type.position(type.position() + 1);
+        return METHOD(program, index, maxLength, sizeType.duplicate(), type);
+    }'''.replace('METHOD', method)
+        source = source[:start] + replacement + source[end:]
+    return source
+
+
 def build(source, annotations, output, patches=True):
     source, annotations, output = source.resolve(), annotations.resolve(), output.resolve()
     if subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip() != PIN:
@@ -77,7 +100,9 @@ def compile_verified_source(source, annotations, output, tracked, patches=True):
                 raise ValueError('Patch target not in pinned source list')
             target = output/'patched'/name
             target.parent.mkdir(exist_ok=True)
-            target.write_text(append_methods(original.read_text(), fragment.read_text()))
+            content = original.read_text()
+            if name == 'GL20.java': content = patch_legacy_queries(content)
+            target.write_text(append_methods(content, fragment.read_text()))
             java[java.index(original)] = target
         java.extend(sorted((ROOT/'graphics-compat/src').rglob('*.java')))
         # LWJGLX exposes eight mouse buttons but its upstream poll buffer has only

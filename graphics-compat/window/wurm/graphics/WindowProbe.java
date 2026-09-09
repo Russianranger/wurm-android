@@ -32,6 +32,7 @@ public final class WindowProbe {
                 throw new IllegalStateException("OFFSCREEN_STATE_NOT_RESTORED");
             glColorMask(true,true,true,true); glDepthMask(true); glDisable(GL_SCISSOR_TEST);
             check("after-offscreen-state-test");
+            ShaderQueries.verify();
             long deadline = System.nanoTime()+90_000_000_000L;
             float x=0, y=0; int moves=0;
             while (!Display.isCloseRequested() && System.nanoTime()<deadline) {

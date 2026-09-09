@@ -1,7 +1,7 @@
 # Wurm Server for Android
 
 
-**Current 0.10.5:** the Thor passed the real framebuffer check in 0.10.4, then hit Java 8 buffer-cleanup calls that are incompatible with Java 17. The next build verifies the two-class ABI adapter and actual cleanup before game launch. Follow the [buffer startup test](docs/CLIENT_BUFFERS_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.6:** the Thor rendered Wurm’s splash screen in 0.10.5. The next correction addresses Gaussian-blur shader syntax and LWJGL uniform output slots, with real material/draw verification. Follow the [material startup test](docs/CLIENT_MATERIALS_FIX.md). Earlier milestone instructions below are historical.
 
 
 **Client milestone 0.10.0:** [download the window/input preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.0-client-window)

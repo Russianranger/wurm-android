@@ -1,27 +1,30 @@
-# Wurm Server 0.10.5 — client buffer startup
+# Wurm Server 0.10.6 — client material startup
 
-The Thor passed the real framebuffer support check in 0.10.4. Wurm then reached
-splash texture creation and failed in Java 8-era buffer cleanup on Java 17.
+The Thor rendered the actual Wurm splash in 0.10.5. Startup then failed while
+preparing terrain because the Gaussian-blur material's GLSL 3.30 shaders could
+not compile through the current graphics path.
 
-This preview adapts the two SHA-verified buffer classes privately at startup,
-adds two client-only module exports and tests real allocation/cleanup before game
-launch. The imported files and working server are unchanged. No proprietary files
-are included. Full game rendering, audio, login and world entry remain unverified.
+This preview converts only those two verified imported resources to equivalent
+GLSL 1.20 syntax in the private session overlay. It also corrects a pinned LWJGL
+uniform/attribute output bug and tests native shader reflection before material
+loading. Imports and the working server remain unchanged; no proprietary files
+are included. Full terrain rendering, audio, login and world entry remain pending.
 
-Install **0.10.5-managed-preview**, code **19**, package
-`io.github.russianranger.wurmlauncher.clientbuffers`, alongside the working server.
+Install **0.10.6-managed-preview**, code **20**, package
+`io.github.russianranger.wurmlauncher.clientmaterials`, alongside the working server.
 
 1. Import the same complete client ZIP in the new app's **Client** tab.
 2. Start Adventure in the working **0.6.0 server app** and wait for its game port.
-3. Select **0.10.5 → Client → Start Local Game** (127.0.0.1:3724).
-4. After failure, timeout or Stop Client, use **Export Client Report** and send
-   **wurm-client-report.txt**, plus a screenshot if a Wurm screen appears.
+3. Select **0.10.6 → Client → Start Local Game** (127.0.0.1:3724).
+4. After failure, timeout or Stop Client, select **Export Client Report** and send
+   **wurm-client-report.txt**, plus a screenshot of any new screen.
 
-No PC, root, Termux, new game files or repeated triangle test is needed. The
-preview remains a two-minute startup diagnostic. See **CLIENT_BUFFERS_FIX.md**
-for every changed file, technical evidence, checks and exact Thor steps.
+No PC, root, Termux commands, new game files or repeat triangle test is needed.
+The preview retains its two-minute startup limit. See **CLIENT_MATERIALS_FIX.md**
+for the evidence, architecture, every changed file and exact Thor steps.
 
-The 76 automated tests include real native-buffer cleanup in authored fixtures.
-A private probe using the supplied client also restores native direct-buffer
-memory across 64 repeated allocations. CI builds/tests/lints all variants and
-verifies packaged helpers, runtime/graphics hashes, APK signing and exact POC bytes.
+All 78 automated tests pass. The 317-member client API audit and real native
+window/controller regression pass. A private probe loads the actual Wurm blur
+material and verifies its rendered pixel through GL4ES; original shaders reproduce
+the failure. CI builds/tests/lints all variants and verifies packaged helpers,
+runtime/graphics hashes, signing and exact POC bytes.

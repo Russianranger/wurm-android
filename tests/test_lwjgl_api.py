@@ -135,6 +135,43 @@ public class Check { public static void main(String[] args) {
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         self.assertIn('WRAPPER_CONTRACT_OK', result.stdout)
 
+    def test_pinned_core_queries_write_two_slots_without_moving_position(self):
+        methods = ''
+        for name in ('glGetActiveUniform', 'glGetActiveAttrib'):
+            methods += f'''    public static String {name}(int program, int index, int maxLength,
+                                            IntBuffer sizeType) {{
+        IntBuffer type = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).asIntBuffer();
+        String s = {name}(program, index, maxLength, sizeType, type);
+        sizeType.put(type.get(0));
+        return s;
+    }}
+    public static String {name}(int p, int i, int length, IntBuffer size, IntBuffer type) {{
+        if(p!=7 || i!=8 || length!=99) throw new AssertionError("arguments");
+        size.put(size.position(),3); type.put(type.position(),0x1406); return "native-output";
+    }}
+'''
+        source = 'package org.lwjgl.opengl; import java.nio.*; public class GL20 {\n'+methods+'}'
+        patched = builder.patch_legacy_queries(source)
+        with self.assertRaises(ValueError): builder.patch_legacy_queries(patched)
+        check = '''import java.nio.*; import org.lwjgl.opengl.GL20;
+public class CoreCheck { public static void main(String[] args) {
+ for(int position:new int[]{0,2}) for(boolean uniform:new boolean[]{false,true}) {
+  IntBuffer b=ByteBuffer.allocateDirect(24).order(ByteOrder.nativeOrder()).asIntBuffer();
+  b.position(position);b.limit(position+2);
+  String name=uniform?GL20.glGetActiveUniform(7,8,99,b):GL20.glGetActiveAttrib(7,8,99,b);
+  if(!name.equals("native-output") || b.position()!=position || b.limit()!=position+2 || b.get(position)!=3 || b.get(position+1)!=0x1406) throw new AssertionError("size/type/position");
+ }
+ for(IntBuffer b:new IntBuffer[]{IntBuffer.allocate(2),ByteBuffer.allocateDirect(4).asIntBuffer(),ByteBuffer.allocateDirect(8).asIntBuffer().asReadOnlyBuffer()}) {
+  try{GL20.glGetActiveUniform(7,8,99,b);throw new AssertionError("bad output accepted");}catch(IllegalArgumentException expected){}
+  try{GL20.glGetActiveAttrib(7,8,99,b);throw new AssertionError("bad output accepted");}catch(IllegalArgumentException expected){}
+ }
+ System.out.println("CORE_QUERY_CONTRACT_PASS");
+} }'''
+        jar = self.compile_jar({'org/lwjgl/opengl/GL20.java':patched,'CoreCheck.java':check})
+        result = subprocess.run(['java','-cp',str(jar),'CoreCheck'],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('CORE_QUERY_CONTRACT_PASS',result.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,5 +1,37 @@
 # Client integration architecture and qualification
 
+## 0.10.6: material startup after the first Wurm splash frames
+
+The Thor's 0.10.5 report confirms the buffer preflight, FBO checks and three game
+frames; the screenshot shows the actual Wurm splash. Startup then reaches
+AdvancedWaterRenderer/WaterTexture, where `material.gaussblur` is null because
+both GLSL 3.30 blur shaders fail compilation through the GL4ES/GLES2 path.
+
+A separate pinned LWJGLX bug explains uniform types of zero: the GL20 legacy
+query overwrites the size output with type and advances the caller's buffer.
+Build copies now correct the core uniform and attribute convenience methods,
+matching the already-correct ARB wrapper. An owned-context check compiles/links
+an authored shader and verifies native size/type outputs, nonzero positions,
+canaries and Position=0 before real material loading. No native source changes.
+
+The existing private overlay additionally carries two SHA-verified resource
+adaptations. Only GLSL syntax changes: version 330 to 120, the position input to
+an attribute, fragment output to gl_FragColor, and texture to texture2D. Wurm
+already binds Position to location zero. Blur weights, math and uniforms remain
+unchanged. Resources must reverse byte-for-byte to their pinned originals and
+be selected by the classpath; the raw import stays unchanged. This is not a
+general GLSL 3.30 translator or a claim of full desktop OpenGL 3 support.
+
+The host reproduces the original material failure. The real Wurm material and
+program now load/link and draw an authored constant input to the expected pixel
+through the actual imported blur shader. Core/ARB reflection and the native
+window/controller regression pass. Gate 4 now has physical splash rendering;
+full terrain rendering, audio, local authentication/login and world entry still
+need testing. GL4ES internal matrix-uniform warnings remain visible and are not
+claimed resolved. The server and POC paths are unchanged.
+
+See [evidence, changed files and exact Thor test](CLIENT_MATERIALS_FIX.md).
+
 ## 0.10.5: Java 17 buffer cleanup after confirmed FBO support
 
 The Thor's 0.10.4 report confirms `OFFSCREEN_FBO_PASS` and
