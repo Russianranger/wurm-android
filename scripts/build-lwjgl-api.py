@@ -54,6 +54,22 @@ def compile_verified_source(source, annotations, output, tracked, patches=True):
             target.write_text(append_methods(original.read_text(), fragment.read_text()))
             java[java.index(original)] = target
         java.extend(sorted((ROOT/'graphics-compat/src').rglob('*.java')))
+        # LWJGLX exposes eight mouse buttons but its upstream poll buffer has only
+        # three. Preserve wheel deltas for both Mouse.next and Mouse.getDWheel.
+        original = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/input/GLFWInputImplementation.java'
+        target = output/'patched/GLFWInputImplementation.java'
+        content = original.read_text().replace('new byte[3]', 'new byte[8]')
+        content = content.replace('public int mouseLastX = 0;', 'private int wheel;\n    public int mouseLastX = 0;')
+        content = content.replace('buttons.rewind();', 'coord_buffer.put(2, wheel); wheel = 0;\n        buttons.rewind();')
+        content = content.replace('event_buffer.putInt(dz).putLong(nanos);', 'wheel += dz;\n        event_buffer.putInt(dz).putLong(nanos);')
+        target.write_text(content)
+        java[java.index(original)] = target
+        original = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/input/Mouse.java'
+        target = output/'patched/Mouse.java'
+        content = original.read_text().replace('}catch (Throwable e) {', '''}catch (ClassNotFoundException absent) {
+            System.out.println("[window] OPTIONAL_CACIO_MOUSE absent; GLFW input remains active");
+        }catch (Throwable e) {''')
+        target.write_text(content); java[java.index(original)] = target
     # Compile the legacy MemoryUtil last, as module-by-module upstream builds do:
     # exposing it earlier makes generated wildcard imports ambiguous with system.MemoryUtil.
     legacy = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/MemoryUtil.java'

@@ -1,5 +1,16 @@
 # Pojav Java API compatibility candidate
 
+
+**0.10.0:** the Thor passed the 0.9.1 graphics diagnostic twice. The new window
+JAR adapts pinned Pojav Java GLFW to the owned EGL pbuffer and connects Android
+controller events to actual LWJGL2 keyboard/mouse queues. Start Client now uses
+this source-built window/API ahead of imported desktop bindings. See
+[the current device test and limitations](../docs/GRAPHICS_THOR_TEST.md).
+`window/` contains authored platform hooks; `scripts/build-window-api.py` adapts
+verified upstream copies. Sources/licenses accompany the APK. The descriptions
+below are historical; full Wurm rendering and login are still unqualified.
+
+
 **0.9.1 update:** the candidate is now packaged **only for the JVM Graphics Test**,
 along with source-built ARM64 core/OpenGL JNI bindings, GL4ES and an authored EGL
 pbuffer bridge. The Thor passed native/context/shader startup; drawing failed at

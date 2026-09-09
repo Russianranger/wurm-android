@@ -4,7 +4,7 @@ import android.content.Context
 import org.json.JSONObject
 import java.io.File
 
-/** Graphics assets are used by the render diagnostic only; no server classpath changes. */
+/** Graphics assets are used by the client graphics stages only; no server classpath changes. */
 object GraphicsRuntime {
     fun prepare(context: Context, session: File, log: (String) -> Unit): List<File> {
         val info = JSONObject(context.assets.open("client-graphics.json").bufferedReader().use { it.readText() })
@@ -17,7 +17,7 @@ object GraphicsRuntime {
             log("[graphics] NATIVE_VERIFIED $name sha256=${pins.getString(name)}")
         }
         val assets = info.getJSONObject("assetsSha256")
-        return listOf("graphics-probe.jar", "pojav-wurm-api.jar").map { name ->
+        return listOf("graphics-probe.jar", "pojav-wurm-api.jar", "wurm-window.jar").map { name ->
             val path = File(session, name)
             context.assets.open(name).use { input -> path.outputStream().use { input.copyTo(it) } }
             check(ProbeInputs.sha256(path) == assets.getString(name)) { "Graphics Java checksum mismatch: $name" }

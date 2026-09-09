@@ -1,3 +1,11 @@
+# AYN Thor: current 0.10.0 client window test
+
+Follow [GRAPHICS_THOR_TEST.md](GRAPHICS_THOR_TEST.md) for the new APK, window/input
+check, exact complete client ZIP contents, local launch and Client Report exports.
+The client window integration is experimental; no PC, root or Termux is needed.
+
+The 0.8.0 receiver/import instructions below are retained as historical evidence.
+
 # AYN Thor: 0.8.0 client launch and automatic controller test
 
 No PC, root, Termux command or separate Java installation is needed. This is a

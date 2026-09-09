@@ -17,5 +17,10 @@
   "jsr305": {
     "url": "https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
     "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7"
+  },
+  "pojav": {
+    "url": "https://github.com/PojavLauncherTeam/PojavLauncher/archive/b12ad048157b3aa255d078c235dd4571e1900309.tar.gz",
+    "sha256": "cfb95c87a7e8b9045eccbfee36764376fa5cb25fdbd9b82c8d84b0550c4f9521",
+    "root": "PojavLauncher-b12ad048157b3aa255d078c235dd4571e1900309"
   }
 }

@@ -1,5 +1,67 @@
 # Client integration architecture and qualification
 
+## 0.10.0: client window and real LWJGL input queues
+
+The Thor's 0.9.1 report (`wurm-client-report(1).txt`, September 9, 2026) records
+**two successful JVM graphics runs**, each with three verified/displayed frames,
+two same-context resizes, clean teardown and exit 0. The owner saw the orange
+triangle on blue. This qualifies the pbuffer graphics diagnostic, not Wurm login.
+
+The next bounded Gate 4 implementation is now the **LWJGL Window / Input Test**
+and an actual Wurm entry attempt using that same window backend. See
+[exact Thor steps, limitations and changed files](GRAPHICS_THOR_TEST.md).
+
+- Build `wurm-window.jar` from the pinned Pojav Java GLFW source plus this
+  repository's platform adapter. Its desktop monitor/window queries feed the
+  existing Pojav LWJGL2 `Display` implementation. The generated GLFW copy replaces
+  Pojav's dual-VM `pojavexec` hooks with our already tested, single-context EGL
+  pbuffer. No Android native-window pointer crosses the process boundary.
+- Put this window JAR, the source-built LWJGL API and graphics helper ahead of
+  the imported client's desktop bindings **only for window and entry stages**.
+  Keep the raw inventory stage and existing Steam compatibility test. Start Client
+  invokes the existing verified `WurmClientBase.launch(PlayerProfile,Resources,false)`
+  path; it does not run JavaFX or silently skip rendering.
+- Feed the existing controller protocol/parser into `GLFWInputImplementation` on
+  the owning game thread. `Keyboard.next/isKeyDown` and
+  `Mouse.next/isButtonDown/getDWheel` consume the real queues. Adapt the upstream
+  mouse buffer to its advertised eight buttons and retain wheel poll deltas.
+  Queue overflow, focus loss and device removal release held input. The same
+  persistent editable profiles work in the frame viewer.
+- Display actual JVM framebuffer readback in Android, at at most five captures
+  per second. The test uses a 640x360 window, bounded 16..1024 dimensions and one
+  context. The window test ends after 90 seconds or Finish Window Test; Wurm entry
+  remains a two-minute diagnostic. This file transport is intentionally temporary,
+  not a production surface or frame-rate claim. Unsupported sizes, shared contexts,
+  detachment/thread transfer and graphics failures are explicit errors.
+- Preserve the working managed server, POC, SQLite compatibility and offline
+  Steam shim. Start Local Game still waits for TCP 127.0.0.1:3724. TCP success is
+  not authentication or world entry. A separate `.clientwindow` APK package keeps
+  the working server and its Adventure data installed.
+
+**Completed in code/host tests:** Pojav-backed Display/window creation, real
+fixed-function GL4ES drawing/readback, key/mouse/wheel queues, reset and clean
+teardown. **Physical acceptance pending:** the new window/input layer and Wurm's
+next startup stage. Headless AWT usage, OpenAL ARM64 natives, unsupported desktop
+OpenGL features, display sizing, actual login dispatch and local ticket acceptance
+remain specific risks to identify from the next report. Gates 1/2/3 retain their
+previous import/bootstrap/Java-shim evidence; full Gate 4 Wurm rendering and Gate 5
+login/world entry are not complete.
+
+Reusable components were inspected, not rebuilt from scratch: the pinned
+[Pojav Java GLFW implementation](https://github.com/PojavLauncherTeam/PojavLauncher/tree/b12ad048157b3aa255d078c235dd4571e1900309/jre_lwjgl3glfw),
+[Pojav LWJGL2 Display and input](https://github.com/PojavLauncherTeam/lwjgl3/tree/39272d4d0ca119379024e3ca7207699fd3fce237/modules/lwjgl/lwjglx),
+and [GL4ES](https://github.com/ptitSeb/gl4es/tree/81547d986798e876de8b434193920b606a72363f).
+GLFW's [null platform](https://www.glfw.org/docs/latest/intro_guide.html) was also
+considered; it would introduce another native backend/context integration before
+reusing the working EGL path. Full Pojav native Surface hosting remains a later
+performance path; its ART/OpenJDK input/window lifecycle is not drop-in compatible
+with this app's exec child. Upstream trees remain unchanged; build adapters produce
+modified copies. The release includes source pins, notices, GPL/LGPL/Apache license
+text and corresponding source, including the Pojav archive and authored changes.
+
+The earlier milestone records below are historical.
+
+
 ## 0.9.1: isolate and correct the graphics probe failure
 
 Report (3) from 0.9.0 confirms owned JVM/native loading, Adreno EGL, GL4ES OpenGL

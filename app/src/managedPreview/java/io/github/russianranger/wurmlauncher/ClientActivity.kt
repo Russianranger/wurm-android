@@ -32,8 +32,8 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.9.1").textSize = 24f
-        label("This preview imports your client and attempts its bootstrap and LWJGL initialization. It does not yet render Wurm or complete login. Target: 127.0.0.1:3724.")
+        label("Wurm Client · 0.10.0").textSize = 24f
+        label("This preview imports your client and attempts its bootstrap and LWJGL initialization. Window and input integration is experimental; Wurm rendering and login remain unverified. Target: 127.0.0.1:3724.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
         button("Import Client ZIP", true) {
@@ -44,6 +44,7 @@ class ClientActivity : Activity() {
         button("Stop Client") { startService(Intent(this, ClientService::class.java).setAction("stop")) }
         button("Controller Settings") { startActivity(Intent(this, ControllerSettingsActivity::class.java)) }
         button("Start Controller Test") { startActivity(Intent(this, ControllerTestActivity::class.java)) }
+        button("LWJGL Window / Input Test") { startActivity(Intent(this, GraphicsTestActivity::class.java).putExtra("mode", "window")) }
         button("JVM Graphics Test") { startActivity(Intent(this, GraphicsTestActivity::class.java)) }
         val preferences = getSharedPreferences("client-settings", MODE_PRIVATE)
         label("Local player name (new local profile; blank password in this preview)")
@@ -66,7 +67,10 @@ class ClientActivity : Activity() {
         if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 12)
     }
-    private fun launch(mode: String) { startForegroundService(Intent(this, ClientService::class.java).setAction(mode)) }
+    private fun launch(mode: String) {
+        startForegroundService(Intent(this, ClientService::class.java).setAction(mode))
+        startActivity(Intent(this, GraphicsTestActivity::class.java).putExtra("mode", mode))
+    }
     override fun onResume() { super.onResume(); handler.post(refresh) }
     override fun onPause() { handler.removeCallbacks(refresh); super.onPause() }
     @Deprecated("Platform document picker callback")

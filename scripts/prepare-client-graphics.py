@@ -54,7 +54,7 @@ def main():
     native = output/'jniLibs/arm64-v8a'; native.mkdir(parents=True)
     work = output/'work'; work.mkdir()
     sources = {}
-    for name in ('lwjgl', 'gl4es', 'libffi'):
+    for name in ('lwjgl', 'gl4es', 'libffi', 'pojav'):
         with tarfile.open(archives[name]) as archive:
             archive.extractall(work, filter='data')
         sources[name] = work/pins[name]['root']
@@ -113,9 +113,16 @@ def main():
         for path in sorted(helper.rglob('*.class')):
             entry = zipfile.ZipInfo(path.relative_to(helper).as_posix(), (1980, 1, 1, 0, 0, 0))
             jar.writestr(entry, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
+    spec = importlib.util.spec_from_file_location('window_builder', ROOT/'scripts/build-window-api.py')
+    window = importlib.util.module_from_spec(spec); spec.loader.exec_module(window)
+    window_jar = window.build(sources['pojav'], candidate, assets/'graphics-probe.jar', work/'window-api', archives['jsr305'])
+    shutil.copyfile(window_jar, assets/'wurm-window.jar')
     notices = [('LWJGL BSD notice', lwjgl/'LICENSE.md'), ('LWJGL dyncall notice', core/'org_lwjgl_system_SharedLibraryUtil.c'),
                ('LWJGL bundled liburing notice', lwjgl/'modules/lwjgl/core/liburing_license.txt'), ('GL4ES MIT notice', gl4es/'LICENSE'),
-               ('libffi MIT notice', ffi/'LICENSE'), ('JSR305 annotation notice (build only)', None)]
+               ('libffi MIT notice', ffi/'LICENSE'), ('Pojav Java GLFW LGPLv3 notice', sources['pojav']/'LICENSE'),
+               ('Android utility Apache-2.0 notice', sources['pojav']/'jre_lwjgl3glfw/src/main/java/android/util/ArrayMap.java'),
+               ('GPLv3 incorporated by LGPLv3', ROOT/'graphics-compat/licenses/GPL-3.0.txt'),
+               ('Apache-2.0 license', ROOT/'graphics-compat/licenses/Apache-2.0.txt'), ('JSR305 annotation notice (build only)', None)]
     notice_text = []
     for title, path in notices:
         if path is None: continue
@@ -130,7 +137,7 @@ def main():
         for dependency in re.findall(r'\(NEEDED\).*?\[(.*?)\]', dynamic):
             if dependency not in system and not (native/dependency).is_file():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
-    manifest = dict(id='wurm-graphics-1', backend='LWJGL/Pojav + GL4ES, EGL pbuffer diagnostic',
+    manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
                     ndk='26.1.10909125', abi='arm64-v8a', sources=pins,
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},
                     assetsSha256={p.name: sha(p) for p in sorted(assets.iterdir())})

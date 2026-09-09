@@ -10,7 +10,7 @@ class ClientService : Service() {
     override fun onBind(intent: Intent?) = null
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "stop") { ClientSession.stop(); if (!owns) stopSelf(); return START_NOT_STICKY }
-        if (owns || intent?.action !in listOf("import", "start", "local", "input", "render")) { if (!owns) stopSelf(); return START_NOT_STICKY }
+        if (owns || intent?.action !in listOf("import", "start", "local", "input", "render", "window")) { if (!owns) stopSelf(); return START_NOT_STICKY }
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel("wurm_client", "Wurm client", NotificationManager.IMPORTANCE_LOW))
         val open = PendingIntent.getActivity(this, 10, Intent(this, ClientActivity::class.java), PendingIntent.FLAG_IMMUTABLE)

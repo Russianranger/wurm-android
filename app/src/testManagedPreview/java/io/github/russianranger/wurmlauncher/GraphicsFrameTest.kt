@@ -23,10 +23,14 @@ class GraphicsFrameTest {
         } finally { file.delete() }
     }
     @Test fun rejectsUnboundedInvalidAndTruncatedFrames() {
-        listOf(fixture(width=Int.MAX_VALUE), fixture(height=0), fixture(sequence=0), fixture(sequence=4), fixture(pixels=255), fixture(tail=true)).forEach { file ->
+        listOf(fixture(width=Int.MAX_VALUE), fixture(height=0), fixture(sequence=0), fixture(sequence=-1), fixture(pixels=255), fixture(tail=true)).forEach { file ->
             try { assertTrue("Invalid frame accepted",runCatching { GraphicsFrame.read(file) }.isFailure) }
             finally { file.delete() }
         }
+    }
+    @Test fun acceptsContinuingWindowFrames() {
+        val file=fixture(sequence=450)
+        try { assertEquals(450, GraphicsFrame.read(file).sequence) } finally { file.delete() }
     }
     @Test fun rejectsUnknownFormatAndHeader() {
         val file=fixture()

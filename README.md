@@ -1,5 +1,13 @@
 # Wurm Server for Android
 
+
+**Client milestone 0.10.0:** [download the window/input preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.0-client-window)
+and follow the [AYN Thor test](docs/GRAPHICS_THOR_TEST.md). The Thor passed the
+previous graphics diagnostic twice. This preview connects the Pojav window layer
+and real LWJGL input queues, then attempts Wurm startup; playable Wurm/login is
+not yet qualified. Keep the working server app installed.
+
+
 **0.9.1 graphics correction and diagnostics:** [Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.9.1-graphics-diagnostics).
 The 0.9.0 Thor report passed native/context/shader startup, then failed the aggregate
 draw check. This build fixes an empty-shader-log request bug reproduced on host
