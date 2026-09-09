@@ -1,5 +1,22 @@
 # From the working POC to Wurm Server
 
+## 0.10.1: remove the remaining JavaFX profile dependency
+
+The Thor passed 0.10.0's window/controller test with 366 frames, real LWJGL key and
+mouse delivery and clean exit. Its local-client attempt reached the server and
+passed inventory/Steam checks, then failed in Profile.loadSettings while loading
+WurmSettingsFX → WurmStage → JavaFX Stage. The new headless settings/keybind helper
+removes this observed dependency and preserves the real Profile/Options path.
+
+Using the actual supplied client JAR, the old helper reproduced the exception and
+the replacement passed profile/player construction twice with all 78 default keys
+and an unchanged binding file. The next physical test is **local client startup**,
+not another required triangle test. Full Wurm rendering/login remain unqualified.
+See [diagnosis, implementation, changed files and exact Thor steps](CLIENT_SETTINGS_FIX.md).
+The existing server, SQLite fix, Steam shim and native window/input backend remain
+unchanged. Earlier milestone entries below are historical.
+
+
 ## 0.10.0: client window and real LWJGL input queues
 
 The Thor's 0.9.1 report (`wurm-client-report(1).txt`, September 9, 2026) records

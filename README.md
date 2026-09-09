@@ -1,6 +1,9 @@
 # Wurm Server for Android
 
 
+**Current 0.10.1:** the Thor window/controller test passed. Follow the [headless settings fix and next local-client test](docs/CLIENT_SETTINGS_FIX.md). Earlier 0.10.0/0.8.0 instructions below are historical.
+
+
 **Client milestone 0.10.0:** [download the window/input preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.0-client-window)
 and follow the [AYN Thor test](docs/GRAPHICS_THOR_TEST.md). The Thor passed the
 previous graphics diagnostic twice. This preview connects the Pojav window layer

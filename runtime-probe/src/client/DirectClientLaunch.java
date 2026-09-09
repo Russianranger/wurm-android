@@ -59,6 +59,10 @@ public final class DirectClientLaunch {
         List<String> packNames = selectPacks(packs.toPath());
         log("RESOURCE_PACKS_VALIDATED " + packNames + "; content compatibility still needs the engine");
         log("PROFILE_PREPARE player=" + player + " cwd=" + Path.of("").toAbsolutePath() + "; passwords blank in this preview");
+        Class<?> settings = type("com.wurmonline.client.launcherfx.WurmSettingsFX");
+        if (!"headless-keybinds-v1".equals(settings.getMethod("androidCompatibilityVersion").invoke(null)))
+            throw new IllegalStateException("HEADLESS_SETTINGS_NOT_ACTIVE");
+        log("SETTINGS_ADAPTER headless-keybinds-v1 source=" + settings.getProtectionDomain().getCodeSource().getLocation());
         Class<?> profileClass = type("com.wurmonline.client.settings.Profile");
         Object profile = profileClass.getMethod("getProfile").invoke(null);
         profileClass.getMethod("loadPlayer", String.class).invoke(profile, player);

@@ -77,7 +77,8 @@ val compileClientCompat by tasks.registering(JavaCompile::class) {
 val packageClientCompat by tasks.registering(Jar::class) {
     dependsOn(compileClientCompat)
     from(compileClientCompat.flatMap { it.destinationDirectory }) {
-        include("SteamJni/Steam_api.class", "com/wurmonline/client/launcherfx/WurmMain*.class", "wurm/android/compat/*.class")
+        include("SteamJni/Steam_api.class", "com/wurmonline/client/launcherfx/WurmMain*.class",
+            "com/wurmonline/client/launcherfx/WurmSettingsFX.class", "wurm/android/compat/*.class")
     }
     destinationDirectory.set(clientCompatAssets)
     archiveFileName.set("client-compat.jar")
@@ -112,8 +113,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 14
-        versionName = "0.10.0"
+        versionCode = 15
+        versionName = "0.10.1"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -126,7 +127,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".clientwindow"
+            applicationIdSuffix = ".clientsettings"
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }

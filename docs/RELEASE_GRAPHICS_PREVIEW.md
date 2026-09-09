@@ -1,27 +1,29 @@
-# Wurm Server 0.10.0 — client window and LWJGL input
+# Wurm Server 0.10.1 — headless client keybindings
 
-Install `Wurm-Server.apk` on the AYN Thor. Package
-`io.github.russianranger.wurmlauncher.clientwindow`, version
-`0.10.0-managed-preview` (14), installs alongside the working server and previews.
-No PC, root, Termux or separate Java installation is required.
+Your 0.10.0 Thor window/controller test passed: 366 frames, real LWJGL input and
+clean exit. The local-client failure was `javafx/stage/Stage` while Profile loaded
+keybindings through the desktop settings class, before login.
 
-The Thor passed 0.9.1's native graphics test twice. This release advances to a
-Pojav Java GLFW window adapter and actual LWJGL2 keyboard/mouse queues.
+This release replaces that settings helper with headless binding storage. It
+preserves the real Profile/Options code and unchanged binding files. The exact
+failure was reproduced with the supplied client JAR; the fix passed actual
+profile/player creation in two fresh host JVMs, loading all 78 default keys.
+No server/SQLite, Steam shim or native graphics changes are included.
 
-1. Client tab → LWJGL Window / Input Test → Run Window / Input Test.
-2. Left stick moves the triangle, right stick moves the cyan crosshair; A/RT
-   change its color with left-click, LT with right-click. Test the other mapped
-   keys, then Finish Window Test. Export **Client Report**.
-3. Import the same complete legally obtained client ZIP in this new app. Start
-   the working 0.6.0 server, then use 0.10.0 → Start Local Game. Export a second
-   **Client Report** after the attempt, even if no game image appears.
+Install `Wurm-Server.apk` alongside the working server: version
+**0.10.1-managed-preview** (15), package
+`io.github.russianranger.wurmlauncher.clientsettings`.
 
-See attached `GRAPHICS_THOR_TEST.md` for exact steps and file contents. The window
-probe runs for up to 90 seconds; Wurm startup is a two-minute diagnostic. Frames
-are bounded readbacks, not a production-rate Android surface. Full Wurm rendering,
-audio, authentication and world entry remain unqualified. The report exposes
-classpath, window/input markers, startup stack traces and crash/exit information.
+1. Import the same complete client ZIP in this new app.
+2. Start Adventure in your working 0.6.0 server app.
+3. In 0.10.1 select Client tab → Start Local Game.
+4. Export **Client Report** after the attempt and send `wurm-client-report.txt`.
 
-The server runtime/POC/SQLite implementation and Steam shim are unchanged. No
-proprietary game files are bundled. Source pins, notices and corresponding runtime
-and graphics source accompany the APK, including the adapted Pojav Java layer.
+No PC, root, Termux, JavaFX or new game-file download is needed. The triangle test
+is already confirmed. See attached **CLIENT_SETTINGS_FIX.md** for exact steps,
+file requirements, diagnostics and every changed file. Startup remains a
+two-minute diagnostic; full Wurm graphics, audio, login and world entry remain
+unqualified. Desktop JavaFX settings dialogs are not implemented.
+
+No proprietary game files or compile-only signature stubs are packaged. Public
+source, license notices and matching runtime/graphics source accompany the APK.

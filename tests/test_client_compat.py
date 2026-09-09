@@ -44,16 +44,24 @@ public class WurmConsoleOutputStream extends java.io.PrintStream {
 public class Profile {
  public static class PlayerProfile { public final String name; PlayerProfile(String n) { name=n; } }
  private String player;
- public static Profile getProfile() { return new Profile(); }
+ private static final Profile instance=new Profile();
+ private static boolean initialized;
+ public static Profile getProfile() {
+  if(!initialized) { initialized=true; com.wurmonline.client.launcherfx.WurmSettingsFX.loadAllKeybinds(new java.io.File(instance.getConfigDir(),"keybindings.txt")); }
+  return instance;
+ }
+ public java.io.File getConfigDir() { return new java.io.File("configs/default"); }
+ public java.io.File getPlayerDir() { return new java.io.File("players/"+player); }
  public void loadPlayer(String name) { player=name; }
  public void associateConfig() {}
- public void storeConfig() {}
+ public void storeConfig() { com.wurmonline.client.launcherfx.WurmSettingsFX.saveAllKeybinds(); }
  public PlayerProfile launchProfile() { return new PlayerProfile(player); }
 }''',
     'com/wurmonline/client/settings/GlobalData.java': '''package com.wurmonline.client.settings;
 public class GlobalData { public static java.io.File getPackDirectory() { return new java.io.File("packs"); } }''',
     'com/wurmonline/client/options/Options.java': '''package com.wurmonline.client.options;
-public class Options { public static void checkOptionsVersion() {} }''',
+public class Options { public static MultiOption keybindingsSource = new MultiOption(); public static void checkOptionsVersion() {} }''',
+    'com/wurmonline/client/options/MultiOption.java': 'package com.wurmonline.client.options; public class MultiOption { public int value() { return 0; } }',
     'com/wurmonline/client/resources/Resources.java': '''package com.wurmonline.client.resources;
 public class Resources { public final java.util.List<String> packs;
  public Resources(java.io.File dir, java.util.List<String> names) { packs=names; } }''',
@@ -123,6 +131,8 @@ class ClientCompatibilityTest(unittest.TestCase):
     def workspace(self):
         home = Path(tempfile.mkdtemp(dir=self.home))
         (home/'packs').mkdir()
+        (home/'configs/default').mkdir(parents=True)
+        (home/'configs/default/keybindings.txt').write_text('bind w fixture_forward\nbind up fixture_forward\n')
         for name in ['graphics.jar', 'sound.jar', 'pmk.jar', 'test_graphics.jar']:
             with zipfile.ZipFile(home/'packs'/name, 'w') as jar:
                 jar.writestr('fixture-resource.txt', 'handwritten test resource')
@@ -158,6 +168,9 @@ class ClientCompatibilityTest(unittest.TestCase):
         result = self.run_mode(self.workspace(), 'entry', {'wurm.client.player': 'Thortest'})
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         self.assertIn('PROFILE_READY', result.stdout)
+        self.assertIn('SETTINGS_ADAPTER headless-keybinds-v1', result.stdout)
+        self.assertIn('KEYBINDS_LOADED actions=1 keys=2', result.stdout)
+        self.assertIn('KEYBINDS_PRESERVED unchanged=true', result.stdout)
         self.assertIn('RESOURCE_PACKS_VALIDATED [sound.jar, pmk.jar, graphics.jar]', result.stdout)
         self.assertIn('FIXTURE_GAME_THREAD_FINISHED', result.stdout)
         self.assertLess(result.stdout.index('FIXTURE_GAME_THREAD_FINISHED'), result.stdout.index('BOOTSTRAP_EXIT'))
@@ -195,7 +208,8 @@ class ClientCompatibilityTest(unittest.TestCase):
         with zipfile.ZipFile(self.compat) as jar:
             self.assertEqual(set(jar.namelist()), {'SteamJni/Steam_api.class', 'wurm/android/compat/LocalSession.class',
                 'wurm/android/compat/ClientHooks.class', 'com/wurmonline/client/launcherfx/WurmMain.class',
-                'com/wurmonline/client/launcherfx/WurmMain$1.class'})
+                'com/wurmonline/client/launcherfx/WurmMain$1.class', 'com/wurmonline/client/launcherfx/WurmSettingsFX.class',
+                'wurm/android/compat/KeybindStore.class'})
         self.assertFalse((self.helper/'SteamJni').exists())
         self.assertFalse((self.helper/'com/wurmonline').exists())
 

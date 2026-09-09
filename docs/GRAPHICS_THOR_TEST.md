@@ -1,5 +1,8 @@
 # AYN Thor: 0.10.0 window, controller and Wurm startup test
 
+
+**Current 0.10.1:** the Thor window/controller test passed. Follow the [headless settings fix and next local-client test](CLIENT_SETTINGS_FIX.md). Earlier 0.10.0/0.8.0 instructions below are historical.
+
 The previous **0.9.1 graphics gate passed on your Thor twice**: orange triangle on
 blue, six verified/displayed frames, same-context resizes and clean JVM exits.
 No need to repeat that as the main test. The new test uses LWJGL2 `Display`,

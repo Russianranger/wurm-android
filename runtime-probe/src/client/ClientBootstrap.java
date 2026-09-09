@@ -27,7 +27,8 @@ public final class ClientBootstrap {
             }
         } catch (Throwable failure) {
             if (failure instanceof InvocationTargetException && failure.getCause() != null) failure = failure.getCause();
-            log("BOOTSTRAP_FAILED stage=" + mode + " type=" + failure.getClass().getName());
+            String detail = String.valueOf(failure.getMessage()).replace('\n', ' ').replace('\r', ' ');
+            log("BOOTSTRAP_FAILED stage=" + mode + " type=" + failure.getClass().getName() + " reason=" + detail.substring(0, Math.min(300, detail.length())));
             failure.printStackTrace(System.out); exit = 42;
         }
         log("BOOTSTRAP_EXIT stage=" + mode + " code=" + exit);

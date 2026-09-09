@@ -11,6 +11,8 @@ Steam native libraries. No proprietary dependency is required to compile the APK
 - `com/wurmonline/client/launcherfx/WurmMain.class` and its authored listener `$1`
 - `wurm/android/compat/LocalSession.class`
 - `wurm/android/compat/ClientHooks.class`
+- `com/wurmonline/client/launcherfx/WurmSettingsFX.class`
+- `wurm/android/compat/KeybindStore.class`
 
 The APK verification script enforces that exact set. **Never package stubs.**
 The real console, SteamHandler, its result enum and SteamAuthTicket implementations
@@ -42,3 +44,12 @@ parameter type, asynchronous native failure, local identity continuity, pack
 validation and no-stub packaging. The CI APK check validates the actual Gradle
 output. Real-JAR compatibility was also tested privately; no game file is an
 input to the public test suite.
+
+0.10.1 adds the headless WurmSettingsFX keybinding facade. The Thor reached
+Profile.loadSettings, which otherwise loads WurmStage/JavaFX Stage. The new facade
+retains file loading, lookup, remapping and atomic persistence without that UI
+hierarchy. Typed Profile/Options/MultiOption signatures are compile-only and never
+packaged. The real Profile, Options and game input/console remain imported.
+Unchanged bindings retain identical bytes; malformed inputs and unsafe overwrites
+fail visibly. JavaFX settings dialogs/restart callbacks remain outside this helper.
+See [the real-JAR evidence and exact device test](../docs/CLIENT_SETTINGS_FIX.md).
