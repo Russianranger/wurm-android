@@ -60,7 +60,20 @@ public class Profile {
     'com/wurmonline/client/settings/GlobalData.java': '''package com.wurmonline.client.settings;
 public class GlobalData { public static java.io.File getPackDirectory() { return new java.io.File("packs"); } }''',
     'com/wurmonline/client/options/Options.java': '''package com.wurmonline.client.options;
-public class Options { public static MultiOption keybindingsSource = new MultiOption(); public static void checkOptionsVersion() {} }''',
+public class Options {
+ public static MultiOption keybindingsSource = new MultiOption();
+ public static DisplayOption screenSettings = new DisplayOption();
+ public static void checkOptionsVersion() {}
+}''',
+    'com/wurmonline/client/options/DisplayOption.java': '''package com.wurmonline.client.options;
+public class DisplayOption {
+ public boolean maximized=true, fullscreen, resizable=true;
+ public int width=1024, height=768, hz=-1;
+ public void set(boolean m, int w, int h, int r, boolean f, boolean s) {
+  maximized=m; width=w; height=h; hz=r; fullscreen=f; resizable=s;
+  com.wurmonline.client.WurmClientBase.setWindowDirty(true);
+ }
+}''',
     'com/wurmonline/client/options/MultiOption.java': 'package com.wurmonline.client.options; public class MultiOption { public int value() { return 0; } }',
     'com/wurmonline/client/resources/Resources.java': '''package com.wurmonline.client.resources;
 public class Resources { public final java.util.List<String> packs;
@@ -70,17 +83,22 @@ import com.wurmonline.client.settings.Profile.PlayerProfile;
 import com.wurmonline.client.resources.Resources;
 public class WurmClientBase {
  public static com.wurmonline.client.steam.SteamHandler steamHandler;
- private static Thread gameThread; private static String username;
+ private static Thread gameThread; private static String username; private static boolean windowDirty;
  public static void setUsername(String name) { username=name; }
  public static void setPassword(String value) { if(!value.isEmpty()) throw new AssertionError("password"); }
  public static void setServerPassword(String value) { if(!value.isEmpty()) throw new AssertionError("server password"); }
- public static void setWindowDirty(boolean dirty) { if(dirty) throw new AssertionError("windowDirty"); }
+ public static void setWindowDirty(boolean dirty) { windowDirty=dirty; }
  public static void launch(PlayerProfile profile, Resources resources, boolean option) {
   if(option || steamHandler==null || !profile.name.equals(username) || !resources.packs.contains("graphics.jar")) throw new AssertionError("launch contract");
+  var screen=com.wurmonline.client.options.Options.screenSettings;
+  if(windowDirty || screen.maximized || screen.fullscreen || screen.resizable || screen.width!=960 || screen.height!=540 || screen.hz!=-1) throw new AssertionError("headless viewport");
   if(!com.wurmonline.client.launcherfx.WurmMain.getServerIp().equals("127.0.0.1") || com.wurmonline.client.launcherfx.WurmMain.getServerPort()!=3724) throw new AssertionError("target");
+  String[] icons=com.wurmonline.client.launcherfx.WurmStage.getIconNames();
+  if(icons.length!=4 || !icons[0].equals("/icon2_128.png") || !icons[3].equals("/icon2_16.png")) throw new AssertionError("icons");
   gameThread=new Thread(() -> {
    try { Thread.sleep(200); } catch(InterruptedException e) { throw new AssertionError(e); }
    if(Boolean.getBoolean("fixture.crash")) throw new UnsatisfiedLinkError("FIXTURE_ASYNC_NATIVE_FAILURE");
+   if(Boolean.getBoolean("fixture.reported")) com.wurmonline.client.ErrorReporterPanel.crashed(new UnsatisfiedLinkError("FIXTURE_REPORTED_NATIVE_FAILURE"), "startup");
    System.out.println("FIXTURE_GAME_THREAD_FINISHED");
   }, "fixture-game");
   gameThread.start();
@@ -103,7 +121,7 @@ class ClientCompatibilityTest(unittest.TestCase):
         with zipfile.ZipFile(cls.compat, 'w') as jar:
             for path in cls.compat_classes.rglob('*.class'):
                 name = path.relative_to(cls.compat_classes).as_posix()
-                if name.startswith(('SteamJni/', 'wurm/android/compat/', 'com/wurmonline/client/launcherfx/')):
+                if name.startswith(('SteamJni/', 'wurm/android/compat/', 'com/wurmonline/client/launcherfx/')) or name == 'com/wurmonline/client/ErrorReporterPanel.class':
                     jar.write(path, name)
         sources = cls.home/'source'
         for name, text in FIXTURES.items():
@@ -168,6 +186,10 @@ class ClientCompatibilityTest(unittest.TestCase):
         result = self.run_mode(self.workspace(), 'entry', {'wurm.client.player': 'Thortest'})
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         self.assertIn('PROFILE_READY', result.stdout)
+        self.assertIn('WINDOW_HELPER headless-icons-v1', result.stdout)
+        self.assertIn('WINDOW_HELPER headless-errors-v1', result.stdout)
+        self.assertIn('ICON_RESOURCES source=imported-client javafx=false', result.stdout)
+        self.assertIn('WINDOW_OPTIONS_ANDROID width=960 height=540 maximized=false', result.stdout)
         self.assertIn('SETTINGS_ADAPTER headless-keybinds-v1', result.stdout)
         self.assertIn('KEYBINDS_LOADED actions=1 keys=2', result.stdout)
         self.assertIn('KEYBINDS_PRESERVED unchanged=true', result.stdout)
@@ -194,6 +216,14 @@ class ClientCompatibilityTest(unittest.TestCase):
             self.assertNotIn('RESOURCES_READY', result.stdout)
             self.assertNotIn('ENTRY_INVOKE', result.stdout)
 
+    def test_reported_game_failure_is_not_success_when_game_thread_returns(self):
+        result = self.run_mode(self.workspace(), 'entry', {'fixture.reported': 'true'})
+        self.assertEqual(result.returncode, 42, result.stdout+result.stderr)
+        self.assertIn('CLIENT_REPORTED_FAILURE kind=crash', result.stdout)
+        self.assertIn('CLIENT_REPORTED_STARTUP_FAILED', result.stdout)
+        first = next(line for line in result.stdout.splitlines() if 'BOOTSTRAP_FAILED' in line)
+        self.assertIn('root=java.lang.UnsatisfiedLinkError reason=FIXTURE_REPORTED_NATIVE_FAILURE', first)
+
     def test_corrupt_identity_is_not_silently_replaced(self):
         home = self.workspace()
         (home/'user').mkdir()
@@ -209,6 +239,7 @@ class ClientCompatibilityTest(unittest.TestCase):
             self.assertEqual(set(jar.namelist()), {'SteamJni/Steam_api.class', 'wurm/android/compat/LocalSession.class',
                 'wurm/android/compat/ClientHooks.class', 'com/wurmonline/client/launcherfx/WurmMain.class',
                 'com/wurmonline/client/launcherfx/WurmMain$1.class', 'com/wurmonline/client/launcherfx/WurmSettingsFX.class',
+                'com/wurmonline/client/launcherfx/WurmStage.class', 'com/wurmonline/client/ErrorReporterPanel.class',
                 'wurm/android/compat/KeybindStore.class'})
         self.assertFalse((self.helper/'SteamJni').exists())
         self.assertFalse((self.helper/'com/wurmonline').exists())

@@ -28,6 +28,17 @@ public final class DirectClientLaunch {
         Object handler = initializeSteam();
         type("wurm.android.compat.ClientHooks").getMethod("testTicket", Object.class).invoke(null, handler);
     }
+    /** Use the real display option ABI, without consulting an AWT desktop/monitor. */
+    public static void prepareDisplay() throws Exception {
+        Object display = type("com.wurmonline.client.options.Options").getField("screenSettings").get(null);
+        log("WINDOW_OPTIONS_IMPORTED " + display);
+        // Verified order: maximized, width, height, Hz, fullscreen, resizable.
+        // Both dimensions fit the existing 1024-pixel pbuffer bound. Apply after
+        // profile loading/saving, for this attempt; do not save an Android override.
+        display.getClass().getMethod("set", boolean.class, int.class, int.class, int.class, boolean.class, boolean.class)
+            .invoke(display, false, 960, 540, -1, false, false);
+        log("WINDOW_OPTIONS_ANDROID width=960 height=540 maximized=false fullscreen=false resizable=false; desktopScreenQuery=false");
+    }
     static List<String> selectPacks(Path directory) throws Exception {
         if (!Files.isDirectory(directory)) throw new IllegalStateException("CLIENT_PACKS_MISSING: import the complete client packs/ directory");
         List<String> names;
@@ -53,6 +64,13 @@ public final class DirectClientLaunch {
         String player = System.getProperty("wurm.client.player", "Thor");
         if (!player.matches("[A-Za-z][A-Za-z0-9]{2,19}")) throw new IllegalArgumentException("Invalid local player name");
         log("ENTRY_ADAPTER profile-resources-v1; boolean=false matches desktop call; it is not an offline flag");
+        for (var adapter : Map.of("com.wurmonline.client.launcherfx.WurmStage", "headless-icons-v1",
+                "com.wurmonline.client.ErrorReporterPanel", "headless-errors-v1").entrySet()) {
+            Class<?> cls = type(adapter.getKey());
+            if (!adapter.getValue().equals(cls.getMethod("androidCompatibilityVersion").invoke(null)))
+                throw new IllegalStateException("CLIENT_WINDOW_HELPER_NOT_ACTIVE " + adapter.getKey());
+            log("WINDOW_HELPER " + adapter.getValue() + " source=" + cls.getProtectionDomain().getCodeSource().getLocation());
+        }
         Object steam = initializeSteam();
         engine.getField("steamHandler").set(null, steam);
         File packs = (File) type("com.wurmonline.client.settings.GlobalData").getMethod("getPackDirectory").invoke(null);
@@ -69,6 +87,7 @@ public final class DirectClientLaunch {
         call(profile, "associateConfig");
         call(profile, "storeConfig");
         type("com.wurmonline.client.options.Options").getMethod("checkOptionsVersion").invoke(null);
+        prepareDisplay();
         Object playerProfile = call(profile, "launchProfile");
         log("PROFILE_READY type=" + playerProfile.getClass().getName());
         Object resources = launch.getParameterTypes()[1].getConstructor(File.class, List.class).newInstance(packs, packNames);
@@ -92,6 +111,12 @@ public final class DirectClientLaunch {
         log("CLIENT_GAME_THREAD name=" + thread.getName() + "; awaiting graphics/window and connection logs");
         thread.join();
         log("CLIENT_GAME_THREAD_EXIT; Wurm login/world entry requires separate evidence");
+        Throwable reported = (Throwable) type("com.wurmonline.client.ErrorReporterPanel").getMethod("androidFailure").invoke(null);
+        if (reported != null) {
+            IllegalStateException failure = new IllegalStateException("CLIENT_REPORTED_STARTUP_FAILED", reported);
+            if (uncaught.get() != null && uncaught.get() != reported) failure.addSuppressed(uncaught.get());
+            throw failure;
+        }
         if (uncaught.get() != null) throw new IllegalStateException("CLIENT_ASYNC_STARTUP_FAILED", uncaught.get());
     }
 }

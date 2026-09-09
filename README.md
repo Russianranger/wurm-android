@@ -1,7 +1,7 @@
 # Wurm Server for Android
 
 
-**Current 0.10.2:** the Thor passed profile/keybinding and resource initialization in 0.10.1, then reached a Java font configuration failure. Follow the [Android font fix and next local-client test](docs/CLIENT_FONTS_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.3:** the Thor passed Android font rasterization and entered the real game thread. The next fix removes JavaFX icon loading and desktop screen-size queries, and preserves startup errors during cleanup. Follow the [client window startup test](docs/CLIENT_WINDOW_START_FIX.md). Earlier milestone instructions below are historical.
 
 
 **Client milestone 0.10.0:** [download the window/input preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.0-client-window)

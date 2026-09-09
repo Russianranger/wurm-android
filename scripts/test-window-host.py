@@ -48,7 +48,7 @@ with log.open('w') as out:
 text=log.read_text()
 for marker in ['WINDOW_READY','WINDOW_FRAME','LWJGL_KEY code=17 down=true','LWJGL_KEY code=17 down=false',
     'LWJGL_MOUSE button=0 down=true', 'LWJGL_MOUSE button=0 down=false', 'LWJGL_MOUSE button=7 down=true',
-    'wheel=120', 'LWJGL_WHEEL_POLL delta=120', 'LWJGL_MOUSE_MOVE', 'WINDOW_CLOSED', 'WINDOW_PROBE_PASS']:
+    'wheel=120', 'LWJGL_WHEEL_POLL delta=120', 'LWJGL_MOUSE_MOVE', 'WINDOW_CLOSED', 'WINDOW_PROBE_PASS', 'WINDOW_DESTROY_SKIPPED']:
     assert marker in text, 'Missing '+marker+'; see '+str(log)
 assert not any(x in text for x in ['WINDOW_PROBE_FAIL', 'CLIENT_GL_ERROR', 'FRAME_READBACK_ERROR'])
 print('PASS real Display creation, frame readback, keyboard/mouse/wheel queues, RESET and teardown; see '+str(log))

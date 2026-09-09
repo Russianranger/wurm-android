@@ -1,5 +1,37 @@
 # Client integration architecture and qualification
 
+## 0.10.3: real client window initialization without desktop UI
+
+The Thor's 0.10.2 report confirms all 20 logical font/style raster checks, real
+profile/resources and entry into Wurm's main thread. Window initialization then
+failed; cleanup called GLFW callback release with no window and hid the original
+exception. No Wurm frame or login was observed on the Thor.
+
+Private testing of the actual client reproduces the hidden JavaFX Stage dependency
+in `LwjglClient.loadIcons()` through `WurmStage.getIconNames()`. An authored helper
+returns icon resource names from the imported client without constructing JavaFX.
+The next host failure is the default maximized window querying headless AWT screen
+size. After profile loading, the bootstrap uses the verified real DisplayOption
+setter for a fixed 960x540 non-maximized, non-fullscreen viewport within the existing
+pbuffer bounds. Android's viewer scales the resulting framebuffer.
+
+The generated Pojav Display adapter now handles destruction before creation and
+repeated destruction. An authored headless error reporter replaces Wurm's desktop
+crash dialog, retains the original Throwable and makes the bootstrap return 42
+when the engine reports a failure internally. It does not convert crashes to success.
+
+**Host evidence:** the actual imported LwjglClient.initWindow now decodes its icons,
+creates the GL4ES window, initializes keyboard/mouse and exports a checked sample
+clear. Its real error routing preserves the test exception. The existing GL4ES
+triangle/controller/reset/teardown regression also passes. These are window tests,
+not a rendered Wurm scene or local login. No new native backend is introduced.
+
+**Next physical gate:** retry Start Local Game on the Thor. Wurm scene rendering,
+audio, protocol login, local ticket acceptance and world entry remain unqualified.
+The working managed server and SQLite fix are intact. See [diagnosis, validation,
+every changed file and exact device steps](CLIENT_WINDOW_START_FIX.md).
+Earlier sections retain the state of previous milestones.
+
 ## 0.10.2: configure Android fonts before Wurm HUD startup
 
 The Thor's 0.10.1 report confirms all 78 keybindings, Profile/PlayerProfile and

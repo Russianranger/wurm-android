@@ -11,6 +11,7 @@ public final class WindowProbe {
     public static void main(String[] args) {
         int exit = 42;
         try {
+            Display.destroy(); // No window: must not throw and mask an earlier startup error.
             Display.setDisplayMode(new DisplayMode(640,360));
             Display.create();
             long deadline = System.nanoTime()+90_000_000_000L;
@@ -41,6 +42,8 @@ public final class WindowProbe {
                 Display.update(false);
             }
             Display.destroy();
+            Display.destroy();
+            if (Display.isCreated() || Display.getWindow() != 0) throw new IllegalStateException("WINDOW_DESTROY_STATE_INVALID");
             System.out.println("[window] WINDOW_PROBE_PASS; inspect input markers separately; Wurm login NOT tested");
             exit=0;
         } catch (Throwable failure) {

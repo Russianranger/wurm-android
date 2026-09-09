@@ -1,7 +1,7 @@
 # AYN Thor: 0.10.0 window, controller and Wurm startup test
 
 
-**Current 0.10.2:** the Thor passed profile/keybinding and resource initialization in 0.10.1, then reached a Java font configuration failure. Follow the [Android font fix and next local-client test](CLIENT_FONTS_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.3:** the Thor passed Android font rasterization and entered the real game thread. The next fix removes JavaFX icon loading and desktop screen-size queries, and preserves startup errors during cleanup. Follow the [client window startup test](CLIENT_WINDOW_START_FIX.md). Earlier milestone instructions below are historical.
 
 The previous **0.9.1 graphics gate passed on your Thor twice**: orange triangle on
 blue, six verified/displayed frames, same-context resizes and clean JVM exits.

@@ -12,6 +12,8 @@ Steam native libraries. No proprietary dependency is required to compile the APK
 - `wurm/android/compat/LocalSession.class`
 - `wurm/android/compat/ClientHooks.class`
 - `com/wurmonline/client/launcherfx/WurmSettingsFX.class`
+- `com/wurmonline/client/launcherfx/WurmStage.class`
+- `com/wurmonline/client/ErrorReporterPanel.class`
 - `wurm/android/compat/KeybindStore.class`
 
 The APK verification script enforces that exact set. **Never package stubs.**
@@ -53,3 +55,10 @@ packaged. The real Profile, Options and game input/console remain imported.
 Unchanged bindings retain identical bytes; malformed inputs and unsafe overwrites
 fail visibly. JavaFX settings dialogs/restart callbacks remain outside this helper.
 See [the real-JAR evidence and exact device test](../docs/CLIENT_SETTINGS_FIX.md).
+
+0.10.3 adds WurmStage's engine icon-resource helper without JavaFX inheritance,
+and the five static ErrorReporterPanel calls without a Swing dialog. Original
+errors are retained for the bootstrap's nonzero exit. The real engine, icon data
+and display option remain imported. The bootstrap applies an explicit 960x540
+viewport to avoid headless AWT screen queries. See [real window verification and
+Thor test](../docs/CLIENT_WINDOW_START_FIX.md).

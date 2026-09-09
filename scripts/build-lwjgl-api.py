@@ -13,6 +13,32 @@ JSR305_SHA256 = '766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c
 MODULES = ('core', 'lwjglx', 'opengl', 'opengles', 'openal', 'glfw', 'egl')
 
 
+def patch_display(source):
+    original = '''    public static void destroy() {
+        Window.releaseCallbacks();
+        glfwDestroyWindow(Window.handle);
+
+        displayCreated = false;
+    }'''
+    replacement = '''    public static void destroy() {
+        if (Window.handle == MemoryUtil.NULL) {
+            displayCreated = false;
+            isCreated = false;
+            System.out.println("[window] WINDOW_DESTROY_SKIPPED no window; original startup error can be reported");
+            return;
+        }
+        try {
+            Window.releaseCallbacks();
+        } finally {
+            try { glfwDestroyWindow(Window.handle); }
+            finally { Window.handle = MemoryUtil.NULL; displayCreated = false; isCreated = false; }
+        }
+    }'''
+    if source.count(original) != 1:
+        raise ValueError('Pinned Display.destroy implementation changed')
+    return source.replace(original, replacement)
+
+
 def append_methods(source, methods):
     # Only used against the verified pinned checkout or authored test fixtures.
     position = source.rfind('}')
@@ -70,6 +96,10 @@ def compile_verified_source(source, annotations, output, tracked, patches=True):
             System.out.println("[window] OPTIONAL_CACIO_MOUSE absent; GLFW input remains active");
         }catch (Throwable e) {''')
         target.write_text(content); java[java.index(original)] = target
+        original = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/opengl/Display.java'
+        target = output/'patched/Display.java'
+        target.write_text(patch_display(original.read_text()))
+        java[java.index(original)] = target
     # Compile the legacy MemoryUtil last, as module-by-module upstream builds do:
     # exposing it earlier makes generated wildcard imports ambiguous with system.MemoryUtil.
     legacy = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/MemoryUtil.java'

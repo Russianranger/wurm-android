@@ -32,7 +32,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         classes = {n for n in compat.namelist() if n.endswith(".class")}
         assert classes == {"SteamJni/Steam_api.class", "wurm/android/compat/LocalSession.class", "wurm/android/compat/ClientHooks.class",
                            "com/wurmonline/client/launcherfx/WurmMain.class", "com/wurmonline/client/launcherfx/WurmMain$1.class",
-                           "com/wurmonline/client/launcherfx/WurmSettingsFX.class", "wurm/android/compat/KeybindStore.class"}, classes
+                           "com/wurmonline/client/launcherfx/WurmSettingsFX.class", "com/wurmonline/client/launcherfx/WurmStage.class",
+                           "com/wurmonline/client/ErrorReporterPanel.class", "wurm/android/compat/KeybindStore.class"}, classes
         assert all(int.from_bytes(compat.read(n)[6:8], "big") == 61 for n in classes)
     assert not any(name in apk.namelist() for name in ("assets/server.jar", "assets/common.jar", "assets/client.jar"))
     graphics = json.loads(apk.read("assets/client-graphics.json"))
