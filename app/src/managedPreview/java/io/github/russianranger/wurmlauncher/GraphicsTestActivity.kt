@@ -51,7 +51,7 @@ class GraphicsTestActivity : Activity() {
         super.onCreate(savedInstanceState); ClientSession.initialize(this)
         val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,12,12,12) }
         setContentView(column)
-        column.addView(TextView(this).apply { text = "JVM Graphics Test · 0.9.0"; textSize = 23f })
+        column.addView(TextView(this).apply { text = "JVM Graphics Test · 0.9.1"; textSize = 23f })
         column.addView(TextView(this).apply { text = "Expected: orange triangle on blue. Tests LWJGL, GL4ES, shader drawing and resize. No client import needed. This is not a Wurm game window." })
         val controls = LinearLayout(this)
         column.addView(HorizontalScrollView(this).apply { addView(controls) })

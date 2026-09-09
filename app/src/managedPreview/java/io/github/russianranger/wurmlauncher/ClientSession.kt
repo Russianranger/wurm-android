@@ -43,7 +43,7 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.9.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.9.1\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
             "Gate status: source-built LWJGL/GL4ES pbuffer test available; Wurm window, gameplay input, server ticket acceptance and login are not qualified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
@@ -156,6 +156,7 @@ object ClientSession {
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
             require(player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
+            val graphicsFailure = java.util.concurrent.atomic.AtomicReference<String?>(null)
             for (stage in stages) {
                 checkCancelled(); queue.clear(); inputReady = false
                 status(when (stage) { "input" -> "Input diagnostic"; "render" -> "Graphics diagnostic"; else -> "Starting client" }, "Bootstrap stage: $stage")
@@ -188,6 +189,8 @@ object ClientSession {
                         log(line)
                         if (stage == "input" && line.startsWith("[client] INPUT_READY ")) inputReady = true
                         if (stage == "render" && line == "[graphics] GRAPHICS_PROBE_EXIT code=0") graphicsPassed.set(true)
+                        if (stage == "render" && line.startsWith("[graphics] GRAPHICS_PROBE_FAIL "))
+                            graphicsFailure.compareAndSet(null, line.removePrefix("[graphics] GRAPHICS_PROBE_FAIL ").take(400))
                     } } catch (failure: Exception) { log("[client] OUTPUT_CLOSED stage=$stage ${failure.javaClass.simpleName}: ${failure.message}") }
                 }, "wurm-client-output").apply { isDaemon = true; start() }
                 val writer = if (stage == "input") Thread({
@@ -207,7 +210,7 @@ object ClientSession {
             }
             log("[client] GATE_RESULTS $results; Wurm login/world entry NOT verified; input sink=diagnostic")
             if (mode == "render") status(if (results["render"] == 0) "Graphics test passed" else "Graphics test failed",
-                "LWJGL/GL4ES result=$results. Export Client Report. Wurm window/login are not tested.")
+                "LWJGL/GL4ES result=$results. ${graphicsFailure.get()?.let { "$it. " } ?: ""}Export Client Report. Wurm window/login are not tested.")
             else status(if (mode == "input") "Stopped" else "Blocked", if (mode == "input") "Input diagnostic ended." else "Client attempt finished: $results. Export Client Report for the startup/graphics result; login is not verified.")
         } finally {
             reapChild()

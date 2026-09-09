@@ -45,7 +45,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert hashlib.sha256(apk.read("assets/"+name)).hexdigest() == digest
     assert "lib/arm64-v8a/liblwjgl.so" not in apk.namelist(), "Graphics test must not replace imported LWJGL2 native lookup"
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/graphics-probe.jar"))) as probe:
-        assert set(probe.namelist()) == {"wurm/graphics/GraphicsProbe.class", "wurm/graphics/FrameFile.class", "wurm/graphics/NativeEgl.class", "wurm/graphics/LibraryNames.class"}
+        assert set(probe.namelist()) == {"wurm/graphics/GraphicsProbe.class", "wurm/graphics/GlChecks.class", "wurm/graphics/FrameFile.class", "wurm/graphics/NativeEgl.class", "wurm/graphics/LibraryNames.class"}
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/pojav-wurm-api.jar"))) as adapter:
         assert "META-INF/LICENSE.lwjgl.txt" in adapter.namelist()
         assert "org/lwjgl/opengl/ARBProgram.class" in adapter.namelist()

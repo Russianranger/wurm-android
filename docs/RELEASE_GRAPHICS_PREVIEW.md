@@ -1,14 +1,21 @@
-# Wurm Server 0.9.0 — JVM graphics test
+# Wurm Server 0.9.1 — JVM graphics test
+
+0.9.0 on the Thor successfully loaded the native libraries, created the Adreno
+context and linked the shaders, then failed at an aggregate draw/readback check.
+This release fixes an empty-shader-log request rejected by GL4ES, reproduced on
+host Mesa, and adds operation/error-code diagnostics plus the failure reason in
+app status. The corrected host test passes; the Thor must confirm its outcome.
+It is not yet established that the log bug explains the Thor's final error.
 
 Test the actual LWJGL/Pojav ARM64 JNI bindings and GL4ES desktop OpenGL translation
 inside the APK's managed Java 17 process. Draw and verify a GLSL 1.20 triangle,
 resize the EGL pbuffer, display the child-produced frame and export diagnostics.
 **Wurm window creation, gameplay input, login and world entry are not working yet.**
 
-Install `Wurm-Server.apk` alongside 0.6.0 and 0.8.0; it uses `.graphicsprobe`.
+Install `Wurm-Server.apk` alongside 0.6.0, 0.8.0 and 0.9.0; it uses `.graphicsfix1`.
 No game import, PC, Termux, root or separate Java install is needed for this test.
 
-1. Open **0.9.0 → Client tab → JVM Graphics Test → Run Graphics Test**.
+1. Open **0.9.1 → Client tab → JVM Graphics Test → Run Graphics Test**.
 2. Expect an orange triangle on blue and **Graphics test passed**, or an explicit
    failure. Wait for the operation to end.
 3. If it passes, run it once more to test a fresh JVM/context. Close/reopen the app.

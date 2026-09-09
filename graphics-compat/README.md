@@ -1,8 +1,10 @@
 # Pojav Java API compatibility candidate
 
-**0.9.0 update:** the candidate is now packaged **only for the JVM Graphics Test**,
+**0.9.1 update:** the candidate is now packaged **only for the JVM Graphics Test**,
 along with source-built ARM64 core/OpenGL JNI bindings, GL4ES and an authored EGL
-pbuffer bridge. See [the executable test and exact Thor steps](../docs/GRAPHICS_THOR_TEST.md).
+pbuffer bridge. The Thor passed native/context/shader startup; drawing failed at
+an aggregate check. The probe now avoids zero-size shader-log requests and checks
+each GL operation plus the owned GLES context. See [the executable test and exact Thor steps](../docs/GRAPHICS_THOR_TEST.md).
 It is not yet the Wurm window/input backend. The API-audit findings and commands
 below record the preceding source-only milestone; its statements about no APK
 packaging apply to 0.8.0. The new sources are pinned in `native-sources.json`.

@@ -1,5 +1,22 @@
 # From the working POC to Wurm Server
 
+## 0.9.1: isolate and correct the graphics probe failure
+
+Report (3) from 0.9.0 confirms owned JVM/native loading, Adreno EGL, GL4ES OpenGL
+2.1 and linked GLSL 1.20 shaders. The aggregate draw/readback check failed without
+an error code. [Diagnosis and exact next test](GRAPHICS_THOR_TEST.md) document the
+confirmed empty-shader-log request bug, its correction, strict per-operation
+GL4ES/GLES checks and first-failure UI status. Host llvmpipe reproduces that log
+bug and passes the corrected three-frame test; the original Thor failure's exact
+cause and physical rendering acceptance still need the next device report.
+
+0.9.1 installs separately as `.graphicsfix1` and needs no imports. This is a targeted
+Gate 4 correction, not a new Wurm window/input/login milestone. Keep the working
+server runtime, POC, SQLite compatibility, import and controller layers unchanged.
+After a physical pass, continue with the GLFW/window host and real game input,
+then direct local connection. Do not infer world entry from a diagnostic triangle.
+
+
 ## 0.9.0 implemented: executable native graphics gate
 
 The [JVM Graphics Test](GRAPHICS_THOR_TEST.md) packages the pinned Pojav Java API,

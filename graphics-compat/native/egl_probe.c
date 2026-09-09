@@ -4,6 +4,7 @@
 #include <jni.h>
 #include <dlfcn.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 static EGLDisplay display = EGL_NO_DISPLAY;
@@ -13,6 +14,8 @@ static EGLConfig config;
 static int width, height;
 static pthread_t owner;
 static void *backend;
+static void *driver;
+static GLenum (*driver_error)(void);
 
 static void fail(JNIEnv *env, const char *operation) {
     char message[240];
@@ -70,6 +73,12 @@ JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_open(JNIEnv *env, jclass typ
     if (context == EGL_NO_CONTEXT || surface == EGL_NO_SURFACE || !eglMakeCurrent(display, surface, surface, context)) {
         fail(env, "EGL context/pbuffer/makeCurrent failed"); cleanup(); return;
     }
+    /* Resolve from the GLES handle explicitly, avoiding late symbol interposition
+       after LWJGL opens GL4ES globally. Keep the handle for this owned process. */
+    const char *gles_name = getenv("LIBGL_GLES");
+    driver = dlopen(gles_name != NULL ? gles_name : "libGLESv2.so", RTLD_NOW | RTLD_LOCAL);
+    driver_error = driver != NULL ? (GLenum (*)(void))dlsym(driver, "glGetError") : NULL;
+    if (driver_error == NULL) { fail(env, "GLES error function lookup failed"); cleanup(); return; }
     printf("[graphics] EGL_CONTEXT_READY version=%d.%d size=%dx%d renderer=%s gles=%s\n",
         major, minor, w, h, glGetString(GL_RENDERER), glGetString(GL_VERSION));
 }
@@ -92,6 +101,17 @@ JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_swap(JNIEnv *env, jclass typ
     (void)type;
     if (context == EGL_NO_CONTEXT || !pthread_equal(owner, pthread_self()) || !eglSwapBuffers(display, surface))
         fail(env, "Pbuffer swap failed");
+}
+
+JNIEXPORT jint JNICALL Java_wurm_graphics_NativeEgl_error(JNIEnv *env, jclass type) {
+    (void)type;
+    if (context == EGL_NO_CONTEXT || !pthread_equal(owner, pthread_self()) ||
+        eglGetCurrentContext() != context || driver_error == NULL) {
+        fail(env, "GLES error check without owned current context"); return 0;
+    }
+    GLenum error = driver_error();
+    if (error != GL_NO_ERROR) fprintf(stderr, "[graphics] GLES_ERROR code=0x%04x\n", error);
+    return (jint)error;
 }
 
 JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_close(JNIEnv *env, jclass type) {

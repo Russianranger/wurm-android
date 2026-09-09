@@ -1,13 +1,16 @@
 # Wurm Server for Android
 
-**0.9.0 native JVM graphics test:** [Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.9.0-graphics-probe).
+**0.9.1 graphics correction and diagnostics:** [Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/tag/v0.9.1-graphics-diagnostics).
+The 0.9.0 Thor report passed native/context/shader startup, then failed the aggregate
+draw check. This build fixes an empty-shader-log request bug reproduced on host
+GL4ES and reports the exact GL operation/error if another failure remains.
 Open **Client tab → JVM Graphics Test → Run Graphics Test**. The new test runs real
 ARM64 LWJGL/Pojav bindings and GL4ES in the managed JVM, draws a desktop GLSL triangle,
 verifies pixels at two sizes and shows the resulting frame in Android. Export
 **Client Report** afterward. No game import, PC, Termux or root is needed.
-Keep the working 0.6.0 server and 0.8.0 client; this is a separate `.graphicsprobe`
+Keep the working 0.6.0 server and 0.8.0 client; this is a separate `.graphicsfix1`
 package. [Exact Thor steps, build/source details and every changed file](docs/GRAPHICS_THOR_TEST.md).
-**Device acceptance is pending; Wurm rendering/login/gameplay are not yet working.**
+**Thor drawing/readback acceptance is pending; Wurm rendering/login/gameplay are not yet working.**
 
 The following records the preceding client evidence and source milestone.
 
