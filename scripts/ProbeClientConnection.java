@@ -60,8 +60,9 @@ public final class ProbeClientConnection {
                 auth.invoke(connection, response(false, "Fixture authentication denied"));
                 expect(monitor, "AUTH_DENIED");
                 auth.invoke(connection, response(true, ""));
-                comm.getMethod("setLoginInfo", String.class, String.class, String.class, boolean.class).invoke(connection, "Fixture", "", "", false);
-                comm.getMethod("login", String.class).invoke(connection, "76561198000000001");
+                String identity = (String) Class.forName("wurm.android.compat.LocalSession").getMethod("identity").invoke(null);
+                comm.getMethod("setLoginInfo", String.class, String.class, String.class, boolean.class).invoke(connection, "Fixture", identity, "", false);
+                comm.getMethod("login", String.class).invoke(connection, identity);
                 expect(monitor, "LOGIN_WAIT");
                 int before = (Integer) socketType.getMethod("getUnflushed").invoke(transport);
                 monitor.sample();

@@ -57,7 +57,7 @@ class GraphicsTestActivity : Activity() {
         if (mode != "render") capture = ControllerCapture(this)
         val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,12,12,12) }
         setContentView(column)
-        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.13" else "LWJGL Window · 0.10.13"; textSize = 23f })
+        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.14" else "LWJGL Window · 0.10.14"; textSize = 23f })
         column.addView(TextView(this).apply { text = if (mode == "window") "90-second LWJGL test: left stick moves triangle; right stick moves cyan cursor; mouse clicks change triangle color. Finish, then export Client Report." else if (mode != "render") "Actual Wurm startup attempt. Frames appear if Wurm creates its window. Export Client Report if startup fails. Five-minute startup limit; after the client enters its game loop, use Stop Client to finish." else "Expected: orange triangle on blue. Tests LWJGL, GL4ES, shader drawing and resize. No client import needed. This is not a Wurm game window." })
         val controls = LinearLayout(this)
         column.addView(HorizontalScrollView(this).apply { addView(controls) })

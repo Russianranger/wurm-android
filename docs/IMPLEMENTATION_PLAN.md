@@ -1,6 +1,37 @@
 # From the working POC to Wurm Server
 
-## Current milestone: 0.10.13 Java 17 server login compatibility
+## Current milestone: 0.10.14 local login credential
+
+The 0.10.13 Thor server successfully used the Java 17 encoder and remained alive
+until the requested stop. Its exact login message says an authenticated user
+supplied incorrect credentials. The offline ticket step passed; the later login
+credential comparison failed. The direct launcher supplied an empty password.
+Inspection of the owner's server shows that it hashes the supplied credential
+and compares it with the hash of the authenticated identity, using the same
+player-name salt. An empty value cannot meet that contract.
+
+DirectClientLaunch now supplies the existing LocalSession.identity() to the real
+engine's setPassword(String), so the login credential, Steam identity and local
+ticket agree. The separate server password remains empty for this unprotected
+local preview. LocalSession still requires offline opt-in and 127.0.0.1:3724,
+persists identity across launches and refuses corrupt identity files. No server
+authentication bypass, replacement hash algorithm or new Steam feature is added.
+Diagnostics identify the credential source without logging its value or ticket.
+
+The same report records a subsequent SIGABRT in libEGL FileBlobCache destruction
+after Wurm reported login rejection and closed its window. This is an unresolved
+native teardown/corruption issue, not evidence that the ticket step failed.
+Preserve the existing crash capture, Serial GC, graphics/input bridge, server
+encoder overlay, SQLite overlays and POC. Do not declare rendering/gameplay stable.
+
+**Next gate:** install 0.10.14, import the same two ZIPs, select Adventure/Thor,
+and run this app's Start Local Game with older servers stopped. Export Client
+Report and Server Session Report after the result. The credential adapter and
+regression tests are implemented; Gate 5 login acceptance/world entry still need
+the Thor. See [CLIENT_LOGIN_IDENTITY_FIX.md](CLIENT_LOGIN_IDENTITY_FIX.md) for
+exact files, steps, evidence, validation limits and every changed file.
+
+## Previous milestone: 0.10.13 Java 17 server login compatibility
 
 The Thor's 0.10.12 report passes both isolated collectors, verifies Serial for
 client entry, and retains 196 frames through a minute of LOGIN_WAIT without the

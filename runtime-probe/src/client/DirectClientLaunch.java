@@ -76,7 +76,7 @@ public final class DirectClientLaunch {
         File packs = (File) type("com.wurmonline.client.settings.GlobalData").getMethod("getPackDirectory").invoke(null);
         List<String> packNames = selectPacks(packs.toPath());
         log("RESOURCE_PACKS_VALIDATED " + packNames + "; content compatibility still needs the engine");
-        log("PROFILE_PREPARE player=" + player + " cwd=" + Path.of("").toAbsolutePath() + "; passwords blank in this preview");
+        log("PROFILE_PREPARE player=" + player + " cwd=" + Path.of("").toAbsolutePath());
         Class<?> settings = type("com.wurmonline.client.launcherfx.WurmSettingsFX");
         if (!"headless-keybinds-v1".equals(settings.getMethod("androidCompatibilityVersion").invoke(null)))
             throw new IllegalStateException("HEADLESS_SETTINGS_NOT_ACTIVE");
@@ -94,8 +94,15 @@ public final class DirectClientLaunch {
         Object resources = launch.getParameterTypes()[1].getConstructor(File.class, List.class).newInstance(packs, packNames);
         log("RESOURCES_READY packs=" + packNames + "; local assets; no updater/network download");
         engine.getMethod("setUsername", String.class).invoke(null, player);
-        engine.getMethod("setPassword", String.class).invoke(null, "");
+        // The inspected server hashes this login credential and compares it with
+        // the hash of the authenticated identity. A blank value fails even after
+        // the offline ticket is accepted. Reuse the shim's persisted identity;
+        // LocalSession enforces the explicit offline/loopback scope. This is not
+        // a Steam account password or the separately configured server password.
+        String identity = (String) type("wurm.android.compat.LocalSession").getMethod("identity").invoke(null);
+        engine.getMethod("setPassword", String.class).invoke(null, identity);
         engine.getMethod("setServerPassword", String.class).invoke(null, "");
+        log("LOGIN_CREDENTIAL_READY source=persisted-local-identity serverPassword=empty; credential data omitted");
         engine.getMethod("setWindowDirty", boolean.class).invoke(null, false);
         AtomicReference<Throwable> uncaught = new AtomicReference<>();
         Thread.setDefaultUncaughtExceptionHandler((thread, failure) -> {

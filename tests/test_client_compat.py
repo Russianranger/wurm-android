@@ -83,13 +83,19 @@ import com.wurmonline.client.settings.Profile.PlayerProfile;
 import com.wurmonline.client.resources.Resources;
 public class WurmClientBase {
  public static com.wurmonline.client.steam.SteamHandler steamHandler;
- private static Thread gameThread; private static String username; private static boolean windowDirty;
+ private static Thread gameThread; private static String username, password; private static boolean windowDirty;
  public static void setUsername(String name) { username=name; }
- public static void setPassword(String value) { if(!value.isEmpty()) throw new AssertionError("password"); }
+ public static void setPassword(String value) { password=value; }
  public static void setServerPassword(String value) { if(!value.isEmpty()) throw new AssertionError("server password"); }
  public static void setWindowDirty(boolean dirty) { windowDirty=dirty; }
  public static void launch(PlayerProfile profile, Resources resources, boolean option) {
   if(option || steamHandler==null || !profile.name.equals(username) || !resources.packs.contains("graphics.jar")) throw new AssertionError("launch contract");
+  String identity=new SteamJni.Steam_api(steamHandler).GetCSteamIDString();
+  if(password==null || password.isEmpty() || !password.equals(identity)) throw new AssertionError("local login credential mismatch");
+  steamHandler.requestAuthTicket();
+  String ticket=new String(steamHandler.getAuthTicket().getTicketArray(),java.nio.charset.StandardCharsets.US_ASCII);
+  if(!ticket.equals("WURM_ANDROID_LOCAL_V1:"+password)) throw new AssertionError("ticket identity mismatch");
+  System.out.println("FIXTURE_LOCAL_LOGIN_CREDENTIAL_PASS");
   var screen=com.wurmonline.client.options.Options.screenSettings;
   if(windowDirty || screen.maximized || screen.fullscreen || screen.resizable || screen.width!=960 || screen.height!=540 || screen.hz!=-1) throw new AssertionError("headless viewport");
   if(!com.wurmonline.client.launcherfx.WurmMain.getServerIp().equals("127.0.0.1") || com.wurmonline.client.launcherfx.WurmMain.getServerPort()!=3724) throw new AssertionError("target");
@@ -195,7 +201,39 @@ class ClientCompatibilityTest(unittest.TestCase):
         self.assertIn('KEYBINDS_PRESERVED unchanged=true', result.stdout)
         self.assertIn('RESOURCE_PACKS_VALIDATED [sound.jar, pmk.jar, graphics.jar]', result.stdout)
         self.assertIn('FIXTURE_GAME_THREAD_FINISHED', result.stdout)
+        self.assertIn('FIXTURE_LOCAL_LOGIN_CREDENTIAL_PASS', result.stdout)
         self.assertLess(result.stdout.index('FIXTURE_GAME_THREAD_FINISHED'), result.stdout.index('BOOTSTRAP_EXIT'))
+
+    def test_direct_login_reuses_persisted_ticket_identity_without_logging_it(self):
+        home = self.workspace()
+        identity_path = home/'user/wurm-local-identity.txt'
+        identity = None
+        for player in ['Thor', 'Thor', 'Thortest']:
+            result = self.run_mode(home, 'entry', {'wurm.client.player': player})
+            self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+            self.assertIn('FIXTURE_LOCAL_LOGIN_CREDENTIAL_PASS', result.stdout)
+            self.assertIn('LOGIN_CREDENTIAL_READY source=persisted-local-identity', result.stdout)
+            current = identity_path.read_text().strip()
+            self.assertRegex(current, r'^7656119[0-9]{10}$')
+            if identity is not None:
+                self.assertEqual(current, identity)
+            identity = current
+            self.assertNotIn(identity, result.stdout+result.stderr)
+
+    def test_direct_login_refuses_nonlocal_scope_and_corrupt_identity(self):
+        for properties in [{'wurm.client.host': '192.0.2.1'}, {'wurm.client.port': '3725'},
+                           {'wurm.client.offline': 'false'}, {}]:
+            with self.subTest(properties=properties):
+                home = self.workspace()
+                identity = home/'user/wurm-local-identity.txt'
+                if not properties:
+                    identity.parent.mkdir(); identity.write_text('broken')
+                result = self.run_mode(home, 'entry', properties)
+                self.assertEqual(result.returncode, 42, result.stdout+result.stderr)
+                self.assertNotIn('LOGIN_CREDENTIAL_READY', result.stdout)
+                self.assertNotIn('ENTRY_INVOKE', result.stdout)
+                if not properties:
+                    self.assertEqual(identity.read_text(), 'broken')
 
     def test_async_native_crash_is_reported_instead_of_successful_launch_return(self):
         result = self.run_mode(self.workspace(), 'entry', {'fixture.crash': 'true'})

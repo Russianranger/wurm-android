@@ -32,8 +32,8 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.13").textSize = 24f
-        label("The Thor passed both memory tests and reached login without the earlier abort. This build fixes a missing Java 17 server encoder. Use this version's imported server for Start Local Game; login/world entry still unverified.")
+        label("Wurm Client · 0.10.14").textSize = 24f
+        label("The server accepted local authentication, then rejected the launcher's blank login credential. This build supplies the existing local identity automatically. Use this version's Start Local Game; login/world entry still need testing. The native crash during exit remains unresolved.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
         button("Import Client ZIP", true) {
@@ -49,7 +49,7 @@ class ClientActivity : Activity() {
         label("Client startup retains Serial GC. The optional Memory Test compares G1 and Serial without game files; no repeat is required for the server login test.")
         button("JVM Graphics Test") { startActivity(Intent(this, GraphicsTestActivity::class.java)) }
         val preferences = getSharedPreferences("client-settings", MODE_PRIVATE)
-        label("Local player name (new local profile; blank password in this preview)")
+        label("Local player name (local identity supplied automatically; no Steam password needed)")
         val player = EditText(this).apply {
             setSingleLine(); setText(preferences.getString("player", "Thor")); column.addView(this)
         }

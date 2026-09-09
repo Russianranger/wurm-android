@@ -14,8 +14,8 @@ SERVER = os.environ.get('WURM_TEST_SERVER_JAR')
 ENTRY = 'com/wurmonline/server/LoginHandler.class'
 
 
-def encrypt_only_class(data):
-    """Private test only: retain the supplied encrypt method and pool, remove game dependencies.
+def encrypt_only_class(data, names=(b'encrypt',)):
+    """Private test only: retain selected credential methods/pool, remove game dependencies.
 
     No proprietary bytes are stored in this repository. The method's Code,
     exception table and stack maps remain byte-identical to the supplied input.
@@ -48,9 +48,9 @@ def encrypt_only_class(data):
     fields = struct.unpack_from('>H', data, pos)[0]; pos += 2
     for _ in range(fields): member()
     methods = struct.unpack_from('>H', data, pos)[0]; pos += 2
-    selected = [body for name, body in (member() for _ in range(methods)) if name == b'encrypt']
-    assert len(selected) == 1
-    return header + struct.pack('>HHH', 0, 0, 1) + selected[0] + b'\0\0'
+    selected = [body for name, body in (member() for _ in range(methods)) if name in names]
+    assert len(selected) == len(names)
+    return header + struct.pack('>HHH', 0, 0, len(selected)) + b''.join(selected) + b'\0\0'
 
 
 class ServerLoginPatchTest(unittest.TestCase):
@@ -94,6 +94,23 @@ public class LoginFixture {
    System.out.println("LOGIN_ENCODER_ABI_PASS");return;
   }
   Class<?> type=new Loader().define(Files.readAllBytes(Path.of(args[1])));
+  if(args[0].equals("credential")) {
+   // Inputs are authored. Invoke the supplied original method bodies; this
+   // checks the observed login comparison, not full authentication/world entry.
+   var normalize=type.getMethod("raiseFirstLetter",String.class);
+   var encrypt=type.getMethod("encrypt",String.class);
+   var hash=type.getMethod("hashPassword",String.class,String.class);
+   String id="76561198000000001",other="76561198000000002";
+   for(String name:new String[]{"Thor","thor","Thortest"}) {
+    String salt=(String)encrypt.invoke(null,normalize.invoke(null,name));
+    Object expected=hash.invoke(null,id,salt);
+    if(expected.equals(hash.invoke(null,"",salt)))throw new AssertionError("blank credential accepted");
+    if(expected.equals(hash.invoke(null,other,salt)))throw new AssertionError("wrong identity accepted");
+    String received=new String(id.toCharArray());
+    if(!expected.equals(hash.invoke(null,received,salt)))throw new AssertionError("matching identity rejected");
+   }
+   System.out.println("PRIVATE_LOGIN_CREDENTIAL_PASS players=3 blankRejected=true wrongIdentityRejected=true");return;
+  }
   if(args[0].equals("legacy")) {
    try{type.getMethod("encrypt",String.class).invoke(null,"abc");throw new AssertionError("missing ABI not reproduced");}
    catch(java.lang.reflect.InvocationTargetException e){if(!(e.getCause() instanceof NoClassDefFoundError))throw e;}
@@ -195,6 +212,19 @@ public class WurmServerException extends Exception {public WurmServerException(S
             result=self.run_java(mode,dest)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertIn('PRIVATE_LEGACY_ABI_REPRODUCED' if name=='legacy' else 'PRIVATE_LOGIN_ENCRYPT_PASS',result.stdout)
+
+    @unittest.skipUnless(SERVER,'Optional: legally owned pinned server.jar')
+    def test_private_original_hash_methods_reject_blank_and_require_matching_identity(self):
+        target=self.root/'credential-overlay.jar'
+        result=self.run_java('prepare',SERVER,target)
+        self.assertEqual(result.returncode,0,result.stderr)
+        with zipfile.ZipFile(target) as jar:
+            private_class=encrypt_only_class(jar.read(ENTRY),(b'raiseFirstLetter',b'encrypt',b'hashPassword'))
+        dest=self.root/'credential.class';dest.write_bytes(private_class)
+        result=self.run_java('credential',dest)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('PRIVATE_LOGIN_CREDENTIAL_PASS players=3 blankRejected=true wrongIdentityRejected=true',result.stdout)
+        self.assertNotIn('76561198000000001',result.stdout+result.stderr)
 
 
 if __name__ == '__main__': unittest.main()
