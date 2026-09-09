@@ -1,29 +1,29 @@
-# Wurm Server 0.10.1 — headless client keybindings
+# Wurm Server 0.10.2 — Android client fonts
 
-Your 0.10.0 Thor window/controller test passed: 366 frames, real LWJGL input and
-clean exit. The local-client failure was `javafx/stage/Stage` while Profile loaded
-keybindings through the desktop settings class, before login.
+Your 0.10.1 Thor report confirms keybindings, player profile and all three resource
+packs now load. The client advanced into HUD construction, then failed in Java
+font initialization: `Fontconfig head is null`.
 
-This release replaces that settings helper with headless binding storage. It
-preserves the real Profile/Options code and unchanged binding files. The exact
-failure was reproduced with the supplied client JAR; the fix passed actual
-profile/player creation in two fresh host JVMs, loading all 78 default keys.
-No server/SQLite, Steam shim or native graphics changes are included.
+This release maps Java's logical fonts to the Thor's readable system fonts before
+Wurm starts. It verifies real text measurement/rasterization and logs font files,
+hashes and any failure's deepest cause. Wurm's original FontTexture is retained.
+The exact old failure was reproduced with the private client JAR; the fix passed
+its real font metrics and glyph drawing for 12 font/style combinations on the host.
 
-Install `Wurm-Server.apk` alongside the working server: version
-**0.10.1-managed-preview** (15), package
-`io.github.russianranger.wurmlauncher.clientsettings`.
+Install `Wurm-Server.apk` alongside the working server: **0.10.2-managed-preview**
+(16), package `io.github.russianranger.wurmlauncher.clientfonts`.
 
 1. Import the same complete client ZIP in this new app.
 2. Start Adventure in your working 0.6.0 server app.
-3. In 0.10.1 select Client tab → Start Local Game.
-4. Export **Client Report** after the attempt and send `wurm-client-report.txt`.
+3. Select **0.10.2 → Client → Start Local Game**.
+4. After exit or Stop Client, select **Export Client Report** and send
+   **wurm-client-report.txt**, describing what appeared.
 
-No PC, root, Termux, JavaFX or new game-file download is needed. The triangle test
-is already confirmed. See attached **CLIENT_SETTINGS_FIX.md** for exact steps,
-file requirements, diagnostics and every changed file. Startup remains a
-two-minute diagnostic; full Wurm graphics, audio, login and world entry remain
-unqualified. Desktop JavaFX settings dialogs are not implemented.
+No new game files, fonts, JavaFX, PC, root or Termux commands are required. The
+triangle/controller test does not need repeating. See **CLIENT_FONTS_FIX.md** for
+exact steps and every changed file. This remains a two-minute startup diagnostic;
+ARM64 font rendering, full Wurm graphics/audio, login and world entry need testing.
 
-No proprietary game files or compile-only signature stubs are packaged. Public
-source, license notices and matching runtime/graphics source accompany the APK.
+No proprietary game files or system font binaries are bundled. The working server,
+SQLite fix, Steam shim and native window/input backend are unchanged. Public
+source, notices and matching runtime/graphics source accompany the APK.

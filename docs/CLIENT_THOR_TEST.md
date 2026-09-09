@@ -1,7 +1,7 @@
 # AYN Thor: current 0.10.0 client window test
 
 
-**Current 0.10.1:** the Thor window/controller test passed. Follow the [headless settings fix and next local-client test](CLIENT_SETTINGS_FIX.md). Earlier 0.10.0/0.8.0 instructions below are historical.
+**Current 0.10.2:** the Thor passed profile/keybinding and resource initialization in 0.10.1, then reached a Java font configuration failure. Follow the [Android font fix and next local-client test](CLIENT_FONTS_FIX.md). Earlier milestone instructions below are historical.
 
 Follow [GRAPHICS_THOR_TEST.md](GRAPHICS_THOR_TEST.md) for the new APK, window/input
 check, exact complete client ZIP contents, local launch and Client Report exports.

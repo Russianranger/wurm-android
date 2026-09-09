@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.1\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.2\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; headless profile fix awaits Thor test. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
+            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; explicit Android font mapping awaits Thor test. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -175,7 +175,9 @@ object ClientSession {
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",
-                    "-cp", stageCp.joinToString(":")) + if (stage == "render" || window) listOf(
+                    "-cp", stageCp.joinToString(":")) + (if (stage == "entry") listOf(
+                        "-Dwurm.client.fontDir=/system/fonts", "-Dwurm.client.fontConfig=$session/fontconfig.properties"
+                    ) else emptyList()) + if (stage == "render" || window) listOf(
                         "-Dorg.lwjgl.librarypath=$native", "-Dorg.lwjgl.opengl.explicitInit=true", "-Dorg.lwjgl.util.Debug=true",
                         "-Dorg.lwjgl.system.bundledLibrary.nameMapper=wurm.graphics.LibraryNames",
                         "-Dorg.lwjgl.system.allocator=system",

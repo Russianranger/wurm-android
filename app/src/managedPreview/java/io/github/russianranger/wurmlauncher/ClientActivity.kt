@@ -32,7 +32,7 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.1").textSize = 24f
+        label("Wurm Client · 0.10.2").textSize = 24f
         label("This preview imports your client and attempts its bootstrap and LWJGL initialization. Window and input integration is experimental; Wurm rendering and login remain unverified. Target: 127.0.0.1:3724.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")

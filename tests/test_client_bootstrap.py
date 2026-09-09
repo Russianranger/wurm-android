@@ -72,6 +72,13 @@ class ClientBootstrapTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn("FIXTURE_LAUNCHED", result.stdout)
 
+    def test_nested_failure_exposes_root_cause_in_first_status_line(self):
+        jar = self.fixture('public class WurmClientBase { public static void launch() { throw new InternalError(new java.lang.reflect.InvocationTargetException(new RuntimeException("FONT_ROOT_CAUSE\\nsecond line"))); } }')
+        result = self.run_mode("entry", jar)
+        self.assertEqual(result.returncode, 42)
+        first = next(line for line in result.stdout.splitlines() if 'BOOTSTRAP_FAILED' in line)
+        self.assertIn('root=java.lang.RuntimeException reason=FONT_ROOT_CAUSE second line', first)
+
     def test_lwjgl_native_failure_is_an_actual_attempt_and_visible(self):
         jar = self.fixture('public class WurmClientBase {}', {"org/lwjgl/opengl/Display.java":
             'package org.lwjgl.opengl; public class Display { public static void create() { throw new UnsatisfiedLinkError("FIXTURE_NATIVE_BLOCKER"); } public static void destroy() {} }'})

@@ -1,5 +1,24 @@
 # Client integration architecture and qualification
 
+## 0.10.2: configure Android fonts before Wurm HUD startup
+
+The Thor's 0.10.1 report confirms all 78 keybindings, Profile/PlayerProfile and
+three real resource packs initialized. WurmClientBase.launch was invoked; HUD
+construction then failed in FontTexture at Java 2D FontMetrics with
+`Fontconfig head is null`. The client had not reached login or a rendered frame.
+
+The next narrow Gate 4 substep supplies an explicit, per-session OpenJDK logical
+font mapping to readable Android `/system/fonts` files before client initialization.
+It checks real glyph rasterization for all 20 logical font/style combinations,
+logs file identities and root causes, and continues into the existing real client.
+The actual private client FontTexture reproduces the old failure with desktop
+fontconfig unavailable, then passes metrics and glyph drawing for 12 styles with
+the fix. No game text class, server code, native graphics or Steam shim is replaced.
+
+See [evidence, source references, every changed file and exact Thor test](CLIENT_FONTS_FIX.md).
+Physical Android font initialization and subsequent GL/audio/login remain pending.
+Earlier sections record prior milestones and their then-current qualification.
+
 ## 0.10.1: remove the remaining JavaFX profile dependency
 
 The Thor passed 0.10.0's window/controller test with 366 frames, real LWJGL key and

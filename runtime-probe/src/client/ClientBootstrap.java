@@ -23,12 +23,19 @@ public final class ClientBootstrap {
                 case "entry" -> entry();
                 case "compat" -> DirectClientLaunch.compatibilityProbe();
                 case "input" -> DesktopInput.diagnostic();
+                case "fonts" -> {
+                    if (System.getProperty("wurm.client.fontConfig") == null) throw new IllegalArgumentException("FONT_CONFIG_REQUIRED");
+                    ClientFonts.prepareIfConfigured();
+                }
                 default -> throw new IllegalArgumentException("Unknown bootstrap mode");
             }
         } catch (Throwable failure) {
             if (failure instanceof InvocationTargetException && failure.getCause() != null) failure = failure.getCause();
-            String detail = String.valueOf(failure.getMessage()).replace('\n', ' ').replace('\r', ' ');
-            log("BOOTSTRAP_FAILED stage=" + mode + " type=" + failure.getClass().getName() + " reason=" + detail.substring(0, Math.min(300, detail.length())));
+            Throwable root = failure;
+            Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+            while (seen.add(root) && root.getCause() != null && !seen.contains(root.getCause())) root = root.getCause();
+            String detail = String.valueOf(root.getMessage()).replace('\n', ' ').replace('\r', ' ');
+            log("BOOTSTRAP_FAILED stage=" + mode + " type=" + failure.getClass().getName() + " root=" + root.getClass().getName() + " reason=" + detail.substring(0, Math.min(220, detail.length())));
             failure.printStackTrace(System.out); exit = 42;
         }
         log("BOOTSTRAP_EXIT stage=" + mode + " code=" + exit);
@@ -81,6 +88,7 @@ public final class ClientBootstrap {
         } finally { try { display.getMethod("destroy").invoke(null); } catch (Throwable ignored) {} }
     }
     private static void entry() throws Exception {
+        ClientFonts.prepareIfConfigured();
         log("ENTRY_INITIALIZE " + ENGINE + " (desktop JavaFX launcher bypassed)");
         Class<?> cls = Class.forName(ENGINE, true, ClientBootstrap.class.getClassLoader());
         log("ENTRY_INITIALIZED " + ENGINE);
