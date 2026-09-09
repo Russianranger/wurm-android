@@ -1,7 +1,7 @@
 # AYN Thor: 0.10.0 window, controller and Wurm startup test
 
 
-**Current 0.10.4:** the Thor created Wurm’s real window, then rejected an obsolete Pbuffer requirement. The next test verifies the actual FBO path through a narrowly scoped, private runtime adapter. Follow the [offscreen startup test](CLIENT_OFFSCREEN_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.5:** the Thor passed the real framebuffer check in 0.10.4, then hit Java 8 buffer-cleanup calls that are incompatible with Java 17. The next build verifies the two-class ABI adapter and actual cleanup before game launch. Follow the [buffer startup test](CLIENT_BUFFERS_FIX.md). Earlier milestone instructions below are historical.
 
 The previous **0.9.1 graphics gate passed on your Thor twice**: orange triangle on
 blue, six verified/displayed frames, same-context resizes and clean JVM exits.

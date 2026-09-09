@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.4\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.5\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; 0.10.2 font rasterization passed on Thor; 0.10.3 created the Wurm window on Thor; measured FBO/legacy startup-check adapter awaits Thor test. Audio currently falls back to silent mode. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
+            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; 0.10.2 font rasterization passed on Thor; 0.10.3 created the Wurm window on Thor; 0.10.4 passed measured FBO support on Thor; Java 17 buffer cleanup adapter awaits Thor test. Audio currently falls back to silent mode. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -180,6 +180,8 @@ object ClientSession {
                     "-cp", stageCp.joinToString(":")) + (if (stage in listOf("prepare-graphics", "entry")) listOf(
                         "-Dwurm.client.offscreenOverlay=$overlay"
                     ) else emptyList()) + (if (stage == "entry") listOf(
+                        "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
+                        "--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED",
                         "-Dwurm.client.fontDir=/system/fonts", "-Dwurm.client.fontConfig=$session/fontconfig.properties"
                     ) else emptyList()) + if (stage == "render" || window) listOf(
                         "-Dorg.lwjgl.librarypath=$native", "-Dorg.lwjgl.opengl.explicitInit=true", "-Dorg.lwjgl.util.Debug=true",

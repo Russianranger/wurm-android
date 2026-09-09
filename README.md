@@ -1,7 +1,7 @@
 # Wurm Server for Android
 
 
-**Current 0.10.4:** the Thor created Wurm’s real window, then rejected an obsolete Pbuffer requirement. The next test verifies the actual FBO path through a narrowly scoped, private runtime adapter. Follow the [offscreen startup test](docs/CLIENT_OFFSCREEN_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.5:** the Thor passed the real framebuffer check in 0.10.4, then hit Java 8 buffer-cleanup calls that are incompatible with Java 17. The next build verifies the two-class ABI adapter and actual cleanup before game launch. Follow the [buffer startup test](docs/CLIENT_BUFFERS_FIX.md). Earlier milestone instructions below are historical.
 
 
 **Client milestone 0.10.0:** [download the window/input preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.0-client-window)

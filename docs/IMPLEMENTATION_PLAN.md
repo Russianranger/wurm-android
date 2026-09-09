@@ -1,5 +1,39 @@
 # From the working POC to Wurm Server
 
+## 0.10.5: Java 17 buffer cleanup after confirmed FBO support
+
+The Thor's 0.10.4 report confirms `OFFSCREEN_FBO_PASS` and
+`OFFSCREEN_REQUIREMENT_PASS`. Wurm proceeds to splash texture creation, then
+`BufferUtil.deallocate` fails accessing `sun.nio.ch.DirectBuffer`. There are still
+zero game frames and no login evidence. OpenAL continues to fall back to silence.
+
+Inspection/reproduction finds two distinct issues: the non-exported package and
+the old `cleaner(): sun.misc.Cleaner` ABI. Exports alone reproduce a
+`NoSuchMethodError`. The two imported buffer classes require the Java 17
+`jdk.internal.ref.Cleaner` owner and return descriptor.
+
+The existing private session overlay now contains three SHA-verified classes:
+the unchanged offscreen engine adapter and the two buffer classes. Only the two
+exact Cleaner constants in each buffer class change. Original allocation,
+accounting, attachment traversal and cleanup instructions stay intact. Every
+class reverses to its pinned original hash and must be selected by the entry
+classpath. Imports remain unchanged; unknown versions fail before entry.
+
+Only the client entry JVM exports `java.base/sun.nio.ch` and
+`java.base/jdk.internal.ref` to classpath code. No blanket opens, JVM downgrade,
+GC-only workaround or server flags are added. A preflight exercises the real
+imported byte/float/int/double allocation and cleanup methods before game launch,
+with module/ABI checks and exportable report markers.
+
+The host reproduces both original errors and passes the fix. Sixteen repeated
+real-client preflights restore native direct-buffer count/bytes exactly. Authored
+CI fixtures verify relocation, native memory release, missing exports and hash
+rejection without proprietary inputs. Gate 4's FBO test is now physically passed;
+this buffer startup correction is host-tested. Full rendering, audio, local
+login/ticket acceptance and world entry remain unqualified.
+
+See [evidence, every changed file and exact Thor test](CLIENT_BUFFERS_FIX.md).
+
 ## 0.10.4: measured FBO support for the legacy startup requirement
 
 0.10.3 physically passed font/profile initialization and created Wurm's 960x540

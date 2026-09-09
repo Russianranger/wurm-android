@@ -23,6 +23,7 @@ public final class ClientBootstrap {
                 case "entry" -> entry();
                 case "compat" -> DirectClientLaunch.compatibilityProbe();
                 case "prepare-graphics" -> ClientGraphicsPatch.prepare();
+                case "buffers" -> { ClientGraphicsPatch.verifySelected(); ClientBuffers.preflight(); }
                 case "input" -> DesktopInput.diagnostic();
                 case "fonts" -> {
                     if (System.getProperty("wurm.client.fontConfig") == null) throw new IllegalArgumentException("FONT_CONFIG_REQUIRED");
@@ -90,6 +91,7 @@ public final class ClientBootstrap {
     }
     private static void entry() throws Exception {
         ClientGraphicsPatch.verifySelected();
+        if (System.getProperty("wurm.client.offscreenOverlay") != null) ClientBuffers.verifyRuntime();
         ClientFonts.prepareIfConfigured();
         log("ENTRY_INITIALIZE " + ENGINE + " (desktop JavaFX launcher bypassed)");
         Class<?> cls = Class.forName(ENGINE, true, ClientBootstrap.class.getClassLoader());

@@ -1,5 +1,10 @@
 # Pojav Java API compatibility candidate
 
+**0.10.5:** FBO support is physically confirmed on Thor. The next correction is
+the imported Java 8 buffer-cleanup ABI, using the existing private overlay and
+two client-only module exports. Graphics/native sources are unchanged. See
+[the current buffer startup test](../docs/CLIENT_BUFFERS_FIX.md).
+
 
 **0.10.4:** the Thor created the real Wurm window in 0.10.3. The next correction
 qualifies FBO offscreen drawing for one SHA-verified, obsolete engine Pbuffer

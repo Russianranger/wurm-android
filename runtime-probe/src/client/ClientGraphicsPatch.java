@@ -5,9 +5,11 @@ import java.net.URL;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.jar.*;
 
-/** One verified engine call-site adapter, generated privately for each client attempt. */
+/** Verified engine/buffer adapters, generated privately for each client attempt. */
 public final class ClientGraphicsPatch {
     static final String ENGINE = "com/wurmonline/client/WurmClientBase.class";
     static final String ORIGINAL = "db689422e7195271d7e395adfe87ab63cb26805ace86add1f936eb71c2fab1e6";
@@ -80,31 +82,50 @@ public final class ClientGraphicsPatch {
         byte[] original = read(source.openStream());
         byte[] changed = redirect(original, ORIGINAL, FROM, TO);
         log("OFFSCREEN_PATCH_VERIFIED source=" + source + " originalSha256=" + sha(original) + " overlayClassSha256=" + sha(changed));
+        Map<String, byte[]> classes = new LinkedHashMap<>();
+        classes.put(ENGINE, changed);
+        for (String name : new java.util.TreeSet<>(ClientBuffers.ORIGINALS.keySet())) {
+            URL bufferSource = ClientGraphicsPatch.class.getClassLoader().getResource(name);
+            if (bufferSource == null) throw new IOException("CLIENT_BUFFER_CLASS_MISSING " + name);
+            classes.put(name, ClientBuffers.prepare(name, read(bufferSource.openStream())));
+        }
         Path temporary = target.resolveSibling(target.getFileName() + ".pending");
         try {
             try (var out = new JarOutputStream(Files.newOutputStream(temporary, StandardOpenOption.CREATE_NEW))) {
-                var entry = new JarEntry(ENGINE); entry.setTime(0);
-                out.putNextEntry(entry); out.write(changed); out.closeEntry();
+                for (var item : classes.entrySet()) {
+                    var entry = new JarEntry(item.getKey()); entry.setTime(0);
+                    out.putNextEntry(entry); out.write(item.getValue()); out.closeEntry();
+                }
             }
             Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE);
         } finally { Files.deleteIfExists(temporary); }
         log("OFFSCREEN_PATCH_READY calls=1 scope=verified-engine-only; imported JAR unchanged; legacy Pbuffer API unchanged");
+        log("BUFFER_PATCH_READY classes=2; Cleaner owner/return ABI only; imported JAR unchanged");
     }
     public static void verifySelected() throws Exception {
         String path = System.getProperty("wurm.client.offscreenOverlay");
         if (path == null) return; // Standalone original-client/fixture diagnostics.
-        byte[] expected;
+        Map<String, byte[]> classes = new LinkedHashMap<>();
         try (var jar = new JarFile(path)) {
-            if (jar.size() != 1 || jar.getJarEntry(ENGINE) == null) throw new IOException("Invalid engine overlay");
-            expected = read(jar.getInputStream(jar.getJarEntry(ENGINE)));
+            var names = new java.util.TreeSet<>(ClientBuffers.ORIGINALS.keySet()); names.add(ENGINE);
+            if (jar.size() != names.size()) throw new IOException("Invalid client overlay size");
+            for (String name : names) {
+                if (jar.getJarEntry(name) == null) throw new IOException("Missing client overlay class " + name);
+                classes.put(name, read(jar.getInputStream(jar.getJarEntry(name))));
+            }
         }
+        byte[] expected = classes.get(ENGINE);
         // Reverse the single relocation and prove the complete engine still
         // matches the inspected original, including every executable method.
         byte[] restored = redirect(expected, sha(expected), TO, FROM);
         if (!sha(restored).equals(ORIGINAL)) throw new IOException("CLIENT_GRAPHICS_PATCH_INTEGRITY_FAILED");
-        URL selected = ClientGraphicsPatch.class.getClassLoader().getResource(ENGINE);
-        if (selected == null || !sha(read(selected.openStream())).equals(sha(expected)))
-            throw new IOException("CLIENT_GRAPHICS_PATCH_NOT_SELECTED: classpath order mismatch");
-        log("OFFSCREEN_PATCH_ACTIVE source=" + selected + " overlayClassSha256=" + sha(expected));
+        for (var item : classes.entrySet()) {
+            String name = item.getKey(); byte[] bytes = item.getValue();
+            if (!name.equals(ENGINE)) ClientBuffers.verify(name, bytes);
+            URL selected = ClientGraphicsPatch.class.getClassLoader().getResource(name);
+            if (selected == null || !sha(read(selected.openStream())).equals(sha(bytes)))
+                throw new IOException("CLIENT_GRAPHICS_PATCH_NOT_SELECTED: classpath order mismatch " + name);
+            log((name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " overlayClassSha256=" + sha(bytes));
+        }
     }
 }
