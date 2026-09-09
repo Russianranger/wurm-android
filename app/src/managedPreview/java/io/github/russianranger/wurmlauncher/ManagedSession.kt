@@ -81,9 +81,12 @@ object ManagedSession {
     fun report(context: Context): String {
         val state = snapshot()
         val saved = File(context.filesDir, "managed-session.txt")
+        val firstErrors = File(context.filesDir, "managed-first-errors.txt")
+        val evidence = runCatching { firstErrors.readText().take(64 * 1024) }.getOrDefault("No separate first-error capture available.")
         val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
         return "Wurm Server $version\nPackage: ${context.packageName}\nExported: ${Instant.now()}\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nFile persistence passed on Thor 0.5.0; specific gameplay saves remain unverified.\n\n" +
-            if (saved.isFile) saved.readText() else state.log
+            "Retained first errors (separate from rotating console):\n$evidence\n\nRecent session console:\n" +
+            (if (saved.isFile) saved.readText() else state.log)
     }
 }

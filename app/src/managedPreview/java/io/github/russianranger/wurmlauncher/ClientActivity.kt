@@ -32,7 +32,7 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.10").textSize = 24f
+        label("Wurm Client · 0.10.11").textSize = 24f
         label("Local authentication passed on Thor; login is waiting. For this test, import and run the server in this preview too. Client Report includes this app’s server session and login diagnostics. Target: 127.0.0.1:3724.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")

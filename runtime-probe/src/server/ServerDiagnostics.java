@@ -20,6 +20,7 @@ public final class ServerDiagnostics {
     private ServerDiagnostics() { }
 
     public static void install() throws Exception {
+        ServerLogHandler.initializeEvidence();
         // Installed before any Wurm class initialization. Suppresses its file-only fallback.
         Path config = Path.of(System.getProperty("java.io.tmpdir"), "wurm-server-logging.properties");
         Files.writeString(config, CONFIG, StandardCharsets.UTF_8);

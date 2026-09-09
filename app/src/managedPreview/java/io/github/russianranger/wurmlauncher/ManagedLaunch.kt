@@ -13,7 +13,7 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
     fun arguments(native: File, home: File, tmp: File, runtime: File, helper: File, preflight: Boolean): List<String> {
         val cp = if (preflight) listOf(helper.absolutePath) + ProbeInputs.BASELINE.keys.map { File(runtime, "poc-lib/$it").absolutePath }
         else listOf("wurm-arm64-poc.jar") + ProbeInputs.BASELINE.keys.map { "poc-lib/$it" } +
-            listOf("server.jar", "common.jar", "lib/*", helper.absolutePath)
+            listOf(File(tmp.parentFile, "server-sqlite.jar").absolutePath, "server.jar", "common.jar", "lib/*", helper.absolutePath)
         return listOf(File(native, "libwurmjvm_runner.so").absolutePath,
             if (preflight) "-Xms32m" else "-Xms512m", if (preflight) "-Xmx256m" else "-Xmx${heapMiB}m",
             "-Djava.awt.headless=true", "-Djava.home=${home.absolutePath}", "-Djava.io.tmpdir=${tmp.absolutePath}",
@@ -21,14 +21,16 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
             "-Djava.library.path=${home.absolutePath}/lib:${home.absolutePath}/lib/server:${native.absolutePath}",
             "-Dsun.boot.library.path=${home.absolutePath}/lib:${native.absolutePath}",
             "-XX:ErrorFile=${tmp.parentFile!!.absolutePath}/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash") +
-            (if (preflight) listOf("-Dwurm.probe.network=true") else emptyList()) + listOf(
-            "-cp", cp.joinToString(":"), if (preflight) "probe.RuntimeProbe" else "server.ManagedServerMain",
-            if (preflight) tmp.parentFile!!.absolutePath else world)
+            (if (preflight) listOf("-Dwurm.probe.network=true") else listOf(
+                "-Dwurm.server.sqliteOverlay=${File(tmp.parentFile, "server-sqlite.jar").absolutePath}",
+                "-Dwurm.server.firstErrors=${File(tmp.parentFile!!.parentFile, "managed-first-errors.txt").absolutePath}")) + listOf(
+            "-cp", cp.joinToString(":"), if (preflight) "server.ServerPreflight" else "server.ManagedServerMain",
+            if (preflight) tmp.parentFile!!.absolutePath else world) + if (preflight) listOf(runtime.absolutePath) else emptyList()
     }
 
     fun auditArguments(native: File, home: File, tmp: File, runtime: File, helper: File, store: File, capture: Boolean): List<String> {
         val probe = arguments(native, home, tmp, runtime, helper, true)
-        return probe.take(probe.indexOf("probe.RuntimeProbe")).filterNot { it == "-Dwurm.probe.network=true" } +
+        return probe.take(probe.indexOf("server.ServerPreflight")).filterNot { it == "-Dwurm.probe.network=true" } +
             listOf("persistence.StorageAudit", runtime.absolutePath, store.absolutePath, world, if (capture) "baseline" else "check")
     }
 }

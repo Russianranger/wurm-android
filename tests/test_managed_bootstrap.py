@@ -26,7 +26,8 @@ class ManagedBootstrapTest(unittest.TestCase):
             throw new IllegalStateException("synthetic startup failure");''' if startup_failure else 'System.out.println("FIXTURE_STARTED"); while(true) Thread.sleep(1000);'
         poc.write_text('package poc; public class AndroidServerMain { public static void main(String[] args) throws Exception {' + body + '}}')
         subprocess.run(["java", "com.sun.tools.javac.Main", "--release", "17", "-d", str(root), str(server), str(poc),
-                        *map(str, (ROOT / "runtime-probe/src/server").glob("*.java"))], check=True, capture_output=True)
+                        *map(str, (ROOT / "runtime-probe/src/server").glob("*.java")),
+                        *map(str, (ROOT / "runtime-probe/src/probe").glob("*.java"))], check=True, capture_output=True)
         return root
 
     def launch(self, root, command="STOP\n"):

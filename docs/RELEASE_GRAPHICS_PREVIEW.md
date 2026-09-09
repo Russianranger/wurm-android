@@ -1,33 +1,30 @@
-# Wurm Server 0.10.10 — server login trace
+# Wurm Server 0.10.11 — position SQL fix
 
-The paired 0.10.9 client / 0.6.0 server reports show local authentication accepted
-and a login request sent, followed by a wait with no further input. The server
-also records an unrequested exit, without a timestamp or detailed login logs.
-The exact cause and successful login/world entry remain unverified.
+The 0.10.10 reports prove the local server exits first. Repeated position-save
+errors still use MySQL SQL against SQLite; the initiating fatal exception was
+lost to log rotation. The supplied server.jar confirms this separate defect.
 
-This release routes server Java logs to the app, captures bounded server threads
-while login waits, records timestamped exit/shutdown evidence, and explains when
-an owned server stops. Client Report now includes this app's Server Session Report.
-The POC, Steam shim, SQLite fixes, world recovery and graphics/protocol code remain
-unchanged. No proprietary files are bundled.
+This build generates a guarded, private position-class overlay from your imported
+server.jar and verifies it before Wurm initializes. It preserves the earlier item
+SQL fixes and the imported JAR bytes. A separate first-error file keeps early
+severe messages in Client Report and Server Session Report through log rotation.
+Graphics, controllers, offline Steam and existing world recovery are retained.
+No proprietary game files are bundled. Login/world entry remain unverified.
 
-**Run both sides in this preview for the next test:**
+1. Keep 0.10.10 installed. With its server stopped, Export before-start checkpoint
+   ZIP. Keep its current files and original import as well.
+2. Install Wurm-Server.apk (0.10.11, code 25, separate positionsqlite package).
+3. Import the checkpoint ZIP, select Adventure, and import the same full client
+   ZIP into its Client tab. Keep older servers stopped.
+4. Choose Start Local Game. If still Connecting after 60 seconds, screenshot;
+   if it fails earlier, export without Retry.
+5. Export **Client Report and Server Session Report** from 0.10.11 and send both.
+   Stop client/server separately if still running; export the server report
+   again after Stop. Keep the checkpoint; exit zero alone does not prove saving.
 
-1. Keep 0.6.0 installed. With its server stopped, export its working runtime ZIP.
-2. Install Wurm-Server.apk (0.10.10, code 24, separate logintrace package).
-3. Import that server ZIP into 0.10.10 and select Adventure. Import the same
-   complete client ZIP into its Client tab.
-4. Leave the old server stopped. Choose Start Local Game in 0.10.10.
-5. After about 60 seconds of a login wait, screenshot and Stop Client Test.
-6. Export Client Report and Server Session Report from **0.10.10**, and send both.
-   The client export also embeds that app's server history. Stop the server
-   separately after testing; Stop Client only stops the client.
-
-No PC/root/Termux or replacement game files are needed. The previous unexpected
-server exit did not confirm a save; keep its working files/checkpoint and original
-app. No restore or data repair is performed by this milestone.
-
-See attached **CLIENT_LOGIN_TEST.md** for exact steps, evidence, gate status,
-validation and every changed file. All three Android variants build/test/lint
-before publication; runtime, POC and new diagnostic classes are verified in the
-APK. 91 diagnostic tests and seven Kotlin connection/server-watch tests pass.
+No PC/root/Termux or manually patched JAR is needed. See the attached
+**SERVER_POSITION_SQLITE_FIX.md** for exact files, steps, evidence and every
+changed file. Host tests reproduce both original position-save failures with
+the supplied class and pinned SQLite JDBC; the overlay fixes both and preserves
+the personal-server UPDATE path. Device testing must identify any remaining
+fatal server error and establish real login/world entry.

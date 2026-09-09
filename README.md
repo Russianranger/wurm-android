@@ -1,6 +1,6 @@
 # Wurm Server for Android
 
-**Current test: 0.10.10 — [server login trace](docs/CLIENT_LOGIN_TEST.md).** Local authentication passed on Thor; login is waiting. Run both server and client in this preview to capture the missing server evidence.
+**Current test: 0.10.11 — [position-save SQLite fix](docs/SERVER_POSITION_SQLITE_FIX.md).** The 0.10.10 server exits first; repeated position-save SQL errors obscure the initial failure. This preview fixes that confirmed SQL defect and preserves early severe errors. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.11-server-sqlite); use the before-start checkpoint and the same client ZIP. Login/world entry still require a Thor test.
 
 **Previous 0.10.9 milestone:** the Thor passed material/GUI/terrain setup and reached Connecting with at least 375 frames. Its final exit followed the two-minute app timeout. That milestone exports real authentication/login/retry messages and allows five minutes for startup. Follow the [local connection test](docs/CLIENT_CONNECTION_TEST.md). Earlier instructions below are historical.
 

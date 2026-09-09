@@ -25,7 +25,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert b"HEAP_TAGGING_OFF" in runner and b"HEAP_TAGGING_ERROR" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
-        for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/DesktopInput.class"):
+        for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/ServerSqlitePatch.class", "server/ServerPreflight.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/DesktopInput.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
         assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/client-compat.jar"))) as compat:
@@ -36,6 +36,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
                            "com/wurmonline/client/ErrorReporterPanel.class", "wurm/android/compat/KeybindStore.class"}, classes
         assert all(int.from_bytes(compat.read(n)[6:8], "big") == 61 for n in classes)
     assert not any(name in apk.namelist() for name in ("assets/server.jar", "assets/common.jar", "assets/client.jar"))
+    # The position overlay is generated from the owner's input at runtime, never bundled.
+    for asset in (name for name in apk.namelist() if name.startswith("assets/") and name.endswith(".jar")):
+        with zipfile.ZipFile(io.BytesIO(apk.read(asset))) as jar:
+            assert "com/wurmonline/server/creatures/CreaturePos.class" not in jar.namelist(), asset
     graphics = json.loads(apk.read("assets/client-graphics.json"))
     assert graphics["sources"] == json.loads((ROOT/"graphics-compat/native-sources.json").read_text())
     assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so"}

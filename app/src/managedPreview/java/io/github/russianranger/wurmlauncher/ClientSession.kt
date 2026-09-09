@@ -43,7 +43,7 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.10\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.11\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
             "Gate status: 0.10.9 received local authentication success on Thor and sent login, then waited with 6 bytes read and no login result. The paired server report records an unrequested exit without its time/reason. This build captures managed server logging, login-wait thread snapshots and timestamped exits. Full login, visible world and audio remain unverified; no auth/login result is fabricated.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +

@@ -11,6 +11,7 @@ public final class ManagedServerMain {
     public static void main(String[] args) throws Exception {
         if (args.length != 1) throw new IllegalArgumentException("One world name required");
         ServerDiagnostics.install();
+        ServerSqlitePatch.verifySelected();
         // Resolve the API without initializing Wurm or opening its databases.
         // The public mod launcher hooks this exact ()V signature; imported
         // versions without it fail here instead of starting an unmanageable world.

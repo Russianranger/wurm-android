@@ -1,6 +1,24 @@
 # From the working POC to Wurm Server
 
-## Current milestone: 0.10.10 server login trace
+## Current milestone: 0.10.11 position-save SQLite fix
+
+The paired 0.10.10 Thor reports prove the owned server exits before the client.
+Its shutdown logs contain repeated MySQL position-upsert errors in SQLite; the
+first fatal Throwable was displaced by console rotation. The newly supplied
+server.jar confirms this remaining SQL defect while retaining the earlier item
+fixes. A narrowly guarded, session-private overlay changes that one statement,
+with original-hash/reverse/classpath verification before Wurm initialization.
+A separate persistent first-error capture keeps early severe records available
+in both Client Report and Server Session Report even after console rotation.
+
+This is a targeted Gate 5 dependency fix, not completed login/world entry. The
+initial fatal cause still needs evidence. Graphics, controller and Steam paths
+are retained. Use the 0.10.10 before-start checkpoint and the same client ZIP in
+the separate 0.10.11 app; keep earlier apps and data. See
+[SERVER_POSITION_SQLITE_FIX.md](SERVER_POSITION_SQLITE_FIX.md) for exact no-PC
+Thor steps, verified scope, limitations and every changed file.
+
+## 0.10.10 server login trace
 
 The paired Thor reports establish local authentication acceptance, followed by
 LOGIN_WAIT with no further bytes received. The server's last session records an
