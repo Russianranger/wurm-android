@@ -18,6 +18,7 @@ public final class WindowProbe {
             Display.destroy(); // No window: must not throw and mask an earlier startup error.
             Display.setDisplayMode(new DisplayMode(640,360));
             Display.create();
+            CapabilityChecks.verify();
             // Exercise state restoration with restrictive clear state, then use
             // the same context for the existing triangle and input regression.
             glClearColor(.25f, .5f, .75f, 1); glColorMask(false, true, false, true);

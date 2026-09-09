@@ -1,9 +1,10 @@
 # Pojav Java API compatibility candidate
 
-**0.10.6:** the Thor rendered the real Wurm splash. Corrected the pinned core
-LWJGL size/type wrappers and qualified a private GLSL 120 blur adaptation. The
-real Wurm blur material links and draws on host GL4ES. Native sources remain
-unchanged; see [the current material test](../docs/CLIENT_MATERIALS_FIX.md).
+**0.10.7:** fix the pinned fork's false-positive capability returns. Wurm now
+selects its existing legacy/basic-water path in the host probe. Core/legacy GL
+capabilities and real Wurm renderer selection are logged and checked on startup.
+Native sources and the five-entry private overlay remain unchanged; see
+[the current capability test](../docs/CLIENT_CAPABILITIES_FIX.md).
 
 **0.10.5:** FBO support is physically confirmed on Thor. The next correction is
 the imported Java 8 buffer-cleanup ABI, using the existing private overlay and

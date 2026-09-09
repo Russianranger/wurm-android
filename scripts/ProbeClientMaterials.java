@@ -28,6 +28,10 @@ public final class ProbeClientMaterials {
             var resourceField=engine.getDeclaredField("resourceManager");resourceField.setAccessible(true);resourceField.set(null,builtins);
             Class<?> unsafe=Class.forName("sun.misc.Unsafe");var field=unsafe.getDeclaredField("theUnsafe");field.setAccessible(true);
             Object instance=unsafe.getMethod("allocateInstance",Class.class).invoke(field.get(null),engine);
+            // Match real startup ordering; omitting initialize() leaves default
+            // booleans false and would miss the fork's false-positive GL3.3 bug.
+            Class<?> glHelper=Class.forName("com.wurmonline.client.util.GLHelper");
+            glHelper.getMethod("initialize").invoke(null);
             var check=engine.getDeclaredMethod("checkSupportLevels");check.setAccessible(true);check.invoke(instance);
             Class<?> material=Class.forName("com.wurmonline.client.renderer.Material");
             material.getMethod("preload").invoke(null);
@@ -42,6 +46,18 @@ public final class ProbeClientMaterials {
             System.out.println("WURM_GAUSS_MATERIAL_PASS linked=true Position=0 uniforms=4");
             draw(id);
             material.getMethod("unref").invoke(blur);
+            if ((Boolean)glHelper.getMethod("useDeferredShading").invoke(null) ||
+                (Boolean)glHelper.getMethod("useInstancing").invoke(null))
+                throw new AssertionError("REAL_WURM_GL33_RENDERER_SELECTED_ON_GL21");
+            Class<?> renderer=Class.forName("com.wurmonline.client.renderer.WorldRender");
+            Object render=unsafe.getMethod("allocateInstance",Class.class).invoke(field.get(null),renderer);
+            if ((Boolean)renderer.getMethod("useAdvancedWater").invoke(render))
+                throw new AssertionError("REAL_WURM_ADVANCED_WATER_SELECTED");
+            Class<?> volume=Class.forName("com.wurmonline.client.renderer.cell.Volume");
+            volume.getConstructor().newInstance();
+            var occlusion=volume.getDeclaredField("materialOcclusion");occlusion.setAccessible(true);
+            if(occlusion.get(null)!=null)throw new AssertionError("REAL_WURM_GL33_OCCLUSION_MATERIAL_CREATED");
+            System.out.println("WURM_LEGACY_SELECTION_PASS deferred=false instancing=false advancedWater=false; real Volume constructor passes without GL33 material");
             System.out.println("WURM_MATERIAL_PROBE_PASS; real builtin materials and blur only, terrain/login not tested");
         } catch(InvocationTargetException error) { throw error.getCause(); }
         finally { Display.destroy(); }

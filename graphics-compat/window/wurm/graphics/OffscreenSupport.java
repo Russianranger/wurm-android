@@ -15,6 +15,8 @@ public final class OffscreenSupport {
         // Only the SHA-verified WurmClientBase reference is redirected here. The
         // public LWJGL Pbuffer capability and all its constructors are untouched.
         try {
+            CapabilityChecks.verify();
+            CapabilityChecks.verifyWurmRenderer();
             Object option = Class.forName("com.wurmonline.client.options.Options").getField("useFBO").get(null);
             if ((Boolean) option.getClass().getMethod("disabled").invoke(option))
                 throw new IllegalStateException("OFFSCREEN_FBO_DISABLED in imported client settings");

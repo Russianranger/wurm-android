@@ -70,6 +70,27 @@ def patch_legacy_queries(source):
     return source
 
 
+def patch_capability_checks(source):
+    # This fork's ANGLE workaround reports success even when a version is absent
+    # or a function lookup failed. Wurm then selects its GL3.3 deferred renderer
+    # on GL4ES 2.1. Keep every lookup/cache write; restore truthful return values.
+    marker = 'return true; // otherwise the lookup chain will be broken (ANGLE renderer)'
+    if source.count(marker) != 3:
+        raise ValueError('Pinned ANGLE capability workaround changed')
+    for signature, result in (
+        ('public static boolean checkFunctions(FunctionProvider provider, PointerBuffer caps, int[] indices, String... functions)', 'available'),
+        ('public static boolean checkFunctions(FunctionProvider provider, long[] caps, int[] indices, String... functions)', 'available'),
+        ('public static boolean reportMissing(String api, String extension)', 'false'),
+    ):
+        start = source.index(signature)
+        end = source.index('\n    }', start)
+        body = source[start:end]
+        if body.count(marker) != 1:
+            raise ValueError('Pinned capability check changed: ' + signature)
+        source = source[:start] + body.replace(marker, 'return ' + result + ';') + source[end:]
+    return source
+
+
 def build(source, annotations, output, patches=True):
     source, annotations, output = source.resolve(), annotations.resolve(), output.resolve()
     if subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip() != PIN:
@@ -124,6 +145,10 @@ def compile_verified_source(source, annotations, output, tracked, patches=True):
         original = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/opengl/Display.java'
         target = output/'patched/Display.java'
         target.write_text(patch_display(original.read_text()))
+        java[java.index(original)] = target
+        original = source/'modules/lwjgl/core/src/main/java/org/lwjgl/system/Checks.java'
+        target = output/'patched/Checks.java'
+        target.write_text(patch_capability_checks(original.read_text()))
         java[java.index(original)] = target
     # Compile the legacy MemoryUtil last, as module-by-module upstream builds do:
     # exposing it earlier makes generated wildcard imports ambiguous with system.MemoryUtil.

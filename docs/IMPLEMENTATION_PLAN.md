@@ -1,5 +1,35 @@
 # From the working POC to Wurm Server
 
+## 0.10.7: accurate capabilities and Wurm's existing legacy renderer
+
+The Thor's 0.10.6 report passes blur startup, native shader queries, buffer cleanup
+and FBO checks. It then fails loading `material.simple` in the water-LOD Volume
+constructor. Inspection traced this to a deeper mismatch: the pinned LWJGL fork's
+ANGLE workaround returns true for failed function lookups and missing capability
+reports. Thus `OpenGL33` is true on GL4ES's reported OpenGL 2.1 context, selecting
+Wurm's modern/deferred renderer and its GLSL 3.30 materials.
+
+Restore the computed availability in both function-table checks and false in
+`reportMissing`, in generated build copies only. Every function lookup and cache
+write is retained. Core and legacy capabilities are checked against the GL4ES
+backend; the real initialized `GLHelper` must report deferred/instancing false.
+Wurm's own `WorldRender.useAdvancedWater()` then selects basic water. No Wurm
+renderer or user setting is patched, and no new shader resources are adapted.
+The previous engine/buffer/blur overlay remains exactly five entries.
+
+The private host probe reproduces the erroneous selection with the old API and
+passes with the fix. It initializes GLHelper in the same order as real startup,
+checks the real Volume constructor, and retains the real blur material/pixel test.
+Function-cache, native window/controller/FBO/shader regressions and the 317-member
+API audit cover the changed adapter. Diagnostic reports add CAPABILITY_CHECK_PASS
+and WURM_RENDERER_SELECTION_PASS; both are still awaiting Thor confirmation.
+
+Gate 4 remains in progress: Wurm splash is physically confirmed, full legacy
+terrain rendering and audio are not. Gate 5 still requires actual local ticket,
+login and world-entry evidence. TCP 3724 reachability is not Wurm login. Working
+server/POC/SQLite behavior, import storage and controller mappings remain intact.
+See [diagnosis, every changed file and exact Thor test](CLIENT_CAPABILITIES_FIX.md).
+
 ## 0.10.6: material startup after the first Wurm splash frames
 
 The Thor's 0.10.5 report confirms the buffer preflight, FBO checks and three game
