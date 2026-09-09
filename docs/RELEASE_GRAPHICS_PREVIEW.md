@@ -1,35 +1,33 @@
-# Wurm Server 0.10.9 — local client connection
+# Wurm Server 0.10.10 — server login trace
 
-Your 0.10.8 report passed material/GUI/terrain setup and reached Connecting with
-at least 375 frames. The app then stopped the client at its two-minute limit.
-The connection's authentication/login outcome was absent from the console report.
+The paired 0.10.9 client / 0.6.0 server reports show local authentication accepted
+and a login request sent, followed by a wait with no further input. The server
+also records an unrequested exit, without a timestamp or detailed login logs.
+The exact cause and successful login/world entry remain unverified.
 
-This build exports Wurm's actual splash/authentication/login/retry messages and
-connection snapshots. The startup limit is five minutes; after the client reports
-accepted login and closes its startup screen, use Stop Client to end the session.
-The observer is read-only. Real Adventure authentication and visible world entry
-still need testing; neither is fabricated or claimed complete.
+This release routes server Java logs to the app, captures bounded server threads
+while login waits, records timestamped exit/shutdown evidence, and explains when
+an owned server stops. Client Report now includes this app's Server Session Report.
+The POC, Steam shim, SQLite fixes, world recovery and graphics/protocol code remain
+unchanged. No proprietary files are bundled.
 
-Install **0.10.9-managed-preview**, code **23**, package
-`io.github.russianranger.wurmlauncher.clientconnection`, alongside your working server.
+**Run both sides in this preview for the next test:**
 
-1. Import the same complete client ZIP in **0.10.9 → Client**.
-2. Start Adventure in the working **0.6.0 server app**; wait for its listening port.
-3. Select **0.10.9 → Client → Start Local Game** (127.0.0.1:3724).
-4. Watch the connection status. If it remains waiting/retrying for about 60 seconds,
-   capture the screen and Stop Client. If the world appears, test controls, capture
-   it, then Stop Client. You can also let the five-minute startup budget expire.
-5. Export **Client Report → wurm-client-report.txt** from 0.10.9.
-6. In the working server app, export **Session Report → wurm-server-report.txt**
-   immediately after the same attempt. Send **both reports** and the screenshot.
+1. Keep 0.6.0 installed. With its server stopped, export its working runtime ZIP.
+2. Install Wurm-Server.apk (0.10.10, code 24, separate logintrace package).
+3. Import that server ZIP into 0.10.10 and select Adventure. Import the same
+   complete client ZIP into its Client tab.
+4. Leave the old server stopped. Choose Start Local Game in 0.10.10.
+5. After about 60 seconds of a login wait, screenshot and Stop Client Test.
+6. Export Client Report and Server Session Report from **0.10.10**, and send both.
+   The client export also embeds that app's server history. Stop the server
+   separately after testing; Stop Client only stops the client.
 
-No new Wurm files, PC, root, Termux commands or repeat triangle test are needed.
-No server/POC/SQLite or graphics-native changes are included. The separate client
-preview needs its own import because CI debug signing changes between releases.
+No PC/root/Termux or replacement game files are needed. The previous unexpected
+server exit did not confirm a save; keep its working files/checkpoint and original
+app. No restore or data repair is performed by this milestone.
 
-All **87 automated tests** and **four new Kotlin state/deadline tests** pass locally.
-The real-JAR loopback fixture verifies original ticket dispatch, real auth parsing,
-login dispatch and read-only observation. It does not authenticate against a Wurm
-server. CI builds/tests/lints all variants and verifies signing, packaged monitor,
-runtime/graphics hashes and exact POC bytes before publication.
-See **CLIENT_CONNECTION_TEST.md** for every changed file and exact test details.
+See attached **CLIENT_LOGIN_TEST.md** for exact steps, evidence, gate status,
+validation and every changed file. All three Android variants build/test/lint
+before publication; runtime, POC and new diagnostic classes are verified in the
+APK. 91 diagnostic tests and seven Kotlin connection/server-watch tests pass.

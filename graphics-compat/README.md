@@ -1,5 +1,6 @@
 # Pojav Java API compatibility candidate
 
+**Current test: 0.10.10 — [server login trace](../docs/CLIENT_LOGIN_TEST.md).** Local authentication passed on Thor; login is waiting. Run both server and client in this preview to capture the missing server evidence.
 
 **0.10.9:** the Thor passed material preload and terrain preparation in 0.10.8,
 then rendered its connection screen until the app's timeout. Graphics sources,

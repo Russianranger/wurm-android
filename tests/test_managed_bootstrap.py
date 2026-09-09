@@ -30,7 +30,7 @@ class ManagedBootstrapTest(unittest.TestCase):
         return root
 
     def launch(self, root, command="STOP\n"):
-        return subprocess.run(["java", "-cp", str(root), "server.ManagedServerMain", "Adventure"],
+        return subprocess.run(["java", "-Djava.io.tmpdir=" + str(root), "-cp", str(root), "server.ManagedServerMain", "Adventure"],
                               input=command, text=True, capture_output=True, cwd=root, timeout=10)
 
     def test_stop_calls_resolved_api_and_exits_despite_poc_keepalive(self):
@@ -49,7 +49,7 @@ class ManagedBootstrapTest(unittest.TestCase):
 
     def test_inspection_does_not_consume_or_block_stop_command(self):
         root = self.fixture()
-        result = self.launch(root, "INSPECT\nSTOP\n")
+        result = self.launch(root, "DIAGNOSE\nINSPECT\nSTOP\n")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((root / "synthetic-save").read_text(), "saved")
 

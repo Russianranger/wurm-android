@@ -1,7 +1,8 @@
 # AYN Thor: 0.10.0 window, controller and Wurm startup test
 
+**Current test: 0.10.10 — [server login trace](CLIENT_LOGIN_TEST.md).** Local authentication passed on Thor; login is waiting. Run both server and client in this preview to capture the missing server evidence.
 
-**Current 0.10.9:** the Thor passed material/GUI/terrain setup and reached Connecting with at least 375 frames. Its final exit followed the two-minute app timeout. The new milestone exports real authentication/login/retry messages and allows five minutes for startup. Follow the [local connection test](CLIENT_CONNECTION_TEST.md). Earlier instructions below are historical.
+**Previous 0.10.9 milestone:** the Thor passed material/GUI/terrain setup and reached Connecting with at least 375 frames. Its final exit followed the two-minute app timeout. That milestone exports real authentication/login/retry messages and allows five minutes for startup. Follow the [local connection test](CLIENT_CONNECTION_TEST.md). Earlier instructions below are historical.
 
 The previous **0.9.1 graphics gate passed on your Thor twice**: orange triangle on
 blue, six verified/displayed frames, same-context resizes and clean JVM exits.

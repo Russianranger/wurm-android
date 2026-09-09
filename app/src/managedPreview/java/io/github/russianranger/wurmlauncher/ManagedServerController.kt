@@ -38,6 +38,17 @@ class ManagedServerController(private val context: Context, private val config: 
         child?.destroyForcibly()
     }
     private fun cancelled() { if (stopRequested) throw InterruptedException("Startup cancelled; no automatic restart.") }
+    private fun sendControl(process: Process, command: String) {
+        synchronized(process.outputStream) {
+            process.outputStream.write((command + "\n").toByteArray()); process.outputStream.flush()
+        }
+    }
+    fun requestDiagnostics() {
+        val process = child ?: return
+        if (!pocReturned || !process.isAlive) return
+        runCatching { sendControl(process, "DIAGNOSE") }
+            .onFailure { log("[app] ${java.time.Instant.now()} SERVER_DIAGNOSTIC_REQUEST_FAILED ${it.javaClass.simpleName}") }
+    }
     @Synchronized private fun beginRestart(cleanStop: Boolean): Boolean {
         if (!restartRequested || !cleanStop || forced) return false
         stopRequested = false; restartRequested = false; forced = false; pocReturned = false
@@ -184,6 +195,8 @@ class ManagedServerController(private val context: Context, private val config: 
             workspace.recoveryRequired.writeText("Wurm may have opened this working world. Clear only after requested normal exit or successful restore.\n")
             report { it.state("Starting; waiting for initialization and TCP") }
             val server = launch(config.arguments(native, home, tmp, runtime, helper, false), runtime, home, native, tmp)
+            val started = System.nanoTime()
+            log("[app] ${java.time.Instant.now()} SERVER_CHILD_STARTED session=${run.name}; world=${config.world}")
             val serverReader = read(server) { line ->
                 if (line == "[WurmARM64] runServer() returned.") pocReturned = true
                 report { it.observe(line) }
@@ -197,8 +210,8 @@ class ManagedServerController(private val context: Context, private val config: 
                     sentStop = true; stopTime = System.nanoTime()
                     report { it.state("Stop requested; waiting for child exit") }
                     if (wasReady && !forced) {
-                        log("[app] Asking Wurm Server.shutDown() to save and stop.")
-                        runCatching { server.outputStream.write("STOP\n".toByteArray()); server.outputStream.flush() }
+                        log("[app] ${java.time.Instant.now()} Asking Wurm Server.shutDown() to save and stop.")
+                        runCatching { sendControl(server, "STOP") }
                             .onFailure { log("[app] Could not send shutdown request: $it. Force Stop is available.") }
                     } else {
                         cancelledStartup = true; restartRequested = false
@@ -210,13 +223,13 @@ class ManagedServerController(private val context: Context, private val config: 
                     val reachable = portOpen()
                     if (pocReturned && reachable) {
                         if (!wasReady) {
-                            log("[app] TCP_READY port=${config.port}; POC returned. Wurm protocol/playability not yet tested.")
+                            log("[app] ${java.time.Instant.now()} TCP_READY port=${config.port}; POC returned. Wurm protocol/playability not yet tested.")
                             report {
                                 it.event("LOOPBACK_READY 127.0.0.1:${config.port}; POC returned")
                                 it.state("Running observed; requesting child file/listener snapshot")
                                 it.event("INSPECT_REQUESTED")
                             }
-                            runCatching { server.outputStream.write("INSPECT\n".toByteArray()); server.outputStream.flush() }
+                            runCatching { sendControl(server, "INSPECT") }
                                 .onFailure { failure -> report { it.event("INSPECT_REQUEST_FAILED ${failure.javaClass.simpleName}") } }
                         }
                         wasReady = true
@@ -229,7 +242,7 @@ class ManagedServerController(private val context: Context, private val config: 
             serverReader.join(3000)
             val exit = server.exitValue()
             child = null
-            log("[app] SERVER_EXIT=$exit; stopRequested=$stopRequested; force=$forced; startupCancelled=$cancelledStartup")
+            log("[app] ${java.time.Instant.now()} SERVER_EXIT=$exit; elapsedMs=${(System.nanoTime() - started) / 1_000_000}; session=${run.name}; stopRequested=$stopRequested; force=$forced; startupCancelled=$cancelledStartup")
             val clean = stopRequested && exit == 0 && !forced && !cancelledStartup
             report { it.state("Child exited $exit; requested=$stopRequested; normalStop=$clean; forced=$forced; startupCancelled=$cancelledStartup") }
             if (clean) workspace.recoveryRequired.delete()

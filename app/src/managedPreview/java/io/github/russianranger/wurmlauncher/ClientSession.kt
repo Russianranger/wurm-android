@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.9\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.10\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.8 passed material preload, GUI/terrain setup and reached Connecting on Thor with at least 375 window frames. Its final exit followed the app's two-minute timeout, not a demonstrated material crash. This build observes real client authentication/login/retry state and allows five minutes for startup; only confirmed client game-loop state removes that deadline. Full visible world, local server acceptance and audio remain to be qualified. No auth/login result is fabricated.\n\n" +
+            "Gate status: 0.10.9 received local authentication success on Thor and sent login, then waited with 6 bytes read and no login result. The paired server report records an unrequested exit without its time/reason. This build captures managed server logging, login-wait thread snapshots and timestamped exits. Full login, visible world and audio remain unverified; no auth/login result is fabricated.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -53,7 +53,9 @@ object ClientSession {
                 val frame = GraphicsFrame.read(it)
                 "sequence=${frame.sequence} size=${frame.width}x${frame.height} sha256=${ProbeInputs.sha256(it)}; retained frame, not a new run\n"
             } ?: "No frame\n" }.getOrElse { "Frame invalid: ${it.message}\n" } + "\nSession history:\n" +
-            (file?.takeIf { it.isFile }?.readText() ?: recent())
+            (file?.takeIf { it.isFile }?.readText() ?: recent()) +
+            "\n\nServer Session Report from this app only (history; compare timestamps):\n" +
+            ManagedSession.report(context)
     }
     @Synchronized fun start(context: Context, mode: String, uri: Uri?, done: () -> Unit): Boolean {
         if (state.busy) return false
@@ -114,6 +116,7 @@ object ClientSession {
             graphicsFrame(context).delete()
             File(graphicsFrame(context).path + ".pending").delete()
         }
+        val serverWatch = ClientServerWatch()
         if (mode == "local") {
             if (!reachable()) {
                 val server = ManagedSession.snapshot()
@@ -132,6 +135,9 @@ object ClientSession {
                     Thread.sleep(250)
                 }
             }
+            val server = ManagedSession.snapshot(false)
+            serverWatch.observe(ManagedSession.ownsServer(), server.busy, server.phase, server.detail)
+            log("[connection] ${Instant.now()} LOCAL_SERVER_SOURCE ${if (ManagedSession.ownsServer()) "this-app; server diagnostics included" else "external; this app cannot collect the other server’s logs"}")
         }
         log("[connection] TCP_PROBE target=127.0.0.1:3724 reachable=${reachable()}; this is NOT a Wurm login")
         installed?.jars?.forEach { name ->
@@ -231,6 +237,19 @@ object ClientSession {
                 var timedOut = false
                 while (!process.waitFor(200, TimeUnit.MILLISECONDS)) {
                     checkCancelled()
+                    if (mode == "local") {
+                        val owned = ManagedSession.ownsServer()
+                        val server = ManagedSession.snapshot(false)
+                        serverWatch.observe(owned, server.busy, server.phase, server.detail)?.let { reason ->
+                            log("[connection] ${Instant.now()} OWNED_SERVER_EXIT $reason")
+                            throw IllegalStateException(reason)
+                        }
+                        if (stage == "entry" && serverWatch.requestDiagnostic(owned, connectionState.latest?.phase,
+                                TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - stageStarted))) {
+                            log("[connection] ${Instant.now()} SERVER_DIAGNOSTIC_REQUEST phase=${connectionState.latest?.phase}")
+                            ManagedSession.requestDiagnostics()
+                        }
+                    }
                     if (connectionState.timedOut(stage, System.nanoTime() - stageStarted)) {
                         timedOut = true; if (stage == "entry") entryTimedOut = true
                         log("[client] STAGE_TIMEOUT $stage; startup budget exhausted; terminating only client child")

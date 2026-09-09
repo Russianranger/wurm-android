@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 public final class ManagedServerMain {
     public static void main(String[] args) throws Exception {
         if (args.length != 1) throw new IllegalArgumentException("One world name required");
+        ServerDiagnostics.install();
         // Resolve the API without initializing Wurm or opening its databases.
         // The public mod launcher hooks this exact ()V signature; imported
         // versions without it fail here instead of starting an unmanageable world.
@@ -25,10 +26,14 @@ public final class ManagedServerMain {
             try (BufferedReader input = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
                 String command;
                 while ((command = input.readLine()) != null) {
-                    if ("INSPECT".equals(command)) {
+                    if ("INSPECT".equals(command) || "DIAGNOSE".equals(command)) {
+                        boolean world = "INSPECT".equals(command);
                         if (inspecting.compareAndSet(false, true)) {
                             Thread observation = new Thread(() -> {
-                                try { WorldProbe.capture(); } finally { inspecting.set(false); }
+                                try {
+                                    ServerDiagnostics.capture();
+                                    if (world) WorldProbe.capture();
+                                } finally { inspecting.set(false); }
                             }, "wurm-world-observation");
                             observation.setDaemon(true); // Inspection must never delay STOP or JVM exit.
                             observation.start();
@@ -36,6 +41,7 @@ public final class ManagedServerMain {
                         continue;
                     }
                     if (!"STOP".equals(command)) continue;
+                    ServerDiagnostics.stopRequested();
                     System.out.println("[managed] SHUTDOWN_REQUESTED");
                     shutdown.invoke(instance.invoke(null));
                     System.out.println("[managed] SHUTDOWN_RETURNED");

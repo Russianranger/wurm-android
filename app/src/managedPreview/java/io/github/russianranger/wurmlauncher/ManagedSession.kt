@@ -15,7 +15,7 @@ object ManagedSession {
     private var controller: ManagedServerController? = null
 
     fun workspace(context: Context) = ManagedWorkspace(File(context.filesDir, "managed-preview"))
-    @Synchronized fun snapshot() = Snapshot(busy, phase, detail, lines.joinToString("\n"))
+    @Synchronized fun snapshot(includeLog: Boolean = true) = Snapshot(busy, phase, detail, if (includeLog) lines.joinToString("\n") else "")
     @Synchronized fun status(next: String, message: String) { phase = next; detail = message }
     @Synchronized fun log(line: String) {
         val bounded = line.take(4000)
@@ -77,10 +77,12 @@ object ManagedSession {
     @Synchronized fun stop(restart: Boolean = false) { controller?.requestStop(restart) }
     @Synchronized fun forceStop() { controller?.forceStop() }
     @Synchronized fun ownsServer() = controller != null
+    @Synchronized fun requestDiagnostics() { controller?.requestDiagnostics() }
     fun report(context: Context): String {
         val state = snapshot()
         val saved = File(context.filesDir, "managed-session.txt")
-        return "Wurm Server managed preview 0.6.0\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        return "Wurm Server $version\nPackage: ${context.packageName}\nExported: ${Instant.now()}\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nFile persistence passed on Thor 0.5.0; specific gameplay saves remain unverified.\n\n" +
             if (saved.isFile) saved.readText() else state.log
     }

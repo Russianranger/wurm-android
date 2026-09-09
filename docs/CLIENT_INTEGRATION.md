@@ -1,5 +1,25 @@
 # Client integration architecture and qualification
 
+## Current milestone: 0.10.10 server login trace
+
+The paired Thor reports establish local authentication acceptance, followed by
+LOGIN_WAIT with no further bytes received. The server's last session records an
+unrequested exit with no timestamp. Its missing detailed logging prevents a
+causal diagnosis; historical NPC errors are not attributed to this latest attempt.
+
+The next implementation supplies a standard per-session JUL configuration before
+Wurm initializes, a bounded console log handler, observational server thread/logger
+snapshots on the existing control pipe, and timestamped shutdown/exit evidence.
+The client requests snapshots during an owned server's login wait, reports an
+owned server exit promptly, and includes this app's server session in Client Report.
+The POC/Steam/SQLite/world lifecycle and client graphics/protocol paths are retained.
+No login or world result is fabricated; Gate 5 login itself remains incomplete.
+
+For this test, import a stopped server working ZIP and the same complete client ZIP
+into 0.10.10, keep the older server stopped, and use Start Local Game. The exact
+steps, limitations, tests and every changed file are in
+[CLIENT_LOGIN_TEST.md](CLIENT_LOGIN_TEST.md). No PC, root or Termux is needed.
+
 ## 0.10.9: observe the actual local connection and remove the premature cutoff
 
 The Thor's 0.10.8 report completes builtin material preload, GUI and terrain setup,
