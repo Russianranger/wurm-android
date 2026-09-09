@@ -17,6 +17,7 @@ public final class ClientBootstrap {
         log("MODE " + mode + " target=127.0.0.1:3724; Wurm protocol connection NOT established");
         int exit = 0;
         try {
+            if (mode.equals("entry") || mode.startsWith("memory-")) ClientJvmDiagnostics.describe();
             switch (mode) {
                 case "inventory" -> inventory();
                 case "graphics" -> graphics();
@@ -25,6 +26,7 @@ public final class ClientBootstrap {
                 case "prepare-graphics" -> ClientGraphicsPatch.prepare();
                 case "buffers" -> { ClientGraphicsPatch.verifySelected(); ClientBuffers.preflight(); }
                 case "input" -> DesktopInput.diagnostic();
+                case "memory-g1", "memory-serial" -> ClientMemoryProbe.run();
                 case "fonts" -> {
                     if (System.getProperty("wurm.client.fontConfig") == null) throw new IllegalArgumentException("FONT_CONFIG_REQUIRED");
                     ClientFonts.prepareIfConfigured();

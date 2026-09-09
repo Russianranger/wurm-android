@@ -1,6 +1,6 @@
 # Wurm Server for Android
 
-**Current test: 0.10.11 — [position-save SQLite fix](docs/SERVER_POSITION_SQLITE_FIX.md).** The 0.10.10 server exits first; repeated position-save SQL errors obscure the initial failure. This preview fixes that confirmed SQL defect and preserves early severe errors. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.11-server-sqlite); use the before-start checkpoint and the same client ZIP. Login/world entry still require a Thor test.
+**Current test: 0.10.12 — [client GC compatibility experiment](docs/CLIENT_GC_TEST.md).** The 0.10.11 server stayed alive and stopped without the position SQL errors. The client aborted in native GC bookkeeping. This preview adds a no-import G1/Serial memory comparison and tests Serial GC for client entry. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.12-client-gc). Keep the working 0.10.11 server; login/world entry remain unverified.
 
 **Previous 0.10.9 milestone:** the Thor passed material/GUI/terrain setup and reached Connecting with at least 375 frames. Its final exit followed the two-minute app timeout. That milestone exports real authentication/login/retry messages and allows five minutes for startup. Follow the [local connection test](docs/CLIENT_CONNECTION_TEST.md). Earlier instructions below are historical.
 

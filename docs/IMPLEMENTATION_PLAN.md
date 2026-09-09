@@ -1,6 +1,23 @@
 # From the working POC to Wurm Server
 
-## Current milestone: 0.10.11 position-save SQLite fix
+## Current milestone: 0.10.12 client GC compatibility experiment
+
+The 0.10.11 Thor server stayed alive after the client crash and stopped on request
+without the earlier position SQL errors. The client now has a PID-matched native
+SIGABRT: Scudo detects a corrupted header while GC Thread#1 frees G1-related
+bookkeeping. The concurrent shader query is not evidence of the original write.
+
+The next bounded milestone selects Serial GC only for actual client entry and
+verifies the real collector in the child. A no-import JVM Memory Test compares
+G1 and Serial with allocation, direct buffers, JIT warmup, disposable class loaders
+and reclamation. Both test results and timestamped GC logs use Client Report.
+Server, runtime/native pins and the working graphics/controller path are retained.
+This is an experimental workaround and runtime-isolation gate; heap corruption's
+origin and actual login/world entry remain unverified. Keep the working 0.10.11
+server for the next client test. See [CLIENT_GC_TEST.md](CLIENT_GC_TEST.md) for
+exact Thor steps, source evidence, limitations and every changed file.
+
+## 0.10.11 position-save SQLite fix
 
 The paired 0.10.10 Thor reports prove the owned server exits before the client.
 Its shutdown logs contain repeated MySQL position-upsert errors in SQLite; the

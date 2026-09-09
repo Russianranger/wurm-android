@@ -1,30 +1,28 @@
-# Wurm Server 0.10.11 — position SQL fix
+# Wurm Server 0.10.12 — client GC compatibility test
 
-The 0.10.10 reports prove the local server exits first. Repeated position-save
-errors still use MySQL SQL against SQLite; the initiating fatal exception was
-lost to log rotation. The supplied server.jar confirms this separate defect.
+The 0.10.11 server stayed alive after the client crash and stopped on request
+without the earlier position SQL errors. The client now supplies a confirmed
+native heap-corruption abort on a GC thread. The detection frame is in G1-related
+bookkeeping; the original corrupting write or race remains unknown.
 
-This build generates a guarded, private position-class overlay from your imported
-server.jar and verifies it before Wurm initializes. It preserves the earlier item
-SQL fixes and the imported JAR bytes. A separate first-error file keeps early
-severe messages in Client Report and Server Session Report through log rotation.
-Graphics, controllers, offline Steam and existing world recovery are retained.
-No proprietary game files are bundled. Login/world entry remain unverified.
+This preview tests Serial GC for actual client entry, verifies the collector
+really selected, and exports GC/safepoint logs. A new JVM Memory Test compares
+G1 and Serial without loading game files or graphics. This is an experimental
+workaround, not a proven heap-corruption repair. Login/world entry remain unverified.
 
-1. Keep 0.10.10 installed. With its server stopped, Export before-start checkpoint
-   ZIP. Keep its current files and original import as well.
-2. Install Wurm-Server.apk (0.10.11, code 25, separate positionsqlite package).
-3. Import the checkpoint ZIP, select Adventure, and import the same full client
-   ZIP into its Client tab. Keep older servers stopped.
-4. Choose Start Local Game. If still Connecting after 60 seconds, screenshot;
-   if it fails earlier, export without Retry.
-5. Export **Client Report and Server Session Report** from 0.10.11 and send both.
-   Stop client/server separately if still running; export the server report
-   again after Stop. Keep the checkpoint; exit zero alone does not prove saving.
+1. Install Wurm-Server.apk (0.10.12, code 26, separate clientgc package).
+2. Open Client tab → JVM Memory Test; wait for both results. No imports needed.
+3. Export Client Report as wurm-memory-0.10.12.txt. If Serial fails, send it and
+   stop here. If Serial passes, proceed even if G1 failed.
+4. Import the same complete client ZIP into 0.10.12.
+5. Start Adventure in the working 0.10.11 app. Leave it running. In 0.10.12 choose
+   Start Local Game to use that external listener at 127.0.0.1:3724.
+6. Screenshot the result and export Client Report from 0.10.12 after 60 seconds
+   or immediately on failure. Export Server Session Report from 0.10.11 too.
+7. Send all three reports. Stop client and server separately after testing.
 
-No PC/root/Termux or manually patched JAR is needed. See the attached
-**SERVER_POSITION_SQLITE_FIX.md** for exact files, steps, evidence and every
-changed file. Host tests reproduce both original position-save failures with
-the supplied class and pinned SQLite JDBC; the overlay fixes both and preserves
-the personal-server UPDATE path. Device testing must identify any remaining
-fatal server error and establish real login/world entry.
+Keep 0.10.11 installed with its files/checkpoint. No server migration, new game
+files, PC/root/Termux or manually patched JAR is needed. Runtime and graphics
+pins, POC, server/item/position fixes and controllers are retained. No proprietary
+Wurm files are bundled. See attached CLIENT_GC_TEST.md for exact steps, verified
+scope, source evidence and every changed file.

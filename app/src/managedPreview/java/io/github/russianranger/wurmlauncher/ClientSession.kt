@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.11\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.12\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.9 received local authentication success on Thor and sent login, then waited with 6 bytes read and no login result. The paired server report records an unrequested exit without its time/reason. This build captures managed server logging, login-wait thread snapshots and timestamped exits. Full login, visible world and audio remain unverified; no auth/login result is fabricated.\n\n" +
+            "Gate status: 0.10.11 server survived the client crash and stopped on request without DUPLICATE SQL errors. The client aborted in G1-related native bookkeeping. This build tests Serial GC for client entry and compares both collectors without Wurm/graphics. Heap-corruption origin, login, visible world and audio remain unverified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -110,9 +110,9 @@ object ClientSession {
     private fun checkCancelled() { if (cancelled || Thread.currentThread().isInterrupted) throw InterruptedException("Client operation cancelled") }
     private fun reachable() = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", 3724), 300) }; true }.getOrDefault(false)
     private fun run(context: Context, store: ClientStore, mode: String) {
-        require(mode in listOf("start", "local", "input", "render", "window"))
-        val installed = if (mode in listOf("input", "render", "window")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
-        if (mode != "input") {
+        require(mode in listOf("start", "local", "input", "render", "window", "memory"))
+        val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
+        if (mode !in listOf("input", "memory")) {
             graphicsFrame(context).delete()
             File(graphicsFrame(context).path + ".pending").delete()
         }
@@ -139,7 +139,7 @@ object ClientSession {
             serverWatch.observe(ManagedSession.ownsServer(), server.busy, server.phase, server.detail)
             log("[connection] ${Instant.now()} LOCAL_SERVER_SOURCE ${if (ManagedSession.ownsServer()) "this-app; server diagnostics included" else "external; this app cannot collect the other server’s logs"}")
         }
-        log("[connection] TCP_PROBE target=127.0.0.1:3724 reachable=${reachable()}; this is NOT a Wurm login")
+        if (mode != "memory") log("[connection] TCP_PROBE target=127.0.0.1:3724 reachable=${reachable()}; this is NOT a Wurm login")
         installed?.jars?.forEach { name ->
             checkCancelled(); check(ProbeInputs.sha256(File(installed.root, name)) == installed.hashes[name]) { "Client JAR changed since import: $name" }
         }
@@ -155,20 +155,21 @@ object ClientSession {
         val overlay = File(session, "client-graphics-overlay.jar")
         context.assets.open("client-compat.jar").use { input -> compat.outputStream().use { input.copyTo(it) } }
         try {
-            val graphics = if (mode != "input") GraphicsRuntime.prepare(context, session, ::log).map { it.absolutePath } else emptyList()
+            val graphics = if (mode !in listOf("input", "memory")) GraphicsRuntime.prepare(context, session, ::log).map { it.absolutePath } else emptyList()
             val cp = listOf(helper.absolutePath) + installed?.jars.orEmpty().map { File(installed!!.root, it).absolutePath }
             log("[client] Runtime root=${installed?.root}; no server JARs, server Steam shim or JavaFX launcher added")
-            log("[client] CLIENT_JVM_MODE exec; ${if (mode == "render") "LWJGL/GL4ES pbuffer test with frame readback" else "Pojav Java GLFW / owned EGL window adapter installed for entry stage"}")
-            val stages = when (mode) { "input" -> listOf("input"); "render" -> listOf("render"); "window" -> listOf("window"); else -> listOf("inventory", "compat", "prepare-graphics", "entry") }
+            if (mode == "memory") log("[memory] ISOLATED_TEST helper JAR only; separate G1/Serial children; no connection attempted")
+            log("[client] CLIENT_JVM_MODE exec; ${if (mode == "memory") "isolated Java memory/collector comparison" else if (mode == "render") "LWJGL/GL4ES pbuffer test with frame readback" else "Pojav Java GLFW / owned EGL window adapter installed for entry stage"}")
+            val stages = ClientJvmPolicy.stages(mode)
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
-            require(player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
+            require(mode == "memory" || player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
             val connectionState = ClientConnectionState()
             var entryTimedOut = false
             val graphicsFailure = java.util.concurrent.atomic.AtomicReference<String?>(null)
             for (stage in stages) {
                 checkCancelled(); queue.clear(); inputReady = false
-                status(when (stage) { "input" -> "Input diagnostic"; "render" -> "Graphics diagnostic"; "window" -> "Window/input test"; else -> "Starting client" }, "Bootstrap stage: $stage")
+                status(when (stage) { "memory-g1", "memory-serial" -> "JVM memory test"; "input" -> "Input diagnostic"; "render" -> "Graphics diagnostic"; "window" -> "Window/input test"; else -> "Starting client" }, "Bootstrap stage: $stage")
                 val window = stage in listOf("window", "entry")
                 val stageCp = when {
                     window -> listOf(graphics.last()) + graphics.dropLast(1) + listOf(compat.absolutePath) +
@@ -178,7 +179,7 @@ object ClientSession {
                     else -> cp
                 }
                 log("[client] CLASSPATH stage=$stage ${stageCp.joinToString(":")}")
-                val args = listOf(File(native, "libwurmjvm_runner.so").absolutePath, "-Xms32m", "-Xmx1024m",
+                val args = listOf(File(native, "libwurmjvm_runner.so").absolutePath, "-Xms32m", if (mode == "memory") "-Xmx256m" else "-Xmx1024m") + ClientJvmPolicy.arguments(stage) + listOf(
                     // The packaged JRE is built --enable-headless-only=yes. AWT X11 is unavailable;
                     // native LWJGL window creation is still attempted independently below.
                     "-Djava.home=$home", "-Djava.io.tmpdir=$tmp", "-Duser.home=$user", "-Djava.awt.headless=true",
@@ -215,9 +216,11 @@ object ClientSession {
                     }
                 }.start().also { child = it }
                 val graphicsPassed = java.util.concurrent.atomic.AtomicBoolean(false)
+                val memoryPassed = java.util.concurrent.atomic.AtomicBoolean(false)
                 val reader = Thread({
                     try { RootServerController.consumeLines(process.inputStream) { line ->
                         evidence.observe(line); log(line)
+                        if (line.startsWith("[memory] MEMORY_PROBE_PASS collector=${if (stage == "memory-g1") "g1" else "serial"} ")) memoryPassed.set(true)
                         if (stage == "entry") connectionState.observe(line)?.let { status(it.phase, it.detail) }
                         if ((stage == "input" || window) && line.startsWith("[client] INPUT_READY ")) inputReady = true
                         if (stage == "window" && line.startsWith("[window] WINDOW_PROBE_PASS")) graphicsPassed.set(true)
@@ -257,11 +260,13 @@ object ClientSession {
                     }
                 }
                 process.waitFor(); reader.join(3000); writer?.join(1000)
-                results[stage] = if (stage in listOf("render", "window") && process.exitValue() == 0 && !graphicsPassed.get()) 42 else process.exitValue()
+                results[stage] = if (process.exitValue() == 0 &&
+                    ((stage in listOf("render", "window") && !graphicsPassed.get()) ||
+                     (mode == "memory" && !memoryPassed.get()))) 42 else process.exitValue()
                 log("[client] CHILD_EXIT stage=$stage code=${process.exitValue()} accepted=${results[stage]}")
                 child = null; inputReady = false
                 if (results[stage] != 0 && !cancelled) {
-                    val reason = if (timedOut) "Client stage $stage reached its startup time limit; last connection: ${connectionState.latest?.let { "${it.phase}: ${it.detail}" } ?: "not observed"}" else evidence.summary(process.exitValue())
+                    val reason = if (mode == "memory" && process.exitValue() == 0 && !memoryPassed.get()) "Memory test ended without its verified completion marker" else if (timedOut) "Client stage $stage reached its startup time limit; last connection: ${connectionState.latest?.let { "${it.phase}: ${it.detail}" } ?: "not observed"}" else evidence.summary(process.exitValue())
                     graphicsFailure.compareAndSet(null, reason)
                     log("[client-crash] EXIT_SUMMARY stage=$stage $reason")
                     if (!timedOut && process.exitValue() in 128..159) {
@@ -275,8 +280,10 @@ object ClientSession {
                     break
                 }
             }
-            log("[client] GATE_RESULTS $results; Wurm login/world entry NOT verified; input sink=${if (mode == "input") "diagnostic" else "lwjgl2-queues when WINDOW_READY"}")
-            if (mode == "render") status(if (results["render"] == 0) "Graphics test passed" else "Graphics test failed",
+            log("[client] GATE_RESULTS $results; Wurm login/world entry NOT verified; input sink=${if (mode == "memory") "none" else if (mode == "input") "diagnostic" else "lwjgl2-queues when WINDOW_READY"}")
+            if (mode == "memory") status(if (results.size == 2 && results.values.all { it == 0 }) "JVM memory tests passed" else "JVM memory test failed",
+                "G1=${results["memory-g1"]}; Serial=${results["memory-serial"]}. ${graphicsFailure.get().orEmpty()} Export Client Report before Start Local Game; this test loads no Wurm or graphics code.")
+            else if (mode == "render") status(if (results["render"] == 0) "Graphics test passed" else "Graphics test failed",
                 "LWJGL/GL4ES result=$results. ${graphicsFailure.get()?.let { "$it. " } ?: ""}Export Client Report. Wurm window/login are not tested.")
             else if (mode == "window") status(if (results["window"] == 0) "Window test passed" else "Window test failed", "Result=$results. ${graphicsFailure.get().orEmpty()} Export Client Report; Wurm login was not tested.")
             else status(if (mode == "input" || connectionState.gameLoopReached) "Stopped" else if (entryTimedOut) "Client startup timed out" else "Blocked",
