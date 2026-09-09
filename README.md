@@ -1,7 +1,7 @@
 # Wurm Server for Android
 
 
-**Current 0.10.3:** the Thor passed Android font rasterization and entered the real game thread. The next fix removes JavaFX icon loading and desktop screen-size queries, and preserves startup errors during cleanup. Follow the [client window startup test](docs/CLIENT_WINDOW_START_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.4:** the Thor created Wurm’s real window, then rejected an obsolete Pbuffer requirement. The next test verifies the actual FBO path through a narrowly scoped, private runtime adapter. Follow the [offscreen startup test](docs/CLIENT_OFFSCREEN_FIX.md). Earlier milestone instructions below are historical.
 
 
 **Client milestone 0.10.0:** [download the window/input preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.0-client-window)

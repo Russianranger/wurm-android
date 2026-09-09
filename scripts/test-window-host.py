@@ -16,7 +16,7 @@ assets=root/'app/build/generated/clientGraphics/assets'
 env=dict(os.environ, LD_LIBRARY_PATH=str(host/'usr/lib/x86_64-linux-gnu'),
     __EGL_VENDOR_LIBRARY_FILENAMES=str(host/'usr/share/glvnd/egl_vendor.d/50_mesa.json'),
     EGL_PLATFORM='surfaceless', LIBGL_ALWAYS_SOFTWARE='1', LIBGL_ES='2', LIBGL_GL='21',
-    LIBGL_GLES='libGLESv2.so.2', LIBGL_EGL='libEGL.so.1')
+    LIBGL_GLES='libGLESv2.so.2', LIBGL_EGL='libEGL.so.1', LIBGL_NOPSA='1')
 args=['java', f'-Djava.library.path={host}', f'-Dorg.lwjgl.librarypath={host}',
     '-Dorg.lwjgl.opengl.explicitInit=true', '-Dorg.lwjgl.system.bundledLibrary.nameMapper=wurm.graphics.LibraryNames',
     '-Dorg.lwjgl.system.allocator=system', '-XX:-CreateCoredumpOnCrash', f'-XX:ErrorFile={host}/window-hs_err_pid%p.log', f'-Dwurm.graphics.library={host}/libgl4es.so',
@@ -48,7 +48,7 @@ with log.open('w') as out:
 text=log.read_text()
 for marker in ['WINDOW_READY','WINDOW_FRAME','LWJGL_KEY code=17 down=true','LWJGL_KEY code=17 down=false',
     'LWJGL_MOUSE button=0 down=true', 'LWJGL_MOUSE button=0 down=false', 'LWJGL_MOUSE button=7 down=true',
-    'wheel=120', 'LWJGL_WHEEL_POLL delta=120', 'LWJGL_MOUSE_MOVE', 'WINDOW_CLOSED', 'WINDOW_PROBE_PASS', 'WINDOW_DESTROY_SKIPPED']:
+    'wheel=120', 'LWJGL_WHEEL_POLL delta=120', 'LWJGL_MOUSE_MOVE', 'WINDOW_CLOSED', 'WINDOW_PROBE_PASS', 'WINDOW_DESTROY_SKIPPED', 'OFFSCREEN_FBO_PASS']:
     assert marker in text, 'Missing '+marker+'; see '+str(log)
 assert not any(x in text for x in ['WINDOW_PROBE_FAIL', 'CLIENT_GL_ERROR', 'FRAME_READBACK_ERROR'])
 print('PASS real Display creation, frame readback, keyboard/mouse/wheel queues, RESET and teardown; see '+str(log))

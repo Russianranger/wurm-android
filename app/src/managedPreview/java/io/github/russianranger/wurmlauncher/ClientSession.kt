@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.3\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.4\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; 0.10.2 font rasterization passed on Thor; headless icon/window startup fix awaits Thor test. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
+            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; 0.10.2 font rasterization passed on Thor; 0.10.3 created the Wurm window on Thor; measured FBO/legacy startup-check adapter awaits Thor test. Audio currently falls back to silent mode. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -146,13 +146,14 @@ object ClientSession {
         val helper = File(session, "runtime-probe.jar")
         context.assets.open("runtime-probe.jar").use { input -> helper.outputStream().use { input.copyTo(it) } }
         val compat = File(session, "client-compat.jar")
+        val overlay = File(session, "client-graphics-overlay.jar")
         context.assets.open("client-compat.jar").use { input -> compat.outputStream().use { input.copyTo(it) } }
         try {
             val graphics = if (mode != "input") GraphicsRuntime.prepare(context, session, ::log).map { it.absolutePath } else emptyList()
             val cp = listOf(helper.absolutePath) + installed?.jars.orEmpty().map { File(installed!!.root, it).absolutePath }
             log("[client] Runtime root=${installed?.root}; no server JARs, server Steam shim or JavaFX launcher added")
             log("[client] CLIENT_JVM_MODE exec; ${if (mode == "render") "LWJGL/GL4ES pbuffer test with frame readback" else "Pojav Java GLFW / owned EGL window adapter installed for entry stage"}")
-            val stages = when (mode) { "input" -> listOf("input"); "render" -> listOf("render"); "window" -> listOf("window"); else -> listOf("inventory", "compat", "entry") }
+            val stages = when (mode) { "input" -> listOf("input"); "render" -> listOf("render"); "window" -> listOf("window"); else -> listOf("inventory", "compat", "prepare-graphics", "entry") }
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
             require(player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
@@ -162,7 +163,8 @@ object ClientSession {
                 status(when (stage) { "input" -> "Input diagnostic"; "render" -> "Graphics diagnostic"; "window" -> "Window/input test"; else -> "Starting client" }, "Bootstrap stage: $stage")
                 val window = stage in listOf("window", "entry")
                 val stageCp = when {
-                    window -> listOf(graphics.last()) + graphics.dropLast(1) + listOf(compat.absolutePath) + cp
+                    window -> listOf(graphics.last()) + graphics.dropLast(1) + listOf(compat.absolutePath) +
+                        (if (stage == "entry") listOf(overlay.absolutePath) else emptyList()) + cp
                     stage == "render" -> graphics.dropLast(1)
                     stage == "compat" -> listOf(compat.absolutePath) + cp
                     else -> cp
@@ -175,7 +177,9 @@ object ClientSession {
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",
-                    "-cp", stageCp.joinToString(":")) + (if (stage == "entry") listOf(
+                    "-cp", stageCp.joinToString(":")) + (if (stage in listOf("prepare-graphics", "entry")) listOf(
+                        "-Dwurm.client.offscreenOverlay=$overlay"
+                    ) else emptyList()) + (if (stage == "entry") listOf(
                         "-Dwurm.client.fontDir=/system/fonts", "-Dwurm.client.fontConfig=$session/fontconfig.properties"
                     ) else emptyList()) + if (stage == "render" || window) listOf(
                         "-Dorg.lwjgl.librarypath=$native", "-Dorg.lwjgl.opengl.explicitInit=true", "-Dorg.lwjgl.util.Debug=true",
@@ -194,6 +198,8 @@ object ClientSession {
                     if (stage == "render" || window) {
                         environment()["LIBGL_ES"] = "2"; environment()["LIBGL_GL"] = "21"
                         environment()["LIBGL_GLES"] = "libGLESv2.so"; environment()["LIBGL_EGL"] = "libEGL.so"
+                        environment()["LIBGL_NOPSA"] = "1"
+                        log("[graphics] SHADER_CACHE disabled LIBGL_NOPSA=1; compile shaders per attempt to avoid cached-program failures")
                     }
                 }.start().also { child = it }
                 val graphicsPassed = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -203,7 +209,7 @@ object ClientSession {
                         if ((stage == "input" || window) && line.startsWith("[client] INPUT_READY ")) inputReady = true
                         if (stage == "window" && line.startsWith("[window] WINDOW_PROBE_PASS")) graphicsPassed.set(true)
                         if (stage == "render" && line == "[graphics] GRAPHICS_PROBE_EXIT code=0") graphicsPassed.set(true)
-                        if (window && (line.startsWith("[window] WINDOW_PROBE_FAIL ") || line.startsWith("[client] BOOTSTRAP_FAILED ")))
+                        if ((window || stage == "prepare-graphics") && (line.startsWith("[window] WINDOW_PROBE_FAIL ") || line.startsWith("[client] BOOTSTRAP_FAILED ")))
                             graphicsFailure.compareAndSet(null, line.take(400))
                         if (stage == "render" && line.startsWith("[graphics] GRAPHICS_PROBE_FAIL "))
                             graphicsFailure.compareAndSet(null, line.removePrefix("[graphics] GRAPHICS_PROBE_FAIL ").take(400))
@@ -223,6 +229,10 @@ object ClientSession {
                 results[stage] = if (stage in listOf("render", "window") && process.exitValue() == 0 && !graphicsPassed.get()) 42 else process.exitValue()
                 log("[client] CHILD_EXIT stage=$stage code=${process.exitValue()} accepted=${results[stage]}")
                 child = null; inputReady = false
+                if (stage == "prepare-graphics" && results[stage] != 0) {
+                    log("[client] ENTRY_NOT_STARTED graphics compatibility preparation failed; import was not modified")
+                    break
+                }
             }
             log("[client] GATE_RESULTS $results; Wurm login/world entry NOT verified; input sink=${if (mode == "input") "diagnostic" else "lwjgl2-queues when WINDOW_READY"}")
             if (mode == "render") status(if (results["render"] == 0) "Graphics test passed" else "Graphics test failed",

@@ -1,6 +1,15 @@
 # Pojav Java API compatibility candidate
 
 
+**0.10.4:** the Thor created the real Wurm window in 0.10.3. The next correction
+qualifies FBO offscreen drawing for one SHA-verified, obsolete engine Pbuffer
+check; it does not advertise the unsupported public Pbuffer API. The adapter and
+pixel/state tests live in `window/wurm/graphics/OffscreenSupport.java`; the private
+runtime overlay generator is `runtime-probe/src/client/ClientGraphicsPatch.java`.
+The documented GL4ES `LIBGL_NOPSA=1` option avoids the reproduced saved-shader
+failure after FBO use. See [current evidence and test](../docs/CLIENT_OFFSCREEN_FIX.md).
+
+
 **0.10.0:** the Thor passed the 0.9.1 graphics diagnostic twice. The new window
 JAR adapts pinned Pojav Java GLFW to the owned EGL pbuffer and connects Android
 controller events to actual LWJGL2 keyboard/mouse queues. Start Client now uses

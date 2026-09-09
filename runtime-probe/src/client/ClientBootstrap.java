@@ -22,6 +22,7 @@ public final class ClientBootstrap {
                 case "graphics" -> graphics();
                 case "entry" -> entry();
                 case "compat" -> DirectClientLaunch.compatibilityProbe();
+                case "prepare-graphics" -> ClientGraphicsPatch.prepare();
                 case "input" -> DesktopInput.diagnostic();
                 case "fonts" -> {
                     if (System.getProperty("wurm.client.fontConfig") == null) throw new IllegalArgumentException("FONT_CONFIG_REQUIRED");
@@ -88,6 +89,7 @@ public final class ClientBootstrap {
         } finally { try { display.getMethod("destroy").invoke(null); } catch (Throwable ignored) {} }
     }
     private static void entry() throws Exception {
+        ClientGraphicsPatch.verifySelected();
         ClientFonts.prepareIfConfigured();
         log("ENTRY_INITIALIZE " + ENGINE + " (desktop JavaFX launcher bypassed)");
         Class<?> cls = Class.forName(ENGINE, true, ClientBootstrap.class.getClassLoader());

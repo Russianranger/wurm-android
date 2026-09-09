@@ -1,5 +1,41 @@
 # From the working POC to Wurm Server
 
+## 0.10.4: measured FBO support for the legacy startup requirement
+
+0.10.3 physically passed font/profile initialization and created Wurm's 960x540
+window on Adreno 740. It entered firstRender but failed checkSupportLevels at
+`MISSING SUPPORT: Pbuffers`. Audio initialization failed separately; Wurm chose
+its existing silent sound engine and continued. No game frame/login was observed.
+
+Inspection of the supplied client finds only one runtime Pbuffer reference: the
+capability check. Its actual Offscreen class uses FBOs or a back-buffer fallback.
+The pinned Pojav Pbuffer constructor/shared-context path is unsupported. Reporting
+that API as supported globally would be inaccurate.
+
+The new prepare-graphics stage generates a temporary, one-class overlay from the
+user import only if the entire engine class matches the inspected SHA-256. It
+redirects that single Pbuffer capability reference to an authored FBO test. Every
+method body/branch and the raw import remain unchanged; reversing the relocation
+must recover the exact original hash before entry. Unknown engines, invalid
+overlays and wrong classpath order fail visibly. The overlay is session-private,
+never packaged/committed/exported, and removed with the existing session cleanup.
+
+The adapter requires Wurm's FBO option, live EXT framebuffer support, successful
+RGBA8/depth16 allocation/completeness, a checked magenta pixel and state/resource
+restoration. Other Wurm capability tests and public LWJGL Pbuffer capabilities stay
+unchanged. The real client support method and its FBO allocation/readback with and
+without a depth texture pass on the host. A regression exposed GL4ES saved shader
+program failures after the FBO test; the documented LIBGL_NOPSA=1 option fixes
+normal drawing/input afterward. No upstream native source is changed.
+
+**Next gate:** run Start Local Game on the Thor and return Client Report. This
+completes the host-tested legacy offscreen-check correction within Gate 4, not
+full game rendering/audio or Gate 5 authentication/world entry. Texture-size proxy
+probes, actual shaders/terrain and subsequent runtime dependencies still need
+physical evidence. The working server/runtime/SQLite path is preserved.
+See [diagnosis, verification, all changed files and exact test](CLIENT_OFFSCREEN_FIX.md).
+Earlier entries below retain their historical qualification.
+
 ## 0.10.3: real client window initialization without desktop UI
 
 The Thor's 0.10.2 report confirms all 20 logical font/style raster checks, real

@@ -1,7 +1,7 @@
 # AYN Thor: 0.10.0 window, controller and Wurm startup test
 
 
-**Current 0.10.3:** the Thor passed Android font rasterization and entered the real game thread. The next fix removes JavaFX icon loading and desktop screen-size queries, and preserves startup errors during cleanup. Follow the [client window startup test](CLIENT_WINDOW_START_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.4:** the Thor created Wurm’s real window, then rejected an obsolete Pbuffer requirement. The next test verifies the actual FBO path through a narrowly scoped, private runtime adapter. Follow the [offscreen startup test](CLIENT_OFFSCREEN_FIX.md). Earlier milestone instructions below are historical.
 
 The previous **0.9.1 graphics gate passed on your Thor twice**: orange triangle on
 blue, six verified/displayed frames, same-context resizes and clean JVM exits.
