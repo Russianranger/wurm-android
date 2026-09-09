@@ -51,6 +51,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/pojav-wurm-api.jar"))) as adapter:
         assert "META-INF/LICENSE.lwjgl.txt" in adapter.namelist()
         assert "org/lwjgl/opengl/ARBProgram.class" in adapter.namelist()
+        assert int.from_bytes(adapter.read("wurm/graphics/GraphicsTrace.class")[6:8], "big") == 52
+        assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
         assert "META-INF/LICENSE.pojav.txt" in window.namelist()

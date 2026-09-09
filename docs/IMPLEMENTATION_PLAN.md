@@ -1,5 +1,37 @@
 # From the working POC to Wurm Server
 
+## 0.10.8: capture the Thor's abrupt material-preload exit
+
+The 0.10.7 report physically confirms truthful GL2.1/core-and-legacy capabilities,
+no GL3+ claims, and Wurm's existing legacy/basic-water renderer selection. FBO and
+shader-query checks pass. After the first splash frame, builtin material preload
+ends with child exit **134**, without a Java exception or crash detail. A possible
+SIGABRT needs native evidence; the matrix-uniform warnings alone do not prove its
+cause. Full rendering and local login remain blocked in gates 4 and 5.
+
+The next smallest milestone adds opt-in, bounded BEGIN/END/THREW breadcrumbs to
+the real core GL20 delegates used for source upload, compile/link, attribute and
+uniform reflection. Shader sources are identified by SHA-256, never printed.
+Arguments, native functions, results and exceptions are retained; ARB JNI methods
+and native source pins stay unchanged. This is targeted coverage, not tracing of
+every OpenGL call. A limit marker makes the 4,096-call cap explicit.
+
+Each Android child attempt tracks its native PID and unfinished calls. Unexpected
+signal-like exits trigger a best-effort own-UID/current-time logcat capture and an
+exact PID/UID/time-matched ApplicationExitInfo lookup. If Android provides a native
+tombstone, a bounded parser retains only signal, abort/cause and crashing-thread
+frames, skipping memory, register, map, log and file-descriptor dumps. No root,
+READ_LOGS permission, signal-handler interception or other-app log fallback is
+introduced. Exec children may have no OS record; that limitation is reported.
+Intentional Stop and diagnostic timeout do not trigger crash collection.
+
+The failure status now retains the exit/unfinished call when Java reports no
+exception. All evidence uses the existing Export Client Report flow. The real
+server, imports, offline shim, controller mappings, five-entry private overlay
+and two-minute startup limit stay in place. Host probes pass with tracing, but
+cannot establish the Adreno crash cause. See [exact Thor steps, verification and
+every changed file](CLIENT_CRASH_DIAGNOSTIC.md).
+
 ## 0.10.7: accurate capabilities and Wurm's existing legacy renderer
 
 The Thor's 0.10.6 report passes blur startup, native shader queries, buffer cleanup

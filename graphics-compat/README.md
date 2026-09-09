@@ -1,5 +1,12 @@
 # Pojav Java API compatibility candidate
 
+
+**0.10.8:** the Thor confirms GL2.1 capabilities and existing legacy renderer
+selection, then exits 134 during builtin material preload. Bounded core GL20
+breadcrumbs now identify unfinished calls and source hashes. Android gathers any
+available current-app crash details. Native sources and the private overlay are
+unchanged. See [the client crash diagnostic](../docs/CLIENT_CRASH_DIAGNOSTIC.md).
+
 **0.10.7:** fix the pinned fork's false-positive capability returns. Wurm now
 selects its existing legacy/basic-water path in the host probe. Core/legacy GL
 capabilities and real Wurm renderer selection are logged and checked on startup.

@@ -43,7 +43,7 @@ class ManagedActivity : Activity() {
         page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 12, 20, 12) }
         setContentView(ScrollView(this).apply { addView(page) })
         label("Wurm Server", 25f)
-        label("0.10.7 · Client graphics capability fix · no root or Termux required", 13f)
+        label("0.10.8 · Client crash diagnostic · no root or Termux required", 13f)
         button("Client tab") { startActivity(Intent(this, ClientActivity::class.java)) }
         label("Each Start saves a before-start checkpoint and records world paths and ports. File persistence and short background operation passed on the Thor; gameplay saves still need verification.")
         idleButtons += button("Import Server ZIP") {

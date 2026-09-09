@@ -91,6 +91,39 @@ def patch_capability_checks(source):
     return source
 
 
+def patch_graphics_trace(source):
+    # Only wrap the pinned public GL20 delegates used by the current Wurm core
+    # path. Native method names, arguments, results and exceptions remain intact.
+    calls = [
+        ('source', None, 'GL20C.glShaderSource(shader, string)', 'shader', '0', 1),
+        ('compile', None, 'GL20C.glCompileShader(shader)', 'shader', '0', 1),
+        ('attach', None, 'GL20C.glAttachShader(program, shader)', 'program', 'shader', 1),
+        ('link', None, 'GL20C.glLinkProgram(program)', 'program', '0', 1),
+        ('shader-status', 'int', 'GL20C.glGetShaderi(shader, pname)', 'shader', 'pname', 1),
+        ('program-status', 'int', 'GL20C.glGetProgrami(program, pname)', 'program', 'pname', 1),
+        ('uniform', 'String', 'GL20C.glGetActiveUniform(program, index, maxLength, size, type)', 'program', 'index', 1),
+        ('attribute', 'String', 'GL20C.glGetActiveAttrib(program, index, maxLength, size, type)', 'program', 'index', 1),
+        ('uniform-location', 'int', 'GL20C.glGetUniformLocation(program, name)', 'program', '0', 2),
+        ('attribute-location', 'int', 'GL20C.glGetAttribLocation(program, name)', 'program', '0', 2),
+        ('bind-attribute', None, 'GL20C.glBindAttribLocation(program, index, name)', 'program', 'index', 2),
+    ]
+    for operation, result, call, obj, detail, count in calls:
+        original = ('return ' if result else '') + call + ';'
+        if source.count(original) != count:
+            raise ValueError('Pinned GL20 trace delegate changed: ' + operation)
+        replacement = ('wurm.graphics.GraphicsTrace.source(shader, string);\n        ' if operation == 'source' else '')
+        replacement += f'long trace = wurm.graphics.GraphicsTrace.begin("{operation}", {obj}, {detail});\n        try {{\n            '
+        replacement += (result + ' value = ' if result else '') + call + ';\n            wurm.graphics.GraphicsTrace.end(trace);'
+        if result: replacement += '\n            return value;'
+        replacement += '''
+        } catch (RuntimeException | Error error) {
+            wurm.graphics.GraphicsTrace.failed(trace, error);
+            throw error;
+        }'''
+        source = source.replace(original, replacement)
+    return source
+
+
 def build(source, annotations, output, patches=True):
     source, annotations, output = source.resolve(), annotations.resolve(), output.resolve()
     if subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip() != PIN:
@@ -122,7 +155,7 @@ def compile_verified_source(source, annotations, output, tracked, patches=True):
             target = output/'patched'/name
             target.parent.mkdir(exist_ok=True)
             content = original.read_text()
-            if name == 'GL20.java': content = patch_legacy_queries(content)
+            if name == 'GL20.java': content = patch_graphics_trace(patch_legacy_queries(content))
             target.write_text(append_methods(content, fragment.read_text()))
             java[java.index(original)] = target
         java.extend(sorted((ROOT/'graphics-compat/src').rglob('*.java')))

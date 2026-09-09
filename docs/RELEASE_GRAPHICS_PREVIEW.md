@@ -1,30 +1,32 @@
-# Wurm Server 0.10.7 — graphics capability fix
+# Wurm Server 0.10.8 — client crash diagnostic
 
-The Thor's 0.10.6 report passes the blur and shader-query fixes, then fails at
-`material.simple` during water-mesh setup. The underlying issue is inaccurate
-capability reporting: a pinned LWJGL workaround advertises OpenGL 3.3 support on
-the GL4ES 2.1 backend, enabling Wurm's modern renderer.
+The Thor confirms 0.10.7's accurate graphics capabilities and existing legacy
+renderer selection. The client now exits **134 during builtin material preload**,
+without a Java exception or native cause in the report.
 
-This release restores three capability return values and checks the actual GL
-capabilities and Wurm renderer selection. Wurm selects its existing legacy/basic-
-water path. No new shader conversions, proprietary files or server changes are
-included. Full terrain rendering, audio, login and world entry remain pending.
+This build adds bounded, flushed graphics-call breadcrumbs and source hashes,
+plus available own-app Android crash details. The failure status retains the exit
+and unfinished call. This is a diagnostic milestone; the device crash is not yet
+fixed. Full rendering, audio, local login and world entry remain pending.
 
-Install **0.10.7-managed-preview**, code **21**, package
-`io.github.russianranger.wurmlauncher.clientcapabilities`, alongside your working server.
+Install **0.10.8-managed-preview**, code **22**, package
+`io.github.russianranger.wurmlauncher.clientcrash`, alongside the working server.
 
-1. Import the same complete client ZIP in the new app's **Client** tab.
+1. Import the same complete client ZIP in **0.10.8 → Client**.
 2. Start Adventure in the working **0.6.0 server app** and wait for its game port.
-3. Select **0.10.7 → Client → Start Local Game** (127.0.0.1:3724).
-4. After failure, timeout or Stop Client, select **Export Client Report** and send
+3. Select **0.10.8 → Client → Start Local Game** (127.0.0.1:3724).
+4. Let it fail or time out; wait for **Collecting crash details** to finish.
+5. Select **Back to Client / Export → Export Client Report** and send
    **wurm-client-report.txt**, plus a screenshot of any new screen.
 
 No PC, root, Termux commands, new game files or repeat triangle test is needed.
-The preview retains its two-minute startup limit. See **CLIENT_CAPABILITIES_FIX.md**
-for the evidence, every changed file and exact Thor steps.
+The preview retains its two-minute startup limit. Android may withhold native
+crash details; explicit unavailable markers and graphics traces remain useful.
+See **CLIENT_CRASH_DIAGNOSTIC.md** for evidence, every changed file and Thor steps.
 
-All 79 automated tests pass. The 317-member API audit and native graphics/input
-regression pass. A private probe reproduces the wrong renderer selection with
-the old API and passes the corrected selection, real Volume constructor and
-existing blur draw. CI builds/tests/lints all variants and verifies packaged
-helpers, runtime/graphics hashes, signing and exact POC bytes.
+All **84** Python/Java/native tests and **five new Kotlin tests** pass locally.
+The 317-member API audit, native graphics/controller regression and private real-
+client material/blur probe pass with tracing. CI builds/tests/lints all variants
+and verifies signing, runtime/graphics hashes, packaged trace delegates and exact
+POC bytes before publication. Native pins and the private overlay are unchanged;
+proprietary Wurm files are not included.

@@ -19,7 +19,7 @@ env=dict(os.environ, LD_LIBRARY_PATH=str(host/'usr/lib/x86_64-linux-gnu'),
     LIBGL_GLES='libGLESv2.so.2', LIBGL_EGL='libEGL.so.1', LIBGL_NOPSA='1')
 args=['java', f'-Djava.library.path={host}', f'-Dorg.lwjgl.librarypath={host}',
     '-Dorg.lwjgl.opengl.explicitInit=true', '-Dorg.lwjgl.system.bundledLibrary.nameMapper=wurm.graphics.LibraryNames',
-    '-Dorg.lwjgl.system.allocator=system', '-XX:-CreateCoredumpOnCrash', f'-XX:ErrorFile={host}/window-hs_err_pid%p.log', f'-Dwurm.graphics.library={host}/libgl4es.so',
+    '-Dorg.lwjgl.system.allocator=system', '-Dwurm.graphics.trace=true', '-XX:-CreateCoredumpOnCrash', f'-XX:ErrorFile={host}/window-hs_err_pid%p.log', f'-Dwurm.graphics.library={host}/libgl4es.so',
     f'-Dwurm.graphics.frame={host}/window.bin', '-cp',
     ':'.join(str(assets/n) for n in ['wurm-window.jar','graphics-probe.jar','pojav-wurm-api.jar']),
     'wurm.graphics.WindowProbe']
@@ -51,4 +51,7 @@ for marker in ['WINDOW_READY','WINDOW_FRAME','LWJGL_KEY code=17 down=true','LWJG
     'wheel=120', 'LWJGL_WHEEL_POLL delta=120', 'LWJGL_MOUSE_MOVE', 'WINDOW_CLOSED', 'WINDOW_PROBE_PASS', 'WINDOW_DESTROY_SKIPPED', 'OFFSCREEN_FBO_PASS', 'CAPABILITY_LOOKUP_PASS', 'CAPABILITY_CHECK_PASS', 'SHADER_QUERY_PASS']:
     assert marker in text, 'Missing '+marker+'; see '+str(log)
 assert not any(x in text for x in ['WINDOW_PROBE_FAIL', 'CLIENT_GL_ERROR', 'FRAME_READBACK_ERROR'])
+assert '[graphics-trace] SOURCE shader=' in text and 'sha256=' in text
+assert '[graphics-trace] BEGIN seq=' in text and '[graphics-trace] END seq=' in text
+assert '[graphics-trace] THREW ' not in text
 print('PASS real Display creation, frame readback, keyboard/mouse/wheel queues, RESET and teardown; see '+str(log))

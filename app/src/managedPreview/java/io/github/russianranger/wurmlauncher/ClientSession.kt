@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.7\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.8\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; 0.10.2 font rasterization passed on Thor; 0.10.3 created the Wurm window on Thor; 0.10.4 passed measured FBO support on Thor; 0.10.5 passed buffer cleanup and rendered the Wurm splash on Thor; 0.10.6 passed blur startup and native shader queries on Thor; truthful capability checks and legacy renderer selection await Thor test. Audio currently falls back to silent mode. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
+            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; 0.10.2 font rasterization passed on Thor; 0.10.3 created the Wurm window on Thor; 0.10.4 passed measured FBO support on Thor; 0.10.5 passed buffer cleanup and rendered the Wurm splash on Thor; 0.10.6 passed blur startup and native shader queries on Thor; 0.10.7 passed truthful capability checks and legacy renderer selection on Thor, then exited 134 during material preload. This build captures bounded graphics-call and available Android crash evidence. Audio currently falls back to silent mode. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -187,12 +187,14 @@ object ClientSession {
                         "-Dorg.lwjgl.librarypath=$native", "-Dorg.lwjgl.opengl.explicitInit=true", "-Dorg.lwjgl.util.Debug=true",
                         "-Dorg.lwjgl.system.bundledLibrary.nameMapper=wurm.graphics.LibraryNames",
                         "-Dorg.lwjgl.system.allocator=system",
+                        "-Dwurm.graphics.trace=true",
                         "-Dwurm.graphics.library=${File(native, "libgl4es.so")}", "-Dwurm.graphics.frame=${graphicsFrame(context)}"
                     ) + when(stage) {
                         "render" -> listOf("wurm.graphics.GraphicsProbe", File(native,"libgl4es.so").absolutePath, graphicsFrame(context).absolutePath)
                         "window" -> listOf("wurm.graphics.WindowProbe")
                         else -> listOf("client.ClientBootstrap", stage)
                     } else listOf("client.ClientBootstrap", stage)
+                val evidence = ClientCrashEvidence(android.os.Process.myUid(), System.currentTimeMillis())
                 val process = ProcessBuilder(args).directory(installed?.root ?: session).redirectErrorStream(true).apply {
                     environment().clear(); environment().putAll(ProbeEnvironment.create(home, native, tmp))
                     environment()["WURM_HEAP_TAGGING"] = "off"
@@ -207,7 +209,7 @@ object ClientSession {
                 val graphicsPassed = java.util.concurrent.atomic.AtomicBoolean(false)
                 val reader = Thread({
                     try { RootServerController.consumeLines(process.inputStream) { line ->
-                        log(line)
+                        evidence.observe(line); log(line)
                         if ((stage == "input" || window) && line.startsWith("[client] INPUT_READY ")) inputReady = true
                         if (stage == "window" && line.startsWith("[window] WINDOW_PROBE_PASS")) graphicsPassed.set(true)
                         if (stage == "render" && line == "[graphics] GRAPHICS_PROBE_EXIT code=0") graphicsPassed.set(true)
@@ -223,14 +225,25 @@ object ClientSession {
                     } } catch (_: Exception) { }
                 }, "wurm-client-input").apply { isDaemon = true; start() } else null
                 val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(if (stage == "input") 10 else 2)
+                var timedOut = false
                 while (!process.waitFor(200, TimeUnit.MILLISECONDS)) {
                     checkCancelled()
-                    if (System.nanoTime() > deadline) { log("[client] STAGE_TIMEOUT $stage; terminating only client child"); process.destroyForcibly(); break }
+                    if (System.nanoTime() > deadline) { timedOut = true; log("[client] STAGE_TIMEOUT $stage; terminating only client child"); process.destroyForcibly(); break }
                 }
                 process.waitFor(); reader.join(3000); writer?.join(1000)
                 results[stage] = if (stage in listOf("render", "window") && process.exitValue() == 0 && !graphicsPassed.get()) 42 else process.exitValue()
                 log("[client] CHILD_EXIT stage=$stage code=${process.exitValue()} accepted=${results[stage]}")
                 child = null; inputReady = false
+                if (results[stage] != 0 && !cancelled) {
+                    val reason = if (timedOut) "Client stage $stage reached its diagnostic time limit" else evidence.summary(process.exitValue())
+                    graphicsFailure.compareAndSet(null, reason)
+                    log("[client-crash] EXIT_SUMMARY stage=$stage $reason")
+                    if (!timedOut && process.exitValue() in 128..159) {
+                        status("Collecting crash details", "Client stage $stage exited ${process.exitValue()}; reading available Android evidence")
+                        ClientCrashCapture.collect(context, evidence, ::log)
+                        checkCancelled()
+                    }
+                }
                 if (stage == "prepare-graphics" && results[stage] != 0) {
                     log("[client] ENTRY_NOT_STARTED graphics compatibility preparation failed; import was not modified")
                     break

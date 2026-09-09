@@ -1,7 +1,7 @@
 # AYN Thor: current 0.10.0 client window test
 
 
-**Current 0.10.7:** the Thor passed the blur/shader-query fixes. The next correction restores accurate LWJGL capability reporting so Wurm selects its existing OpenGL 2.1/basic-water renderer. Follow the [graphics capability test](CLIENT_CAPABILITIES_FIX.md). Earlier milestone instructions below are historical.
+**Current 0.10.8:** the Thor confirmed accurate GL2.1 capabilities and legacy renderer selection, then the client exited 134 during material preload. The next build captures graphics-call breadcrumbs and available Android crash evidence. Follow the [client crash diagnostic](CLIENT_CRASH_DIAGNOSTIC.md). Earlier milestone instructions below are historical.
 
 Follow [GRAPHICS_THOR_TEST.md](GRAPHICS_THOR_TEST.md) for the new APK, window/input
 check, exact complete client ZIP contents, local launch and Client Report exports.
