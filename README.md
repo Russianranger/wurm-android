@@ -1,7 +1,7 @@
 # Wurm Server for Android
 
 
-**Current 0.10.8:** the Thor confirmed accurate GL2.1 capabilities and legacy renderer selection, then the client exited 134 during material preload. The next build captures graphics-call breadcrumbs and available Android crash evidence. Follow the [client crash diagnostic](docs/CLIENT_CRASH_DIAGNOSTIC.md). Earlier milestone instructions below are historical.
+**Current 0.10.9:** the Thor passed material/GUI/terrain setup and reached Connecting with at least 375 frames. Its final exit followed the two-minute app timeout. The new milestone exports real authentication/login/retry messages and allows five minutes for startup. Follow the [local connection test](docs/CLIENT_CONNECTION_TEST.md). Earlier instructions below are historical.
 
 
 **Client milestone 0.10.0:** [download the window/input preview](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.0-client-window)

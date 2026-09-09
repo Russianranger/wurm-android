@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.8\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.9\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.0 window/controller diagnostic passed on Thor; 0.10.1 profile/resources passed on Thor; 0.10.2 font rasterization passed on Thor; 0.10.3 created the Wurm window on Thor; 0.10.4 passed measured FBO support on Thor; 0.10.5 passed buffer cleanup and rendered the Wurm splash on Thor; 0.10.6 passed blur startup and native shader queries on Thor; 0.10.7 passed truthful capability checks and legacy renderer selection on Thor, then exited 134 during material preload. This build captures bounded graphics-call and available Android crash evidence. Audio currently falls back to silent mode. Full Wurm rendering, server ticket acceptance and login are not qualified.\n\n" +
+            "Gate status: 0.10.8 passed material preload, GUI/terrain setup and reached Connecting on Thor with at least 375 window frames. Its final exit followed the app's two-minute timeout, not a demonstrated material crash. This build observes real client authentication/login/retry state and allows five minutes for startup; only confirmed client game-loop state removes that deadline. Full visible world, local server acceptance and audio remain to be qualified. No auth/login result is fabricated.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -157,6 +157,8 @@ object ClientSession {
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
             require(player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
+            val connectionState = ClientConnectionState()
+            var entryTimedOut = false
             val graphicsFailure = java.util.concurrent.atomic.AtomicReference<String?>(null)
             for (stage in stages) {
                 checkCancelled(); queue.clear(); inputReady = false
@@ -210,6 +212,7 @@ object ClientSession {
                 val reader = Thread({
                     try { RootServerController.consumeLines(process.inputStream) { line ->
                         evidence.observe(line); log(line)
+                        if (stage == "entry") connectionState.observe(line)?.let { status(it.phase, it.detail) }
                         if ((stage == "input" || window) && line.startsWith("[client] INPUT_READY ")) inputReady = true
                         if (stage == "window" && line.startsWith("[window] WINDOW_PROBE_PASS")) graphicsPassed.set(true)
                         if (stage == "render" && line == "[graphics] GRAPHICS_PROBE_EXIT code=0") graphicsPassed.set(true)
@@ -224,18 +227,22 @@ object ClientSession {
                         while (process.isAlive) { val event = queue.poll(100, TimeUnit.MILLISECONDS) ?: continue; out.write(event); out.newLine(); out.flush() }
                     } } catch (_: Exception) { }
                 }, "wurm-client-input").apply { isDaemon = true; start() } else null
-                val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(if (stage == "input") 10 else 2)
+                val stageStarted = System.nanoTime()
                 var timedOut = false
                 while (!process.waitFor(200, TimeUnit.MILLISECONDS)) {
                     checkCancelled()
-                    if (System.nanoTime() > deadline) { timedOut = true; log("[client] STAGE_TIMEOUT $stage; terminating only client child"); process.destroyForcibly(); break }
+                    if (connectionState.timedOut(stage, System.nanoTime() - stageStarted)) {
+                        timedOut = true; if (stage == "entry") entryTimedOut = true
+                        log("[client] STAGE_TIMEOUT $stage; startup budget exhausted; terminating only client child")
+                        process.destroyForcibly(); break
+                    }
                 }
                 process.waitFor(); reader.join(3000); writer?.join(1000)
                 results[stage] = if (stage in listOf("render", "window") && process.exitValue() == 0 && !graphicsPassed.get()) 42 else process.exitValue()
                 log("[client] CHILD_EXIT stage=$stage code=${process.exitValue()} accepted=${results[stage]}")
                 child = null; inputReady = false
                 if (results[stage] != 0 && !cancelled) {
-                    val reason = if (timedOut) "Client stage $stage reached its diagnostic time limit" else evidence.summary(process.exitValue())
+                    val reason = if (timedOut) "Client stage $stage reached its startup time limit; last connection: ${connectionState.latest?.let { "${it.phase}: ${it.detail}" } ?: "not observed"}" else evidence.summary(process.exitValue())
                     graphicsFailure.compareAndSet(null, reason)
                     log("[client-crash] EXIT_SUMMARY stage=$stage $reason")
                     if (!timedOut && process.exitValue() in 128..159) {
@@ -253,7 +260,8 @@ object ClientSession {
             if (mode == "render") status(if (results["render"] == 0) "Graphics test passed" else "Graphics test failed",
                 "LWJGL/GL4ES result=$results. ${graphicsFailure.get()?.let { "$it. " } ?: ""}Export Client Report. Wurm window/login are not tested.")
             else if (mode == "window") status(if (results["window"] == 0) "Window test passed" else "Window test failed", "Result=$results. ${graphicsFailure.get().orEmpty()} Export Client Report; Wurm login was not tested.")
-            else status(if (mode == "input") "Stopped" else "Blocked", if (mode == "input") "Input diagnostic ended." else "Client attempt finished: $results. ${graphicsFailure.get().orEmpty()} Export Client Report for the startup/graphics result; login is not verified.")
+            else status(if (mode == "input" || connectionState.gameLoopReached) "Stopped" else if (entryTimedOut) "Client startup timed out" else "Blocked",
+                if (mode == "input") "Input diagnostic ended." else "Client attempt finished: $results. ${graphicsFailure.get().orEmpty()} Export Client Report; game-loop observation=${connectionState.gameLoopReached}, visible world requires device confirmation.")
         } finally {
             reapChild()
             session.listFiles().orEmpty().filter { it.name.startsWith("hs_err_pid") }.forEach { f -> f.useLines { it.take(120).forEach(::log) } }

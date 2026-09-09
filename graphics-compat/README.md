@@ -1,6 +1,12 @@
 # Pojav Java API compatibility candidate
 
 
+**0.10.9:** the Thor passed material preload and terrain preparation in 0.10.8,
+then rendered its connection screen until the app's timeout. Graphics sources,
+trace settings, native pins and the private overlay stay unchanged. The next
+work observes real client login/retry state and fixes the premature startup cutoff.
+See [the local connection test](../docs/CLIENT_CONNECTION_TEST.md).
+
 **0.10.8:** the Thor confirms GL2.1 capabilities and existing legacy renderer
 selection, then exits 134 during builtin material preload. Bounded core GL20
 breadcrumbs now identify unfinished calls and source hashes. Android gathers any

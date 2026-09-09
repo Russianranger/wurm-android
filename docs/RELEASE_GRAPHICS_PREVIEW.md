@@ -1,32 +1,35 @@
-# Wurm Server 0.10.8 — client crash diagnostic
+# Wurm Server 0.10.9 — local client connection
 
-The Thor confirms 0.10.7's accurate graphics capabilities and existing legacy
-renderer selection. The client now exits **134 during builtin material preload**,
-without a Java exception or native cause in the report.
+Your 0.10.8 report passed material/GUI/terrain setup and reached Connecting with
+at least 375 frames. The app then stopped the client at its two-minute limit.
+The connection's authentication/login outcome was absent from the console report.
 
-This build adds bounded, flushed graphics-call breadcrumbs and source hashes,
-plus available own-app Android crash details. The failure status retains the exit
-and unfinished call. This is a diagnostic milestone; the device crash is not yet
-fixed. Full rendering, audio, local login and world entry remain pending.
+This build exports Wurm's actual splash/authentication/login/retry messages and
+connection snapshots. The startup limit is five minutes; after the client reports
+accepted login and closes its startup screen, use Stop Client to end the session.
+The observer is read-only. Real Adventure authentication and visible world entry
+still need testing; neither is fabricated or claimed complete.
 
-Install **0.10.8-managed-preview**, code **22**, package
-`io.github.russianranger.wurmlauncher.clientcrash`, alongside the working server.
+Install **0.10.9-managed-preview**, code **23**, package
+`io.github.russianranger.wurmlauncher.clientconnection`, alongside your working server.
 
-1. Import the same complete client ZIP in **0.10.8 → Client**.
-2. Start Adventure in the working **0.6.0 server app** and wait for its game port.
-3. Select **0.10.8 → Client → Start Local Game** (127.0.0.1:3724).
-4. Let it fail or time out; wait for **Collecting crash details** to finish.
-5. Select **Back to Client / Export → Export Client Report** and send
-   **wurm-client-report.txt**, plus a screenshot of any new screen.
+1. Import the same complete client ZIP in **0.10.9 → Client**.
+2. Start Adventure in the working **0.6.0 server app**; wait for its listening port.
+3. Select **0.10.9 → Client → Start Local Game** (127.0.0.1:3724).
+4. Watch the connection status. If it remains waiting/retrying for about 60 seconds,
+   capture the screen and Stop Client. If the world appears, test controls, capture
+   it, then Stop Client. You can also let the five-minute startup budget expire.
+5. Export **Client Report → wurm-client-report.txt** from 0.10.9.
+6. In the working server app, export **Session Report → wurm-server-report.txt**
+   immediately after the same attempt. Send **both reports** and the screenshot.
 
-No PC, root, Termux commands, new game files or repeat triangle test is needed.
-The preview retains its two-minute startup limit. Android may withhold native
-crash details; explicit unavailable markers and graphics traces remain useful.
-See **CLIENT_CRASH_DIAGNOSTIC.md** for evidence, every changed file and Thor steps.
+No new Wurm files, PC, root, Termux commands or repeat triangle test are needed.
+No server/POC/SQLite or graphics-native changes are included. The separate client
+preview needs its own import because CI debug signing changes between releases.
 
-All **84** Python/Java/native tests and **five new Kotlin tests** pass locally.
-The 317-member API audit, native graphics/controller regression and private real-
-client material/blur probe pass with tracing. CI builds/tests/lints all variants
-and verifies signing, runtime/graphics hashes, packaged trace delegates and exact
-POC bytes before publication. Native pins and the private overlay are unchanged;
-proprietary Wurm files are not included.
+All **87 automated tests** and **four new Kotlin state/deadline tests** pass locally.
+The real-JAR loopback fixture verifies original ticket dispatch, real auth parsing,
+login dispatch and read-only observation. It does not authenticate against a Wurm
+server. CI builds/tests/lints all variants and verifies signing, packaged monitor,
+runtime/graphics hashes and exact POC bytes before publication.
+See **CLIENT_CONNECTION_TEST.md** for every changed file and exact test details.

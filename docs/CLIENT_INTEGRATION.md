@@ -1,5 +1,42 @@
 # Client integration architecture and qualification
 
+## 0.10.9: observe the actual local connection and remove the premature cutoff
+
+The Thor's 0.10.8 report completes builtin material preload, GUI and terrain setup,
+then reaches Connecting and produces at least 375 window frames. STAGE_TIMEOUT
+precedes exit 134; this run was stopped by the app's two-minute diagnostic limit.
+It does not reproduce the unexplained 0.10.7 material-preload exit, nor prove that
+older issue permanently fixed. Keep the physically tested graphics path intact.
+
+The supplied client's real performConnection path sends its Steam ticket, waits
+for authentication, then sends login. It keeps some rejection/retry text only in
+StartupRenderer.startupMessage; the parent console never received those messages.
+A new read-only observer follows the inspected engine/connection fields, exports
+that text, authentication/login flags, approximate queued/read/pending byte counts,
+and a bounded game-thread stack every 15 seconds during startup. The observer
+never writes game state, sends packets, consumes buffers or fabricates acceptance.
+ABI mismatch is explicit and does not prevent the real client from launching.
+
+Android now displays separate authentication, login, rejection, retry and game-
+loop states. The entry startup budget is five minutes. A real authenticated,
+logged-in, connected client with its startup renderer closed removes that budget;
+Stop Client remains available. Other diagnostic budgets stay unchanged. An
+observed game loop still requires a device screenshot/control test to establish
+visible world rendering. The server's lifetime remains independent.
+
+The actual supplied JAR sends its original 78-byte synthetic-ticket payload
+(80 framed bytes) to a private loopback test socket. Its original auth parser
+accepts authored denial/success fixtures, and its original login method reaches
+LOGIN_WAIT. This validates observer ABI and client dispatch, not acceptance by
+the real Adventure server. The next Thor test returns both Client Report and the
+working server's Session Report from the same attempt. Do not change the POC or
+server callback behavior before that evidence identifies the actual wait.
+
+Gate 4 progresses through terrain preparation to the connection screen; full
+scene rendering/audio remain unqualified. Gate 5 now has explicit state and
+usable startup time, but real server authentication/login/world entry are pending.
+See [every change, test results and exact Thor steps](CLIENT_CONNECTION_TEST.md).
+
 ## 0.10.8: capture the Thor's abrupt material-preload exit
 
 The 0.10.7 report physically confirms truthful GL2.1/core-and-legacy capabilities,

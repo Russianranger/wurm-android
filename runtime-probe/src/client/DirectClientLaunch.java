@@ -110,7 +110,7 @@ public final class DirectClientLaunch {
         Thread thread = (Thread) field.get(null);
         if (thread == null) throw new IllegalStateException("CLIENT_GAME_THREAD_MISSING");
         log("CLIENT_GAME_THREAD name=" + thread.getName() + "; awaiting graphics/window and connection logs");
-        thread.join();
+        try (ClientConnectionMonitor monitor = ClientConnectionMonitor.start(engine, thread)) { thread.join(); }
         log("CLIENT_GAME_THREAD_EXIT; Wurm login/world entry requires separate evidence");
         Throwable reported = (Throwable) type("com.wurmonline.client.ErrorReporterPanel").getMethod("androidFailure").invoke(null);
         if (reported != null) {
