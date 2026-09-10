@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Correct global declaration placement in the pinned GL4ES shader wrapper."""
+"""Checked downstream fixes for the pinned GL4ES source."""
 from pathlib import Path
 import hashlib
 
@@ -47,10 +47,25 @@ def patch_draw(source: str) -> str:
         source = source[:start] + method.replace(call, before + "\n    " + call + "\n    wurm_trace_end();") + source[end:]
     return source
 
+def patch_client_pointers(source: str) -> str:
+    # Internal FPE setters receive absolute host addresses from render lists.
+    # Public glVertexAttribPointer still captures the VBO for genuine offsets.
+    for name in ("SecondaryColor", "Vertex", "Color", "Normal", "TexCoord", "FogCoord"):
+        suffix = "TMU" if name == "TexCoord" else ""
+        start = source.index(f"void APIENTRY_GL4ES fpe_gl{name}Pointer{suffix}(")
+        end = source.index("\n}", start)
+        method = source[start:end]
+        old = ".buffer = glstate->vao->vertex;"
+        if method.count(old) != 1:
+            raise ValueError(f"Pinned GL4ES {name} client pointer changed")
+        method = method.replace(old, ".buffer = NULL; // Internal pointer is already an absolute host address.")
+        source = source[:start] + method + source[end:]
+    return source
+
 def apply_draw(root: Path, header: Path):
     target = root / "src/gl/fpe.c"
     original = target.read_bytes()
     if hashlib.sha256(original).hexdigest() != "48f8c2c30f7e8b86f02258ef02d10e99067e3d51cad6b25ea05c258826d01d47":
         raise ValueError("Unexpected GL4ES fpe.c")
-    target.write_text(patch_draw(original.decode()))
+    target.write_text(patch_draw(patch_client_pointers(original.decode())))
     (target.parent / "wurm_draw_trace.h").write_bytes(header.read_bytes())

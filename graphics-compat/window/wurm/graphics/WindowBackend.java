@@ -81,7 +81,8 @@ public final class WindowBackend {
     public static void swap() {
         owned();
         swaps++;
-        if (System.nanoTime()-lastFrame >= 66_666_667L) {
+        long frameStart = System.nanoTime();
+        if (frameStart-lastFrame >= 66_666_667L) {
             int before = glGetError();
             if (before != GL_NO_ERROR) throw new IllegalStateException("CLIENT_GL_ERROR before readback=0x"+Integer.toHexString(before));
             int alignment = glGetInteger(GL_PACK_ALIGNMENT);
@@ -102,7 +103,8 @@ public final class WindowBackend {
                 glPixelStorei(GL_PACK_ALIGNMENT,alignment); glPixelStorei(GL_PACK_ROW_LENGTH,rowLength);
                 glPixelStorei(GL_PACK_SKIP_ROWS,skipRows); glPixelStorei(GL_PACK_SKIP_PIXELS,skipPixels);
             }
-            lastFrame=System.nanoTime();
+            // Readback/publication time is part of the interval, not an extra delay.
+            lastFrame=frameStart;
             if (sequence == 1 || sequence%25 == 0) System.out.println("[window] WINDOW_FRAME sequence="+sequence+" size="+width+"x"+height);
         }
         long now = System.nanoTime();

@@ -44,9 +44,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.18\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.19\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.17 passed controls, finalized character creation and rendered the world, then the client crashed in Adreno glDrawElements through GL4ES while the server stayed alive. This build fixes reproduced shader declaration errors and reduces frame-transfer costs with a 15 FPS presentation target. On-device speed and whether the native crash persists need verification; the crash is not claimed resolved.\n\n" +
+            "Gate status: Thor 0.10.18 reached character setup without the earlier shader errors, then crashed with an invalid native vertex pointer. This build corrects the reproduced GL4ES internal-pointer rebasing defect, moves name editing into a dialog, and counts frame transfer inside the display interval. Device stability, character completion and persistence still require testing; the separately observed EGL shutdown abort remains unresolved.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +

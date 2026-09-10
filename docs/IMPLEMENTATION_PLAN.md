@@ -1,16 +1,21 @@
 # From the working POC to Wurm Server
 
-**Current test: 0.10.18 — shader and frame performance fix.** The Thor passed
-controls and final character creation in 0.10.17, rendered the world, then crashed
-inside Adreno drawing while the server stayed alive. This release fixes a reproduced
-GL4ES declaration-placement bug causing repeated shader failures, reduces frame
-transfer overhead and targets 15 presented FPS. It also records the last native
-draw; the crash is not yet proven resolved.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.18-shader-performance).
-[Follow the migration and performance test](CLIENT_SHADER_PERFORMANCE_FIX.md)
-to back up the world and use a new test character; client identity transfer between
-preview packages is not implemented.
+**Current test: 0.10.19 — vertex pointer and name editor fix.** The 0.10.18
+report captured an invalid vertex address matching the native crash. A regression
+reproduces GL4ES adding a VBO base to an already complete internal pointer; this
+build corrects that defect. Name editing now uses a dialog beside the launch
+buttons, and frame transfer counts inside the presentation interval. Device
+stability, character completion and persistence still need testing.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.19-vertex-pointer).
+[Follow the test](CLIENT_VERTEX_POINTER_FIX.md). Keep earlier apps/backups
+and use an unused test name: client login identity does not yet migrate between
+separate previews. The earlier EGL shutdown abort remains unresolved.
 
+**Previous test: 0.10.18 — shader and frame performance fix.** Reproduced shader
+errors were corrected and the viewer's target increased from 5 to 15 FPS. The
+next device report showed no recurrence of those shader errors and approximately
+10–12 presented FPS in the later game loop, followed by a native vertex-pointer
+crash. See [the earlier changes](CLIENT_SHADER_PERFORMANCE_FIX.md).
 
 **Previous test: 0.10.17 — touch and visible pointer controls.** The Thor's 0.10.16
 imported successfully, created player Thor and reached the in-game character dialog.

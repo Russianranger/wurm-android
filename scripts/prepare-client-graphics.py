@@ -142,7 +142,7 @@ def main():
             if dependency not in system and not (native/dependency).is_file():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
-                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb'],
+                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses'],
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},
                     assetsSha256={p.name: sha(p) for p in sorted(assets.iterdir())})
     (assets/'client-graphics.json').write_text(json.dumps(manifest, indent=2)+'\n')
