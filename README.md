@@ -1,15 +1,21 @@
 # Wurm Server for Android
 
-**Current test: 0.10.19 — vertex pointer and name editor fix.** The 0.10.18
-report captured an invalid vertex address matching the native crash. A regression
-reproduces GL4ES adding a VBO base to an already complete internal pointer; this
-build corrects that defect. Name editing now uses a dialog beside the launch
-buttons, and frame transfer counts inside the presentation interval. Device
-stability, character completion and persistence still need testing.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.19-vertex-pointer).
-[Follow the test](docs/CLIENT_VERTEX_POINTER_FIX.md). Keep earlier apps/backups
-and use an unused test name: client login identity does not yet migrate between
-separate previews. The earlier EGL shutdown abort remains unresolved.
+**Current test: 0.10.20 — Android graphics settings and frame delivery.** The Thor's
+0.10.19 test sustained visible gameplay, movement and interaction for about five
+minutes. Opening desktop Settings then caused a missing-JavaFX exception; graphics
+closed normally. This preview supplies an Android graphics dialog, a reversible
+Performance preset, 800 × 450 default rendering and a 30 FPS target. Raw RGBA
+transfer and accepting completed frames reduce presentation overhead. Device
+smoothness, settings use and same-app character persistence still need testing.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.20-graphics-settings).
+[Follow the test](docs/CLIENT_GRAPHICS_SETTINGS_FIX.md). Keep older apps/backups and use an unused name:
+client login identity does not yet migrate between separate previews. Earlier
+shutdown corruption, intermittent GL errors and rendering artifacts remain tracked.
+
+**Previous test: 0.10.19 — vertex pointer and name editor fix.** Corrected GL4ES
+rebasing internal host pointers as VBO offsets and moved name editing into a
+dialog. The next report reached five minutes of gameplay and then failed while
+opening JavaFX settings; the preceding native draw failure did not recur in that run.
 
 **Previous test: 0.10.18 — shader and frame performance fix.** Reproduced shader
 errors were corrected and the viewer's target increased from 5 to 15 FPS. The

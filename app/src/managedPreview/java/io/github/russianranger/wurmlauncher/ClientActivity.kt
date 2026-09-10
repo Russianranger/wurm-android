@@ -34,7 +34,7 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.19").textSize = 24f
+        label("Wurm Client · 0.10.20").textSize = 24f
         label("Choose your player name, then Start Local Game. Complete any character setup shown in the game. This build tests a graphics crash fix.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
@@ -44,6 +44,7 @@ class ClientActivity : Activity() {
         val preferences = getSharedPreferences("client-settings", MODE_PRIVATE)
         val playerName = label("Local player: ${preferences.getString("player", "Thor")}")
         button("Change Player Name", true) { editPlayerName(playerName) }
+        button("Graphics Settings") { GraphicsSettingsDialog.show(this) }
         button("Start Client", true) { launch("start") }
         button("Start Local Game", true) { launch("local") }
         button("Stop Client") { startService(Intent(this, ClientService::class.java).setAction("stop")) }

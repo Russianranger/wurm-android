@@ -33,8 +33,9 @@ with log.open('w') as out:
             time.sleep(.05)
         data=(host/'window.bin').read_bytes()
         magic,version,width,height,sequence=struct.unpack('>5i',data[:20])
-        assert (magic,version,width,height)==(0x57554746,2,640,360) and sequence>0
-        pixels=struct.unpack('>230400I',data[36:])
+        assert (magic,version,width,height)==(0x57554746,3,640,360) and sequence>0
+        raw=data[36:]
+        pixels=[int.from_bytes(raw[((height-1-y)*width+x)*4:((height-1-y)*width+x)*4+3], 'big') for y in range(height) for x in range(width)]
         # Actual fixed-function GL4ES drawing, not an Android placeholder.
         assert pixels[180*640+320] & 0xffffff == 0xff661a
         assert pixels[10*640+10] & 0xffffff == 0x0d2659

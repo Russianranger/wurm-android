@@ -28,7 +28,12 @@ public final class WurmSettingsFX {
     public static String getKeybind(String action,int index) { return bindings.get(action,index); }
     public static String isDuplicateKeybind(String key) { return bindings.owner(key); }
     public static WurmSettingsFX getInstance(boolean inLauncher) { return instance; }
-    public void show() { throw new UnsupportedOperationException("DESKTOP_SETTINGS_UNAVAILABLE: Android controller settings remain available; JavaFX settings UI is not installed"); }
+    public void show() {
+        System.out.println("[client-ui] OPEN_GRAPHICS_SETTINGS");
+        closeSettings=true; // Let the HUD remove its empty desktop-settings placeholder.
+    }
     public void close() { closeSettings=true; }
-    public void restart() { throw new UnsupportedOperationException("DESKTOP_SETTINGS_RESTART_UNAVAILABLE: restart the client from Android"); }
+    public void restart() { closeSettings=false; }
+    /** The inspected HUD passes null; its ActionEvent descriptor is privately redirected to Object. */
+    public void restartAndClose(Object event) { closeSettings=false; }
 }

@@ -278,7 +278,7 @@ class ClientCompatibilityTest(unittest.TestCase):
                 'wurm/android/compat/ClientHooks.class', 'com/wurmonline/client/launcherfx/WurmMain.class',
                 'com/wurmonline/client/launcherfx/WurmMain$1.class', 'com/wurmonline/client/launcherfx/WurmSettingsFX.class',
                 'com/wurmonline/client/launcherfx/WurmStage.class', 'com/wurmonline/client/ErrorReporterPanel.class',
-                'wurm/android/compat/KeybindStore.class'})
+                'wurm/android/compat/KeybindStore.class', 'wurm/android/compat/SettingsDispatch.class'})
         self.assertFalse((self.helper/'SteamJni').exists())
         self.assertFalse((self.helper/'com/wurmonline').exists())
 

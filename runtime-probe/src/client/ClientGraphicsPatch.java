@@ -84,6 +84,9 @@ public final class ClientGraphicsPatch {
         log("OFFSCREEN_PATCH_VERIFIED source=" + source + " originalSha256=" + sha(original) + " overlayClassSha256=" + sha(changed));
         Map<String, byte[]> classes = new LinkedHashMap<>();
         classes.put(ENGINE, changed);
+        URL hud = ClientGraphicsPatch.class.getClassLoader().getResource(ClientSettingsPatch.HUD);
+        if (hud == null) throw new IOException("CLIENT_HUD_CLASS_MISSING");
+        classes.put(ClientSettingsPatch.HUD, ClientSettingsPatch.prepare(read(hud.openStream())));
         for (String name : new java.util.TreeSet<>(ClientBuffers.ORIGINALS.keySet())) {
             URL bufferSource = ClientGraphicsPatch.class.getClassLoader().getResource(name);
             if (bufferSource == null) throw new IOException("CLIENT_BUFFER_CLASS_MISSING " + name);
@@ -107,6 +110,7 @@ public final class ClientGraphicsPatch {
         log("OFFSCREEN_PATCH_READY calls=1 scope=verified-engine-only; imported JAR unchanged; legacy Pbuffer API unchanged");
         log("BUFFER_PATCH_READY classes=2; Cleaner owner/return ABI only; imported JAR unchanged");
         log("SHADER_RESOURCES_READY count=2; private GLSL 120 blur sources; imported JAR unchanged");
+        log("SETTINGS_PATCH_READY scope=verified-HUD show/close callbacks; Android graphics dialog");
     }
     public static void verifySelected() throws Exception {
         String path = System.getProperty("wurm.client.offscreenOverlay");
@@ -115,6 +119,7 @@ public final class ClientGraphicsPatch {
         try (var jar = new JarFile(path)) {
             var names = new java.util.TreeSet<>(ClientBuffers.ORIGINALS.keySet()); names.add(ENGINE);
             names.addAll(ClientShaderResources.ORIGINALS.keySet());
+            names.add(ClientSettingsPatch.HUD);
             if (jar.size() != names.size()) throw new IOException("Invalid client overlay size");
             for (String name : names) {
                 if (jar.getJarEntry(name) == null) throw new IOException("Missing client overlay class " + name);
@@ -129,12 +134,13 @@ public final class ClientGraphicsPatch {
         for (var item : classes.entrySet()) {
             String name = item.getKey(); byte[] bytes = item.getValue();
             boolean shader = ClientShaderResources.ORIGINALS.containsKey(name);
-            if (shader) ClientShaderResources.verify(name, bytes);
+            if (name.equals(ClientSettingsPatch.HUD)) ClientSettingsPatch.verify(bytes);
+            else if (shader) ClientShaderResources.verify(name, bytes);
             else if (!name.equals(ENGINE)) ClientBuffers.verify(name, bytes);
             URL selected = ClientGraphicsPatch.class.getClassLoader().getResource(name);
             if (selected == null || !sha(read(selected.openStream())).equals(sha(bytes)))
                 throw new IOException("CLIENT_GRAPHICS_PATCH_NOT_SELECTED: classpath order mismatch " + name);
-            log((shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
+            log((name.equals(ClientSettingsPatch.HUD) ? "SETTINGS_PATCH_ACTIVE" : shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
         }
     }
 }

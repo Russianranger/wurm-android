@@ -35,9 +35,13 @@ public final class DirectClientLaunch {
         // Verified order: maximized, width, height, Hz, fullscreen, resizable.
         // Both dimensions fit the existing 1024-pixel pbuffer bound. Apply after
         // profile loading/saving, for this attempt; do not save an Android override.
+        String resolution = System.getProperty("wurm.client.resolution", "960x540");
+        if (!List.of("800x450", "960x540").contains(resolution)) throw new IllegalArgumentException("Unsupported Android resolution");
+        int width = resolution.equals("800x450") ? 800 : 960;
+        int height = resolution.equals("800x450") ? 450 : 540;
         display.getClass().getMethod("set", boolean.class, int.class, int.class, int.class, boolean.class, boolean.class)
-            .invoke(display, false, 960, 540, -1, false, false);
-        log("WINDOW_OPTIONS_ANDROID width=960 height=540 maximized=false fullscreen=false resizable=false; desktopScreenQuery=false");
+            .invoke(display, false, width, height, -1, false, false);
+        log("WINDOW_OPTIONS_ANDROID width="+width+" height="+height+" maximized=false fullscreen=false resizable=false; desktopScreenQuery=false");
     }
     static List<String> selectPacks(Path directory) throws Exception {
         if (!Files.isDirectory(directory)) throw new IllegalStateException("CLIENT_PACKS_MISSING: import the complete client packs/ directory");
@@ -88,6 +92,8 @@ public final class DirectClientLaunch {
         call(profile, "storeConfig");
         type("com.wurmonline.client.options.Options").getMethod("checkOptionsVersion").invoke(null);
         prepareDisplay();
+        if (System.getProperty("wurm.client.graphicsPreset") != null)
+            ClientVisualOptions.apply(System.getProperty("wurm.client.graphicsPreset"));
         if (System.getProperty("wurm.client.offscreenOverlay") != null) ClientBuffers.preflight();
         Object playerProfile = call(profile, "launchProfile");
         log("PROFILE_READY type=" + playerProfile.getClass().getName());

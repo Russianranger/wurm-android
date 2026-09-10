@@ -19,6 +19,12 @@ object ClientSession {
     @Volatile private var cancelled = false
     @Volatile private var child: Process? = null
     @Volatile private var inputReady = false
+    @Volatile var frameEpoch = 0L
+        private set
+    @Volatile var settingsRequests = 0L
+        private set
+    @Volatile var graphicsNotice = ""
+        private set
     private val queue = LinkedBlockingQueue<String>(512)
     private var file: File? = null
     private val lines = ArrayDeque<String>()
@@ -44,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.19\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.20\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.18 reached character setup without the earlier shader errors, then crashed with an invalid native vertex pointer. This build corrects the reproduced GL4ES internal-pointer rebasing defect, moves name editing into a dialog, and counts frame transfer inside the display interval. Device stability, character completion and persistence still require testing; the separately observed EGL shutdown abort remains unresolved.\n\n" +
+            "Gate status: Thor 0.10.19 sustained visible gameplay, movement and interaction for about five minutes, then exited 42 opening desktop JavaFX settings. Its graphics context closed normally. This build redirects settings to Android, adds live graphics presets, and uses raw RGBA frames with a 30 FPS target. Thor smoothness and settings acceptance remain to be tested; earlier native shutdown corruption and intermittent GL errors remain tracked.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -117,8 +123,10 @@ object ClientSession {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
         if (mode !in listOf("input", "memory")) {
+            graphicsNotice = ""
             graphicsFrame(context).delete()
             File(graphicsFrame(context).path + ".pending").delete()
+            frameEpoch++ // Publish the new epoch only after removing the preceding session's frame.
         }
         val serverWatch = ClientServerWatch()
         if (mode == "local") {
@@ -166,6 +174,10 @@ object ClientSession {
             log("[client] CLIENT_JVM_MODE exec; ${if (mode == "memory") "isolated Java memory/collector comparison" else if (mode == "render") "LWJGL/GL4ES pbuffer test with frame readback" else "Pojav Java GLFW / owned EGL window adapter installed for entry stage"}")
             val stages = ClientJvmPolicy.stages(mode)
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
+            val visual = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE)
+            val preset = visual.getString("graphics-preset", "performance")?.takeIf { it in listOf("performance", "imported") } ?: "performance"
+            val resolution = visual.getString("resolution", "800x450")?.takeIf { it in listOf("800x450", "960x540") } ?: "800x450"
+            val frameFps = visual.getInt("frame-fps", 30).takeIf { it in listOf(15,30) } ?: 30
             require(mode == "memory" || player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
             val connectionState = ClientConnectionState()
@@ -193,6 +205,7 @@ object ClientSession {
                     "-cp", stageCp.joinToString(":")) + (if (stage in listOf("prepare-graphics", "entry")) listOf(
                         "-Dwurm.client.offscreenOverlay=$overlay"
                     ) else emptyList()) + (if (stage == "entry") listOf(
+                        "-Dwurm.client.graphicsPreset=$preset", "-Dwurm.client.resolution=$resolution",
                         "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
                         "--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED",
                         "-Dwurm.client.fontDir=/system/fonts", "-Dwurm.client.fontConfig=$session/fontconfig.properties"
@@ -201,6 +214,7 @@ object ClientSession {
                         "-Dorg.lwjgl.system.bundledLibrary.nameMapper=wurm.graphics.LibraryNames",
                         "-Dorg.lwjgl.system.allocator=system",
                         "-Dwurm.graphics.trace=true",
+                        "-Dwurm.graphics.fps=$frameFps",
                         "-Dwurm.graphics.library=${File(native, "libgl4es.so")}", "-Dwurm.graphics.frame=${graphicsFrame(context)}"
                     ) + when(stage) {
                         "render" -> listOf("wurm.graphics.GraphicsProbe", File(native,"libgl4es.so").absolutePath, graphicsFrame(context).absolutePath)
@@ -225,6 +239,9 @@ object ClientSession {
                 val reader = Thread({
                     try { RootServerController.consumeLines(process.inputStream) { line ->
                         evidence.observe(line); log(line)
+                        if (stage == "entry" && line == "[client-ui] OPEN_GRAPHICS_SETTINGS") settingsRequests++
+                        if (line.startsWith("[client-ui] GRAPHICS_APPLIED ")) graphicsNotice = "Graphics preset applied."
+                        if (line.startsWith("[client-ui] GRAPHICS_FAILED ")) graphicsNotice = "Graphics change failed; export Client Report."
                         if (line.startsWith("[memory] MEMORY_PROBE_PASS collector=${if (stage == "memory-g1") "g1" else "serial"} ")) memoryPassed.set(true)
                         if (stage == "entry") connectionState.observe(line)?.let { status(it.phase, it.detail) }
                         if ((stage == "input" || window) && line.startsWith("[client] INPUT_READY ")) inputReady = true

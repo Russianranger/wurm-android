@@ -28,6 +28,15 @@ public class Check {
    if(data.position()!=8 || data.limit()!=1032) throw new AssertionError("buffer consumed");
   } else if(args[1].equals("pointer")) {
    FrameFile.write(output,w,h,3,data,8,7,true,42);
+  } else if(args[1].equals("raw")) {
+   FrameFile.writeRgba(output,w,h,4,data,8,7,true,43);
+   if(data.position()!=8 || data.limit()!=1032) throw new AssertionError("buffer consumed");
+   for(int[] bounds:new int[][]{{0,16,1},{16,1025,1},{16,16,0},{16,17,1}}) {
+    try { FrameFile.writeRgba(output,bounds[0],bounds[1],bounds[2],data,8,7,true,43); throw new AssertionError("accepted invalid raw"); }
+    catch(IllegalArgumentException expected) {}
+   }
+   try { FrameFile.writeRgba(output,w,h,5,data,16,7,true,43); throw new AssertionError("accepted invalid pointer"); }
+   catch(IllegalArgumentException expected) {}
   } else if(args[1].equals("invalid")) {
    Files.writeString(output,"previous");
    for(int[] bounds:new int[][]{{0,16,1},{16,1025,1},{16,16,0},{16,17,1}}) {
@@ -72,6 +81,11 @@ public class Check {
 
     def test_invalid_dimensions_sequence_and_buffer_do_not_replace_previous_frame(self):
         self.assertEqual(self.run_case('invalid').read_text(),'previous')
+
+    def test_raw_transport_preserves_channels_origin_metadata_and_previous_frame_on_bad_input(self):
+        data = self.run_case('raw').read_bytes()
+        self.assertEqual(struct.unpack('>9i', data[:36]), (0x57554746, 3, 16, 16, 4, 8, 7, 1, 43))
+        self.assertEqual(data[36:], bytes([255,0,0,255])*128 + bytes([0,0,255,255])*128)
 
     def test_supported_library_mapper_keeps_new_natives_out_of_legacy_lwjgl_names(self):
         self.run_case('names')

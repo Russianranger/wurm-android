@@ -11,7 +11,7 @@ import static org.lwjgl.opengl.GL11.*;
 public final class WindowBackend {
     private static Thread owner;
     private static int width, height, sequence;
-    private static long lastFrame;
+    private static FramePacer pacer;
     private static long statsStart, readbackNanos, publishNanos;
     private static int swaps, published;
     private static ByteBuffer pixels;
@@ -29,6 +29,7 @@ public final class WindowBackend {
         pixels = ByteBuffer.allocateDirect(w*h*4);
         pointer = new WindowInput(w, h);
         statsStart = System.nanoTime();
+        pacer = new FramePacer(Integer.getInteger("wurm.graphics.fps", 30));
         Thread input = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
@@ -69,7 +70,15 @@ public final class WindowBackend {
         synchronized(events) {
             String line;
             while ((line = events.poll()) != null) {
-                try { pointer.apply(line); }
+                try {
+                    if (line.startsWith("FPS ")) pacer.setFps(Integer.parseInt(line.substring(4)));
+                    else if (line.startsWith("VISUAL ")) {
+                        String preset=line.substring(7);
+                        if (!java.util.List.of("performance", "imported").contains(preset)) throw new IllegalArgumentException("Unknown preset");
+                        try { Class.forName("client.ClientVisualOptions").getMethod("apply", String.class).invoke(null,preset); }
+                        catch (ReflectiveOperationException failure) { System.out.println("[client-ui] GRAPHICS_FAILED " + failure); }
+                    } else pointer.apply(line);
+                }
                 catch (IllegalArgumentException failure) { System.out.println("[window] INPUT_REJECTED " + failure.getMessage()); }
             }
         }
@@ -81,8 +90,11 @@ public final class WindowBackend {
     public static void swap() {
         owned();
         swaps++;
+        long delay=pacer.delay(System.nanoTime());
+        if (delay > 0) try { Thread.sleep(delay/1_000_000L, (int)(delay%1_000_000L)); }
+        catch (InterruptedException e) { Thread.currentThread().interrupt(); stop=true; return; }
         long frameStart = System.nanoTime();
-        if (frameStart-lastFrame >= 66_666_667L) {
+        {
             int before = glGetError();
             if (before != GL_NO_ERROR) throw new IllegalStateException("CLIENT_GL_ERROR before readback=0x"+Integer.toHexString(before));
             int alignment = glGetInteger(GL_PACK_ALIGNMENT);
@@ -96,28 +108,26 @@ public final class WindowBackend {
                 int error = glGetError(), driver = NativeEgl.error();
                 if (error != 0 || driver != 0) throw new IllegalStateException("FRAME_READBACK_ERROR GL="+error+" GLES="+driver);
                 long publishStart = System.nanoTime();
-                FrameFile.write(Path.of(System.getProperty("wurm.graphics.frame")),width,height,++sequence,pixels, pointer.displayX(), pointer.displayY(), pointer.visible(), pointer.applied());
+                FrameFile.writeRgba(Path.of(System.getProperty("wurm.graphics.frame")),width,height,++sequence,pixels, pointer.displayX(), pointer.displayY(), pointer.visible(), pointer.applied());
                 publishNanos += System.nanoTime() - publishStart; published++;
             } catch (IOException failure) { throw new UncheckedIOException(failure); }
             finally {
                 glPixelStorei(GL_PACK_ALIGNMENT,alignment); glPixelStorei(GL_PACK_ROW_LENGTH,rowLength);
                 glPixelStorei(GL_PACK_SKIP_ROWS,skipRows); glPixelStorei(GL_PACK_SKIP_PIXELS,skipPixels);
             }
-            // Readback/publication time is part of the interval, not an extra delay.
-            lastFrame=frameStart;
+            pacer.presented(frameStart);
             if (sequence == 1 || sequence%25 == 0) System.out.println("[window] WINDOW_FRAME sequence="+sequence+" size="+width+"x"+height);
         }
         long now = System.nanoTime();
         if (now - statsStart >= 5_000_000_000L) {
             double seconds = (now - statsStart) / 1e9;
             System.out.println(String.format(java.util.Locale.ROOT,
-                "[window] FRAME_TIMING renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=15",
+                "[window] FRAME_TIMING renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=%d",
                 swaps/seconds, published/seconds, readbackNanos/1e6/Math.max(1,published),
-                publishNanos/1e6/Math.max(1,published)));
+                publishNanos/1e6/Math.max(1,published), pacer.fps()));
             statsStart=now; swaps=0; published=0; readbackNanos=0; publishNanos=0;
         }
         NativeEgl.swap();
-        try { Thread.sleep(16); } catch (InterruptedException e) { Thread.currentThread().interrupt(); stop=true; }
     }
     public static void close() {
         if (owner == null) return;

@@ -54,4 +54,24 @@ class GraphicsFrameTest {
         }
     }
 
+    @Test fun rawRgbaRetainsBottomOriginAndFallbackFlipsWithoutSwappingChannels() {
+        val file=fixture()
+        try {
+            DataOutputStream(file.outputStream()).use { out ->
+                listOf(0x57554746,3,16,16,8,3,4,1,99).forEach(out::writeInt)
+                repeat(128) { out.write(byteArrayOf(-1,0,0,0)) }
+                repeat(128) { out.write(byteArrayOf(0,0,-1,0)) }
+            }
+            val frame=GraphicsFrame.read(file)
+            assertEquals(0,frame.argb.size)
+            assertEquals(GraphicsFrame.Pointer(3,4,true,99),frame.pointer)
+            assertEquals(255,frame.rawRgba!![0].toInt() and 255)
+            val decoded=frame.decodedArgb()
+            assertTrue(decoded.take(128).all { it == 0xff0000ff.toInt() })
+            assertTrue(decoded.drop(128).all { it == 0xffff0000.toInt() })
+            file.writeBytes(file.readBytes().dropLast(1).toByteArray())
+            assertTrue(runCatching { GraphicsFrame.read(file) }.isFailure)
+        } finally { file.delete() }
+    }
+
 }

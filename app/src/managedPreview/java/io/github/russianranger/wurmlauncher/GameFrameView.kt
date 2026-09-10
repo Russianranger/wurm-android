@@ -14,6 +14,7 @@ class GameFrameView(context: Context, private val interactive: Boolean) : ImageV
     private var frameHeight = 0
     private var pointer: GraphicsFrame.Pointer? = null
     private var pointerId = -1
+    private var bottomUp = false
     private val touch = TouchPointer { event ->
         val queued = ClientSession.send(event)
         if (!event.startsWith("POINT ")) ClientSession.log("[touch] TRANSLATE $event queued=$queued")
@@ -25,7 +26,8 @@ class GameFrameView(context: Context, private val interactive: Boolean) : ImageV
         contentDescription = "Wurm game view. Touch to select; right stick moves pointer; A or RT clicks."
         isClickable = interactive
     }
-    fun frame(data: GraphicsFrame) {
+    fun frame(data: GraphicsFrame, rawBottomUp: Boolean = false) {
+        bottomUp = rawBottomUp
         frameWidth = data.width; frameHeight = data.height; pointer = data.pointer
         invalidate()
     }
@@ -62,7 +64,11 @@ class GameFrameView(context: Context, private val interactive: Boolean) : ImageV
     }
     override fun performClick(): Boolean { super.performClick(); return true }
     override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
+        if (bottomUp) {
+            val saved=canvas.save()
+            canvas.translate(0f,height.toFloat()); canvas.scale(1f,-1f)
+            super.onDraw(canvas); canvas.restoreToCount(saved)
+        } else super.onDraw(canvas)
         val p = pointer?.takeIf { interactive && it.visible && frameWidth > 1 && frameHeight > 1 } ?: return
         val scale = minOf(width.toFloat() / frameWidth, height.toFloat() / frameHeight)
         val x = (width - frameWidth * scale) / 2 + p.x * scale

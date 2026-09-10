@@ -1,6 +1,7 @@
 package io.github.russianranger.wurmlauncher
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.*
@@ -23,28 +24,74 @@ class GraphicsTestActivity : Activity() {
     private var shownIdentity = ""
     private var failureIdentity = ""
     private var resumed = false
+    private var epoch = -1L
+    private var shownSequence = 0
+    private var statusAt = 0L
+    private var statsAt = 0L
+    private var displayed = 0
+    private var rawCopy = false
+    private var settingsSeen = ClientSession.settingsRequests
+    private var noticeSeen = ""
+    private var graphicsDialog: AlertDialog? = null
+    private fun showGraphicsSettings() {
+        if (graphicsDialog?.isShowing == true) return
+        frame.cancelTouch(); capture?.reset()
+        graphicsDialog = GraphicsSettingsDialog.show(this,true)
+    }
+    private fun supportsRgbaCopy(): Boolean = runCatching {
+        val probe=Bitmap.createBitmap(2,1,Bitmap.Config.ARGB_8888)
+        try {
+            probe.setHasAlpha(false)
+            probe.copyPixelsFromBuffer(java.nio.ByteBuffer.wrap(byteArrayOf(-1,0,0,-1,0,0,-1,-1)))
+            probe.getPixel(0,0) == android.graphics.Color.RED && probe.getPixel(1,0) == android.graphics.Color.BLUE
+        } finally { probe.recycle() }
+    }.getOrDefault(false)
     private val refresh = object : Runnable {
         override fun run() {
             val state = ClientSession.snapshot()
-            status.text = "${state.phase}: ${state.detail}\n${ClientSession.recent().lines().takeLast(8).joinToString("\n")}"
+            val now=SystemClock.elapsedRealtime()
+            if (now-statusAt >= 500) {
+                if (status.isShown) {
+                    val value="${state.phase}: ${state.detail}\n${ClientSession.recent().lines().takeLast(8).joinToString("\n")}"
+                    if (status.text.toString() != value) status.text=value
+                }
+                statusAt=now
+                if (noticeSeen != ClientSession.graphicsNotice) {
+                    noticeSeen=ClientSession.graphicsNotice
+                    if (noticeSeen.isNotEmpty()) Toast.makeText(this@GraphicsTestActivity,noticeSeen,Toast.LENGTH_SHORT).show()
+                }
+            }
+            if (mode in listOf("start","local") && settingsSeen != ClientSession.settingsRequests) {
+                settingsSeen=ClientSession.settingsRequests; showGraphicsSettings()
+            }
             run.isEnabled = !state.busy
             val file = ClientSession.graphicsFrame(this@GraphicsTestActivity)
-            // Session start deletes the previous frame; no stale image is called a new pass.
+            val currentEpoch=ClientSession.frameEpoch
+            if (epoch != currentEpoch) {
+                epoch=currentEpoch; shownSequence=0; shownIdentity=""; failureIdentity=""; frame.clearFrame()
+                statsAt=now; displayed=0
+            }
             val identity = "${file.lastModified()}:${file.length()}"
-            if (!file.isFile) { frame.clearFrame(); shownIdentity = "" }
+            if (!file.isFile) { if (shownSequence != 0) frame.clearFrame(); shownIdentity = "" }
             else if (!reading && identity != shownIdentity && identity != failureIdentity) {
                 reading = true
                 reader.execute {
                     val result = runCatching { GraphicsFrame.read(file) }
                     handler.post {
                         reading = false
-                        if (!isDestroyed && resumed && "${file.lastModified()}:${file.length()}" == identity) result.fold({ data ->
-                            val bitmap = displayedBitmap?.takeIf { it.width == data.width && it.height == data.height }
-                                ?: Bitmap.createBitmap(data.width, data.height, Bitmap.Config.ARGB_8888).also { displayedBitmap = it }
-                            bitmap.setPixels(data.argb, 0, data.width, 0, 0, data.width, data.height)
-                            frame.setImageBitmap(bitmap)
-                            frame.frame(data)
+                        // Atomic rename makes an opened frame complete even if a newer one arrives.
+                        // Reject prior sessions/out-of-order frames, not a valid completed read.
+                        if (!isDestroyed && resumed && ClientSession.frameEpoch == currentEpoch) result.fold({ data ->
                             shownIdentity = identity
+                            if (data.sequence <= shownSequence) return@fold
+                            val bitmap = displayedBitmap?.takeIf { it.width == data.width && it.height == data.height }
+                                ?: Bitmap.createBitmap(data.width, data.height, Bitmap.Config.ARGB_8888).also { it.setHasAlpha(false); displayedBitmap = it }
+                            val direct=rawCopy && data.rawRgba != null && bitmap.rowBytes == data.width*4
+                            if (direct) bitmap.copyPixelsFromBuffer(java.nio.ByteBuffer.wrap(data.rawRgba!!))
+                            else bitmap.setPixels(data.decodedArgb(), 0, data.width, 0, 0, data.width, data.height)
+                            frame.setImageBitmap(bitmap)
+                            frame.frame(data,direct)
+                            shownSequence=data.sequence; displayed++
                             if (data.sequence <= 3 || data.sequence % 25 == 0) ClientSession.log("[graphics-ui] FRAME_DISPLAYED sequence=${data.sequence} size=${data.width}x${data.height}")
                         }, { failure ->
                             failureIdentity = identity
@@ -53,16 +100,21 @@ class GraphicsTestActivity : Activity() {
                     }
                 }
             }
-            handler.postDelayed(this, 33)
+            if (now-statsAt >= 5000) {
+                if (state.busy) ClientSession.log("[graphics-ui] UI_TIMING displayedFps=${java.lang.String.format(java.util.Locale.ROOT,"%.1f",displayed*1000.0/(now-statsAt))} lastSequence=$shownSequence rawCopy=$rawCopy")
+                statsAt=now; displayed=0
+            }
+            handler.postDelayed(this, 16)
         }
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); ClientSession.initialize(this)
+        rawCopy=supportsRgbaCopy()
         mode = intent.getStringExtra("mode")?.takeIf { it in listOf("window", "start", "local") } ?: "render"
         if (mode != "render") capture = ControllerCapture(this)
         val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,12,12,12) }
         setContentView(column)
-        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.19" else "LWJGL Window · 0.10.19"; textSize = 23f })
+        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.20" else "LWJGL Window · 0.10.20"; textSize = 23f })
         column.addView(TextView(this).apply { text = if (mode == "window") "90-second LWJGL test: left stick moves triangle; right stick moves cyan cursor; mouse clicks change triangle color. Finish, then export Client Report." else if (mode != "render") "Touch the game to select and drag. Right stick: pointer; A or RT: click; LT: right click. Use Send in the character dialog to continue." else "Expected: orange triangle on blue. Tests LWJGL, GL4ES, shader drawing and resize. No client import needed. This is not a Wurm game window." })
         val controls = LinearLayout(this)
         column.addView(HorizontalScrollView(this).apply { addView(controls) })
@@ -76,6 +128,7 @@ class GraphicsTestActivity : Activity() {
         if (mode == "window") button("Finish Window Test") { ClientSession.send("STOP") }
         button("Stop Client Test") { startService(Intent(this, ClientService::class.java).setAction("stop")) }
         button("Back to Client / Export") { finish() }
+        if (mode in listOf("start","local")) button("Graphics Settings") { showGraphicsSettings() }
         status = TextView(this).apply { textSize = 12f; setTextIsSelectable(true) }
         val diagnostics = ScrollView(this).apply { addView(status); visibility = if (mode == "render") android.view.View.VISIBLE else android.view.View.GONE }
         column.addView(diagnostics, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -89,10 +142,10 @@ class GraphicsTestActivity : Activity() {
         frame = GameFrameView(this, mode != "render")
         column.addView(frame, LinearLayout.LayoutParams(-1,0,2f))
     }
-    override fun onResume() { super.onResume(); capture?.resume(); resumed = true; handler.post(refresh) }
+    override fun onResume() { super.onResume(); capture?.resume(); resumed = true; statsAt=SystemClock.elapsedRealtime(); displayed=0; handler.post(refresh) }
     override fun onPause() { frame.cancelTouch(); resumed = false; capture?.pause(); handler.removeCallbacks(refresh); super.onPause() }
     override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (!hasFocus) { if (::frame.isInitialized) frame.cancelTouch(); capture?.reset() } }
     override fun dispatchKeyEvent(event: KeyEvent): Boolean = capture?.key(event) == true || super.dispatchKeyEvent(event)
     override fun onGenericMotionEvent(event: MotionEvent): Boolean = capture?.motion(event) == true || super.onGenericMotionEvent(event)
-    override fun onDestroy() { reader.shutdown(); super.onDestroy() }
+    override fun onDestroy() { graphicsDialog?.dismiss(); reader.shutdown(); super.onDestroy() }
 }
