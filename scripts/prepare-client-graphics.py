@@ -59,6 +59,10 @@ def main():
             archive.extractall(work, filter='data')
         sources[name] = work/pins[name]['root']
     lwjgl, gl4es, ffi = (sources[n] for n in ('lwjgl', 'gl4es', 'libffi'))
+    spec = importlib.util.spec_from_file_location('gl4es_patch', ROOT/'scripts/patch-gl4es.py')
+    gl4es_patch = importlib.util.module_from_spec(spec); spec.loader.exec_module(gl4es_patch)
+    gl4es_patch.apply(gl4es)
+    gl4es_patch.apply_draw(gl4es, ROOT/'graphics-compat/native/wurm_draw_trace.h')
     spec = importlib.util.spec_from_file_location('lwjgl_builder', ROOT/'scripts/build-lwjgl-api.py')
     api = importlib.util.module_from_spec(spec); spec.loader.exec_module(api)
     candidate = api.compile_verified_source(lwjgl, archives['jsr305'], work/'java-api',
@@ -97,7 +101,7 @@ def main():
     gl = lwjgl/'modules/lwjgl/opengl/src'
     gl_sources = sorted(p for p in (gl/'generated/c').glob('*.c') if p.name != 'org_lwjgl_opengl_WGL.c')
     library('wurm_lwjgl3_opengl', gl_sources, flags + ['-I'+str(p) for p in [core, core/'linux', gl/'main/c']], ['-ldl', '-lm'])
-    # Compile the public Android.mk source list without modifying the upstream tree.
+    # Compile the pinned source list with the checked shader correction and draw breadcrumb.
     gl4es_sources = [gl4es/p for p in re.findall(r'\bsrc/[A-Za-z0-9_/]+\.c\b', (gl4es/'Android.mk').read_text())]
     if len(gl4es_sources) < 60: raise ValueError('Unexpected GL4ES Android source list')
     library('gl4es', gl4es_sources,
@@ -118,7 +122,7 @@ def main():
     window_jar = window.build(sources['pojav'], candidate, assets/'graphics-probe.jar', work/'window-api', archives['jsr305'])
     shutil.copyfile(window_jar, assets/'wurm-window.jar')
     notices = [('LWJGL BSD notice', lwjgl/'LICENSE.md'), ('LWJGL dyncall notice', core/'org_lwjgl_system_SharedLibraryUtil.c'),
-               ('LWJGL bundled liburing notice', lwjgl/'modules/lwjgl/core/liburing_license.txt'), ('GL4ES MIT notice', gl4es/'LICENSE'),
+               ('LWJGL bundled liburing notice', lwjgl/'modules/lwjgl/core/liburing_license.txt'), ('GL4ES MIT notice (custom shader global-scope correction; bounded native draw breadcrumb)', gl4es/'LICENSE'),
                ('libffi MIT notice', ffi/'LICENSE'), ('Pojav Java GLFW LGPLv3 notice', sources['pojav']/'LICENSE'),
                ('Android utility Apache-2.0 notice', sources['pojav']/'jre_lwjgl3glfw/src/main/java/android/util/ArrayMap.java'),
                ('GPLv3 incorporated by LGPLv3', ROOT/'graphics-compat/licenses/GPL-3.0.txt'),
@@ -138,7 +142,7 @@ def main():
             if dependency not in system and not (native/dependency).is_file():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
-                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins,
+                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb'],
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},
                     assetsSha256={p.name: sha(p) for p in sorted(assets.iterdir())})
     (assets/'client-graphics.json').write_text(json.dumps(manifest, indent=2)+'\n')

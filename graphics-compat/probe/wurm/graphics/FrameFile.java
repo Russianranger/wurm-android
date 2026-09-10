@@ -25,12 +25,22 @@ public final class FrameFile {
                  DataOutputStream out = new DataOutputStream(new BufferedOutputStream(file))) {
                 out.writeInt(MAGIC); out.writeInt(pointer == null ? 1 : 2); out.writeInt(width); out.writeInt(height); out.writeInt(sequence);
                 if (pointer != null) for (int field : pointer) out.writeInt(field);
-                // glReadPixels origin is bottom-left; Android bitmap origin is top-left.
-                for (int y = height - 1; y >= 0; y--) for (int x = 0; x < width; x++) {
-                    int p = rgba.position() + (y * width + x) * 4;
-                    out.writeInt(((rgba.get(p+3)&255)<<24) | ((rgba.get(p)&255)<<16) | ((rgba.get(p+1)&255)<<8) | (rgba.get(p+2)&255));
+                // Bulk row copies avoid a DataOutputStream call for every pixel.
+                // glReadPixels origin is bottom-left; file pixels are big-endian ARGB, top-left.
+                byte[] row = new byte[width * 4];
+                ByteBuffer view = rgba.duplicate();
+                for (int y = height - 1; y >= 0; y--) {
+                    view.position(rgba.position() + y * row.length);
+                    view.get(row);
+                    for (int x = 0; x < row.length; x += 4) {
+                        byte alpha = row[x+3];
+                        row[x+3] = row[x+2]; row[x+2] = row[x+1]; row[x+1] = row[x]; row[x] = alpha;
+                    }
+                    out.write(row);
                 }
-                out.flush(); file.getFD().sync();
+                // This is a disposable display frame, not a world save. Close + atomic rename
+                // gives readers a complete image without forcing flash storage on every frame.
+                out.flush();
             }
             Files.move(pending, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } finally { Files.deleteIfExists(pending); }

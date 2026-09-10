@@ -1,6 +1,17 @@
 # Wurm Server for Android
 
-**Current test: 0.10.17 — touch and visible pointer controls.** The Thor's 0.10.16
+**Current test: 0.10.18 — shader and frame performance fix.** The Thor passed
+controls and final character creation in 0.10.17, rendered the world, then crashed
+inside Adreno drawing while the server stayed alive. This release fixes a reproduced
+GL4ES declaration-placement bug causing repeated shader failures, reduces frame
+transfer overhead and targets 15 presented FPS. It also records the last native
+draw; the crash is not yet proven resolved.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.18-shader-performance).
+[Follow the migration and performance test](docs/CLIENT_SHADER_PERFORMANCE_FIX.md)
+to preserve Thor through a stopped working-runtime export.
+
+
+**Previous test: 0.10.17 — touch and visible pointer controls.** The Thor's 0.10.16
 imported successfully, created player Thor and reached the in-game character dialog.
 The viewer lacked touch handling and a visible mouse pointer. This release adds
 direct touch selection, a pointer using actual game-thread coordinates, and a larger

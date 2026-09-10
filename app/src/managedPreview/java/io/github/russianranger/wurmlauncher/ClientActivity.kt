@@ -32,7 +32,7 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.17").textSize = 24f
+        label("Wurm Client · 0.10.18").textSize = 24f
         label("This build enables the server's existing first-time character creation. Choose your player name, then use this version's Start Local Game. Complete any character setup shown in the game. Login/world entry still need testing.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")

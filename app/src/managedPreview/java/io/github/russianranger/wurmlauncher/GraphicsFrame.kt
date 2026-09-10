@@ -18,7 +18,10 @@ data class GraphicsFrame(val width: Int, val height: Int, val sequence: Int, val
                 require(x in 0 until width && y in 0 until height && visible in 0..1 && applied >= 0) { "Invalid pointer metadata" }
                 Pointer(x, y, visible == 1, applied)
             } else null
-            val pixels = IntArray(width * height) { input.readInt() }
+            val bytes = ByteArray(width * height * 4)
+            input.readFully(bytes)
+            val pixels = IntArray(width * height)
+            java.nio.ByteBuffer.wrap(bytes).asIntBuffer().get(pixels)
             require(input.read() == -1) { "Trailing graphics frame bytes" }
             GraphicsFrame(width, height, sequence, pixels, pointer)
         }

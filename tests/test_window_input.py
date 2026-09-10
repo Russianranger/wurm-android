@@ -43,7 +43,7 @@ public class Check {
   check(s.events.contains("K 17 0") && s.events.contains("M 1 0 0 0 0"));
   s.grab=true; check(!p.visible()); p.apply("MOVE -100 -100"); check(p.x()<0 && p.displayX()==0);
   int count=p.applied(), queued=s.events.size();
-  for(String invalid:new String[]{"POINT NaN 0","POINT 0 Infinity","POINT -0.01 0","POINT 1.01 0","POINT 0 2","BUTTON 7 1"}) {
+  for(String invalid:new String[]{"POINT NaN 0","POINT 0 Infinity","POINT -0.01 0","POINT 1.01 0","POINT 0 2","BUTTON 8 1"}) {
    try {p.apply(invalid); throw new AssertionError(invalid);} catch(IllegalArgumentException ok) {}
   }
   check(p.applied()==count && s.events.size()==queued);

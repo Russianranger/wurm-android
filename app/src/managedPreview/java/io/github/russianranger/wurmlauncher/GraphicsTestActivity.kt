@@ -16,6 +16,7 @@ class GraphicsTestActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var frame: GameFrameView
     private lateinit var run: Button
+    private var displayedBitmap: Bitmap? = null
     private var mode = "render"
     private var capture: ControllerCapture? = null
     private var reading = false
@@ -38,7 +39,10 @@ class GraphicsTestActivity : Activity() {
                     handler.post {
                         reading = false
                         if (!isDestroyed && resumed && "${file.lastModified()}:${file.length()}" == identity) result.fold({ data ->
-                            frame.setImageBitmap(Bitmap.createBitmap(data.argb, data.width, data.height, Bitmap.Config.ARGB_8888))
+                            val bitmap = displayedBitmap?.takeIf { it.width == data.width && it.height == data.height }
+                                ?: Bitmap.createBitmap(data.width, data.height, Bitmap.Config.ARGB_8888).also { displayedBitmap = it }
+                            bitmap.setPixels(data.argb, 0, data.width, 0, 0, data.width, data.height)
+                            frame.setImageBitmap(bitmap)
                             frame.frame(data)
                             shownIdentity = identity
                             if (data.sequence <= 3 || data.sequence % 25 == 0) ClientSession.log("[graphics-ui] FRAME_DISPLAYED sequence=${data.sequence} size=${data.width}x${data.height}")
@@ -49,7 +53,7 @@ class GraphicsTestActivity : Activity() {
                     }
                 }
             }
-            handler.postDelayed(this, 100)
+            handler.postDelayed(this, 33)
         }
     }
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,7 +62,7 @@ class GraphicsTestActivity : Activity() {
         if (mode != "render") capture = ControllerCapture(this)
         val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,12,12,12) }
         setContentView(column)
-        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.17" else "LWJGL Window · 0.10.17"; textSize = 23f })
+        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.18" else "LWJGL Window · 0.10.18"; textSize = 23f })
         column.addView(TextView(this).apply { text = if (mode == "window") "90-second LWJGL test: left stick moves triangle; right stick moves cyan cursor; mouse clicks change triangle color. Finish, then export Client Report." else if (mode != "render") "Touch the game to select and drag. Right stick: pointer; A or RT: click; LT: right click. Use Send in the character dialog to continue." else "Expected: orange triangle on blue. Tests LWJGL, GL4ES, shader drawing and resize. No client import needed. This is not a Wurm game window." })
         val controls = LinearLayout(this)
         column.addView(HorizontalScrollView(this).apply { addView(controls) })

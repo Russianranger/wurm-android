@@ -6,7 +6,7 @@ import org.lwjgl.input.GLFWInputImplementation;
 /** Owned game-thread input state. Coordinates are GLFW top-left pixels. */
 public final class WindowInput {
     private final DesktopInput parser = new DesktopInput();
-    private final boolean[] keys = new boolean[256], buttons = new boolean[3];
+    private final boolean[] keys = new boolean[256], buttons = new boolean[8];
     private int width, height, applied;
     private double x, y;
 

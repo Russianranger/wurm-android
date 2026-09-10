@@ -12,6 +12,8 @@ public final class WindowBackend {
     private static Thread owner;
     private static int width, height, sequence;
     private static long lastFrame;
+    private static long statsStart, readbackNanos, publishNanos;
+    private static int swaps, published;
     private static ByteBuffer pixels;
     private static final ArrayBlockingQueue<String> events = new ArrayBlockingQueue<>(512);
     private static volatile boolean stop;
@@ -26,6 +28,7 @@ public final class WindowBackend {
         GL.createCapabilities();
         pixels = ByteBuffer.allocateDirect(w*h*4);
         pointer = new WindowInput(w, h);
+        statsStart = System.nanoTime();
         Thread input = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
@@ -77,7 +80,8 @@ public final class WindowBackend {
     }
     public static void swap() {
         owned();
-        if (System.nanoTime()-lastFrame >= 200_000_000L) {
+        swaps++;
+        if (System.nanoTime()-lastFrame >= 66_666_667L) {
             int before = glGetError();
             if (before != GL_NO_ERROR) throw new IllegalStateException("CLIENT_GL_ERROR before readback=0x"+Integer.toHexString(before));
             int alignment = glGetInteger(GL_PACK_ALIGNMENT);
@@ -85,10 +89,14 @@ public final class WindowBackend {
             try {
                 glPixelStorei(GL_PACK_ALIGNMENT,1); pixels.clear();
                 glPixelStorei(GL_PACK_ROW_LENGTH,0); glPixelStorei(GL_PACK_SKIP_ROWS,0); glPixelStorei(GL_PACK_SKIP_PIXELS,0);
+                long readStart = System.nanoTime();
                 glReadPixels(0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,pixels);
+                readbackNanos += System.nanoTime() - readStart;
                 int error = glGetError(), driver = NativeEgl.error();
                 if (error != 0 || driver != 0) throw new IllegalStateException("FRAME_READBACK_ERROR GL="+error+" GLES="+driver);
+                long publishStart = System.nanoTime();
                 FrameFile.write(Path.of(System.getProperty("wurm.graphics.frame")),width,height,++sequence,pixels, pointer.displayX(), pointer.displayY(), pointer.visible(), pointer.applied());
+                publishNanos += System.nanoTime() - publishStart; published++;
             } catch (IOException failure) { throw new UncheckedIOException(failure); }
             finally {
                 glPixelStorei(GL_PACK_ALIGNMENT,alignment); glPixelStorei(GL_PACK_ROW_LENGTH,rowLength);
@@ -96,6 +104,15 @@ public final class WindowBackend {
             }
             lastFrame=System.nanoTime();
             if (sequence == 1 || sequence%25 == 0) System.out.println("[window] WINDOW_FRAME sequence="+sequence+" size="+width+"x"+height);
+        }
+        long now = System.nanoTime();
+        if (now - statsStart >= 5_000_000_000L) {
+            double seconds = (now - statsStart) / 1e9;
+            System.out.println(String.format(java.util.Locale.ROOT,
+                "[window] FRAME_TIMING renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=15",
+                swaps/seconds, published/seconds, readbackNanos/1e6/Math.max(1,published),
+                publishNanos/1e6/Math.max(1,published)));
+            statsStart=now; swaps=0; published=0; readbackNanos=0; publishNanos=0;
         }
         NativeEgl.swap();
         try { Thread.sleep(16); } catch (InterruptedException e) { Thread.currentThread().interrupt(); stop=true; }

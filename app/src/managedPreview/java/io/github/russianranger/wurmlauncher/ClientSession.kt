@@ -27,6 +27,7 @@ object ClientSession {
     fun inputReady() = inputReady && child?.isAlive == true
     fun store(context: Context) = ClientStore(File(context.filesDir, "managed-client"))
     fun profileFile(context: Context) = File(context.filesDir, "controller.properties")
+    fun nativeDrawTrace(context: Context) = File(context.filesDir, "client-native-draw.bin")
     fun graphicsFrame(context: Context) = File(context.filesDir, "client-graphics-frame.bin")
     @Synchronized fun log(message: String) {
         val line = message.take(4000); lines.addLast(line)
@@ -43,12 +44,14 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.17\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.18\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.16 imported successfully; server created Thor and client entered the game loop with Define your character visible. This build adds direct touch and a visible game-thread pointer. Finishing character setup, terrain rendering, audio and gameplay persistence need device verification. The 0.10.16 GL4ES shader errors and earlier EGL/Scudo exit issue remain unresolved.\n\n" +
+            "Gate status: Thor 0.10.17 passed controls, finalized character creation and rendered the world, then the client crashed in Adreno glDrawElements through GL4ES while the server stayed alive. This build fixes reproduced shader declaration errors and reduces frame-transfer costs with a 15 FPS presentation target. On-device speed and whether the native crash persists need verification; the crash is not claimed resolved.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
+            "\nNative draw after client exit:\n" + (if (state.busy) "Client active; read after it stops."
+                else runCatching { NativeDrawTrace.read(nativeDrawTrace(context)) }.getOrElse { "Unavailable: ${it.message}" }) +
             "\nLast graphics frame:\n" + runCatching { graphicsFrame(context).takeIf { it.isFile }?.let {
                 val frame = GraphicsFrame.read(it)
                 "sequence=${frame.sequence} size=${frame.width}x${frame.height} pointer=${frame.pointer} sha256=${ProbeInputs.sha256(it)}; retained frame, not a new run\n"
@@ -60,6 +63,7 @@ object ClientSession {
     @Synchronized fun start(context: Context, mode: String, uri: Uri?, done: () -> Unit): Boolean {
         if (state.busy) return false
         initialize(context); cancelled = false; queue.clear()
+        nativeDrawTrace(context).delete()
         status("Preparing", "Client operation: $mode")
         worker = Thread({
             try {
@@ -212,6 +216,7 @@ object ClientSession {
                         environment()["LIBGL_ES"] = "2"; environment()["LIBGL_GL"] = "21"
                         environment()["LIBGL_GLES"] = "libGLESv2.so"; environment()["LIBGL_EGL"] = "libEGL.so"
                         environment()["LIBGL_NOPSA"] = "1"
+                        environment()["WURM_GL_DRAW_TRACE"] = nativeDrawTrace(context).absolutePath
                         log("[graphics] SHADER_CACHE disabled LIBGL_NOPSA=1; compile shaders per attempt to avoid cached-program failures")
                     }
                 }.start().also { child = it }
@@ -269,6 +274,8 @@ object ClientSession {
                     val reason = if (mode == "memory" && process.exitValue() == 0 && !memoryPassed.get()) "Memory test ended without its verified completion marker" else if (timedOut) "Client stage $stage reached its startup time limit; last connection: ${connectionState.latest?.let { "${it.phase}: ${it.detail}" } ?: "not observed"}" else evidence.summary(process.exitValue())
                     graphicsFailure.compareAndSet(null, reason)
                     log("[client-crash] EXIT_SUMMARY stage=$stage $reason")
+                    log("[client-crash] " + runCatching { NativeDrawTrace.read(nativeDrawTrace(context)) }
+                        .getOrElse { "NATIVE_DRAW_UNAVAILABLE ${it.message}" })
                     if (!timedOut && process.exitValue() in 128..159) {
                         status("Collecting crash details", "Client stage $stage exited ${process.exitValue()}; reading available Android evidence")
                         ClientCrashCapture.collect(context, evidence, ::log)
