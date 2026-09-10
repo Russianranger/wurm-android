@@ -43,9 +43,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.14\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.15\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.13 used the Java 17 server encoder successfully and passed local authentication, then rejected the blank client login credential. This build supplies the same persisted identity as the local Steam shim; server authentication checks and Serial GC are retained. A later EGL/Scudo abort during client exit remains unresolved. Login, visible world, audio and gameplay persistence remain unverified.\n\n" +
+            "Gate status: Thor 0.10.14 passed local authentication but the server rejected missing player Thor. The bootstrap had disabled personal-server mode inside runServer. This build uses runServer(true,true) and reports the mode after startup. First-time character creation, login, visible world, audio and gameplay persistence need device verification. The earlier EGL/Scudo exit issue remains unresolved.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +

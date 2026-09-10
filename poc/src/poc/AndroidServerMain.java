@@ -72,17 +72,22 @@ public final class AndroidServerMain {
             new ServerLauncher();
 
 
-Server.getInstance().setIsPS(true);
-
-System.out.println(
-    "[WurmARM64] Personal-server mode forced: "
-    + Server.getInstance().isPS()
-);
         System.out.println(
-            "[WurmARM64] Starting server in offline mode..."
+            "[WurmARM64] Starting personal server in offline mode..."
         );
 
-        launcher.runServer(false, true);
+        // runServer's first argument sets isPS itself. Setting it beforehand
+        // is overwritten by that argument and disables first-time characters.
+        launcher.runServer(true, true);
+
+        boolean personalServer = Server.getInstance().isPS();
+        System.out.println(
+            "[WurmARM64] SERVER_MODE_ACTIVE personal=" + personalServer
+            + "; observed after runServer; new-player login still needs testing"
+        );
+        if (!personalServer) {
+            throw new IllegalStateException("Personal-server mode was not retained after startup.");
+        }
 
         System.out.println(
             "[WurmARM64] runServer() returned."

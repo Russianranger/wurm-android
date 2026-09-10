@@ -32,8 +32,8 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.14").textSize = 24f
-        label("The server accepted local authentication, then rejected the launcher's blank login credential. This build supplies the existing local identity automatically. Use this version's Start Local Game; login/world entry still need testing. The native crash during exit remains unresolved.")
+        label("Wurm Client · 0.10.15").textSize = 24f
+        label("This build enables the server's existing first-time character creation. Choose your player name, then use this version's Start Local Game. Complete any character setup shown in the game. Login/world entry still need testing.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
         button("Import Client ZIP", true) {
@@ -46,7 +46,7 @@ class ClientActivity : Activity() {
         button("Start Controller Test") { startActivity(Intent(this, ControllerTestActivity::class.java)) }
         button("LWJGL Window / Input Test") { startActivity(Intent(this, GraphicsTestActivity::class.java).putExtra("mode", "window")) }
         button("JVM Memory Test", true) { startForegroundService(Intent(this, ClientService::class.java).setAction("memory")) }
-        label("Client startup retains Serial GC. The optional Memory Test compares G1 and Serial without game files; no repeat is required for the server login test.")
+        label("Client startup retains Serial GC. The optional Memory Test compares G1 and Serial without game files; no repeat is required for this character-creation test.")
         button("JVM Graphics Test") { startActivity(Intent(this, GraphicsTestActivity::class.java)) }
         val preferences = getSharedPreferences("client-settings", MODE_PRIVATE)
         label("Local player name (local identity supplied automatically; no Steam password needed)")

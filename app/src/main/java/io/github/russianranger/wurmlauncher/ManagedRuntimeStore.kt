@@ -187,7 +187,7 @@ class ManagedRuntimeStore(
     }
 
     companion object {
-        const val POC_SHA256 = "0fe4039a1a06afae93099b6eaf140e04fe7e0b1f1145323116468f8f78a884fe"
+        const val POC_SHA256 = "82a39c9797a394b036785ad366e5c1a6ed0de935ab1f3b82e1fcc80f5181dfa4"
         val REQUIRED_JARS = listOf("server.jar", "common.jar",
             "poc-lib/sqlite-jdbc-3.53.2.1.jar", "poc-lib/sqlite-jdbc-3.53.2.1-natives-android.jar")
         private val GENERATION = Regex("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")

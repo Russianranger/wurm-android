@@ -1,6 +1,28 @@
 # From the working POC to Wurm Server
 
-## Current milestone: 0.10.14 local login credential
+## Current milestone: 0.10.15 personal-server character creation
+
+The 0.10.14 Thor passes local authentication but fails with `No such player - Thor`.
+The POC sets personal mode true before calling `runServer(false, true)`. Inspection
+of the matching original ServerLauncher proves its first argument overwrites that
+mode before startup. The missing-player branch then rejects registration because
+personal mode is false. Wurm already contains the creation path and the in-game
+"Define your character" prompt.
+
+The POC now uses `runServer(true, true)` and verifies personal mode after startup.
+The authored artifact, source pins and importer pin are updated together. Existing
+client credentials, game JARs, SQLite/encoder overlays, Steam shim source, Serial GC,
+rendering and controller implementation are retained. No player database is edited
+manually and no extra client creation packet is introduced.
+
+**Next gate:** install 0.10.15, import the same server/client ZIPs, select Adventure
+and Thor, then use this version's Start Local Game. Complete in-game creation if
+it appears; export matched Client and Server Session Reports plus a screenshot.
+If creation and clean shutdown succeed, restart the same character without
+reimporting to check persistence. Native EGL/Scudo stability, audio and gameplay
+remain unqualified. See [SERVER_PERSONAL_MODE_FIX.md](SERVER_PERSONAL_MODE_FIX.md).
+
+## Previous milestone: 0.10.14 local login credential
 
 The 0.10.13 Thor server successfully used the Java 17 encoder and remained alive
 until the requested stop. Its exact login message says an authenticated user

@@ -4,7 +4,7 @@ This directory contains the small Java proof-of-concept layer used to launch the
 
 ## What is here
 
-- `src/poc/AndroidServerMain.java` — Android/Termux launcher entry point. It selects the Wurm world directory, configures Wurm's `GameFolder`, forces personal-server mode, starts the server in offline mode, and keeps the JVM alive for the server threads.
+- `src/poc/AndroidServerMain.java` — Android/Termux launcher entry point. It selects the Wurm world directory, configures Wurm's `GameFolder`, starts the server with personal and offline mode enabled, and keeps the JVM alive for the server threads.
 - `src/SteamJni/SteamServerApi.java` — Java shim that replaces the native Steam server JNI entry points used by Wurm Unlimited. For the offline ARM64 POC it simulates a successful Steam game-server connection/authentication path.
 - `artifacts/wurm-arm64-poc.jar.base64` — base64 representation of the current compiled `wurm-arm64-poc.jar`. It is stored this way because the GitHub connector used to add these files can write UTF-8 text but not raw binary files.
 
@@ -33,27 +33,18 @@ poc/AndroidServerMain.class
 
 The POC source compiles against Wurm Unlimited's existing server classes. The proprietary Wurm files are not included in this repository; provide your own legally obtained `server.jar` and `common.jar` in the working directory.
 
-Using a layout equivalent to the original Termux POC:
+A deterministic rebuild packages exactly the two authored classes and a manifest:
 
 ```bash
-rm -rf poc-classes
-mkdir -p poc-classes
-
-javac \
-  -cp "server.jar:common.jar" \
-  -d poc-classes \
-  poc/src/SteamJni/SteamServerApi.java \
-  poc/src/poc/AndroidServerMain.java
-
-rm -f wurm-arm64-poc.jar
-jar cf wurm-arm64-poc.jar -C poc-classes .
+python3 scripts/build-poc.py --classpath /absolute/path/server.jar \
+  --output poc/artifacts/wurm-arm64-poc.jar.base64
 ```
 
-Then verify:
-
-```bash
-jar tf wurm-arm64-poc.jar | grep -E 'AndroidServerMain|SteamServerApi'
-```
+The inspected server JAR contains the compile-time types required here. A different
+layout may need `server.jar:common.jar` as its classpath. After a deliberate source
+change, update the printed artifact/source pins in `app/build.gradle.kts` and the
+artifact pin in `ManagedRuntimeStore.kt`. Public CI decodes and verifies the artifact
+without importing proprietary dependencies. The builder never packages them.
 
 ## Original Termux runtime invocation
 
@@ -70,19 +61,20 @@ java \
 
 The exact bundled runtime should be treated as an implementation detail of the future Android app. The app should ultimately manage the required runtime files, world directory, JVM launch arguments, server lifecycle, logs, and configuration itself rather than requiring the user to type this command.
 
-## Important POC behavior already proven
-
-The launcher explicitly forces Wurm personal-server mode with:
+## Personal/offline startup contract (corrected in 0.10.15)
 
 ```java
-Server.getInstance().setIsPS(true);
+launcher.runServer(true, true);
 ```
 
-It then launches in offline mode with:
-
-```java
-launcher.runServer(false, true);
-```
+The first argument sets personal-server mode and the second enables offline mode.
+The original launcher overwrites both flags before starting the server. Earlier
+versions set personal mode true first but then passed `false, true`, disabling it
+and preventing first-time character creation. That pre-start log was misleading.
+The POC now reports `SERVER_MODE_ACTIVE personal=true` after runServer returns and
+fails if the mode is false. The original Wurm server handles player creation and
+the in-game setup prompt; device login/world/persistence acceptance remains pending.
+See [the investigation and Thor procedure](../docs/SERVER_PERSONAL_MODE_FIX.md).
 
 The Steam shim reports a synthetic successful game-server connection rather than loading the desktop Steam native server library.
 
@@ -104,4 +96,4 @@ The purpose of this repository is to turn the proven Termux POC into a normal An
 
 Do not treat `wurm-arm64-poc.jar` as an opaque missing dependency. Its complete handwritten source is in `poc/src/`, and the current compiled POC artifact can be reconstructed from `poc/artifacts/wurm-arm64-poc.jar.base64`.
 
-Before changing the architecture, preserve the behavior demonstrated by the POC: Android ARM64/Termux can start the Wurm server far enough to create/load its SQLite databases, initialize the Steam shim, enter personal/offline mode, keep the JVM/server threads alive, and bind the game TCP listener. Future work should move that behavior behind the Android application's lifecycle and UI rather than replacing the proven path unnecessarily.
+Before changing the architecture, preserve the behavior demonstrated by the POC: Android ARM64/Termux can start the Wurm server far enough to create/load its SQLite databases, initialize the Steam shim, run offline (personal mode was corrected in 0.10.15), keep the JVM/server threads alive, and bind the game TCP listener. Future work should move that behavior behind the Android application's lifecycle and UI rather than replacing the proven path unnecessarily.

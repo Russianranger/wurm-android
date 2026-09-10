@@ -13,7 +13,7 @@ val pocAssets = layout.buildDirectory.dir("generated/pocAssets")
 val packagePoc by tasks.registering {
     val artifact = rootProject.file("poc/artifacts/wurm-arm64-poc.jar.base64")
     val sourcePins = mapOf(
-        "poc/src/poc/AndroidServerMain.java" to "7b12adaee5ce73176ed345b0fa218c265047e6107a999ce0ca78a433c64d8ab7",
+        "poc/src/poc/AndroidServerMain.java" to "1ea22c714666a6bd502e44f8fc8091c33d06c57450da6c5ad3e47b4f675ba44e",
         "poc/src/SteamJni/SteamServerApi.java" to "37b5e6e41ade709e1f22a78818fb2f751d120b8aef6bb4195d3482ac3cd55292"
     )
     inputs.files(artifact, *sourcePins.keys.map { rootProject.file(it) }.toTypedArray())
@@ -27,7 +27,7 @@ val packagePoc by tasks.registering {
             }
         }
         val bytes = Base64.getDecoder().decode(artifact.readText().filterNot { it.isWhitespace() })
-        check(sha(bytes) == "0fe4039a1a06afae93099b6eaf140e04fe7e0b1f1145323116468f8f78a884fe")
+        check(sha(bytes) == "82a39c9797a394b036785ad366e5c1a6ed0de935ab1f3b82e1fcc80f5181dfa4")
         val entries = mutableSetOf<String>()
         ZipInputStream(bytes.inputStream()).use { zip ->
             while (true) {
@@ -114,8 +114,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 28
-        versionName = "0.10.14"
+        versionCode = 29
+        versionName = "0.10.15"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -128,7 +128,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".loginidentity"
+            applicationIdSuffix = ".personalserver"
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }
