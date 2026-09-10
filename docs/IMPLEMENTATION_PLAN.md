@@ -1,6 +1,16 @@
 # From the working POC to Wurm Server
 
-**Current test: 0.10.16 — existing runtime import fix.** 0.10.15 rejected existing
+**Current test: 0.10.17 — touch and visible pointer controls.** The Thor's 0.10.16
+imported successfully, created player Thor and reached the in-game character dialog.
+The viewer lacked touch handling and a visible mouse pointer. This release adds
+direct touch selection, a pointer using actual game-thread coordinates, and a larger
+game view. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.17-touch-input).
+Follow [the character-creation controls test](CLIENT_TOUCH_INPUT_FIX.md).
+Final setup, terrain rendering and persistence remain unverified; GL4ES shader
+errors are the next known graphics issue.
+
+
+**Previous test: 0.10.16 — existing runtime import fix.** 0.10.15 rejected existing
 ZIPs containing the previous bootstrap before startup. This release upgrades only
 that exact known bootstrap in the staged copy while preserving game/world/configuration
 bytes and the original ZIP. The personal-server character-creation fix is retained.

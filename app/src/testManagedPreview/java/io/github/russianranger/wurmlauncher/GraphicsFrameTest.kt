@@ -37,4 +37,21 @@ class GraphicsFrameTest {
         try { file.writeBytes(byteArrayOf(1,2,3,4)); assertTrue(runCatching { GraphicsFrame.read(file) }.isFailure) }
         finally { file.delete() }
     }
+    @Test fun readsPointerAlongsidePixelsAndRejectsInvalidMetadata() {
+        for (metadata in listOf(listOf(8,7,1,42), listOf(16,7,1,42), listOf(8,-1,1,42), listOf(8,7,2,42), listOf(8,7,1,-1))) {
+            val file = fixture()
+            try {
+                DataOutputStream(file.outputStream()).use { out ->
+                    (listOf(0x57554746,2,16,16,1) + metadata).forEach(out::writeInt)
+                    repeat(256) { out.writeInt(0xff123456.toInt()) }
+                }
+                if (metadata == listOf(8,7,1,42)) {
+                    val frame = GraphicsFrame.read(file)
+                    assertEquals(GraphicsFrame.Pointer(8,7,true,42), frame.pointer)
+                    assertEquals(0xff123456.toInt(), frame.argb[0])
+                } else assertTrue(runCatching { GraphicsFrame.read(file) }.isFailure)
+            } finally { file.delete() }
+        }
+    }
+
 }

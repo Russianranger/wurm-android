@@ -23,6 +23,12 @@ public final class DesktopInput {
             if (!Double.isFinite(x) || !Double.isFinite(y) || Math.abs(x) > 1000 || Math.abs(y) > 1000) throw new IllegalArgumentException("Invalid mouse delta");
             return new Event("MOVE", 0, x, y);
         }
+        if (p.length == 3 && p[0].equals("POINT")) {
+            double x = Double.parseDouble(p[1]), y = Double.parseDouble(p[2]);
+            if (!Double.isFinite(x) || !Double.isFinite(y) || x < 0 || x > 1 || y < 0 || y > 1)
+                throw new IllegalArgumentException("Invalid pointer position");
+            return new Event("POINT", 0, x, y);
+        }
         if (p.length == 2 && p[0].equals("WHEEL")) {
             int amount = Integer.parseInt(p[1]); if (Math.abs((long)amount) > 1200) throw new IllegalArgumentException("Invalid wheel");
             return new Event("WHEEL", 0, amount, 0);

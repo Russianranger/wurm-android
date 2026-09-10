@@ -61,7 +61,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
         assert "META-INF/LICENSE.pojav.txt" in window.namelist()
-        for name in ("org/lwjgl/glfw/GLFW.class", "wurm/graphics/WindowBackend.class", "wurm/graphics/WindowProbe.class", "wurm/graphics/OffscreenSupport.class", "wurm/graphics/ShaderQueries.class", "wurm/graphics/CapabilityChecks.class"):
+        for name in ("org/lwjgl/glfw/GLFW.class", "wurm/graphics/WindowBackend.class", "wurm/graphics/WindowInput.class", "wurm/graphics/WindowProbe.class", "wurm/graphics/OffscreenSupport.class", "wurm/graphics/ShaderQueries.class", "wurm/graphics/CapabilityChecks.class"):
             assert int.from_bytes(window.read(name)[6:8], "big") == 61
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in window.namelist())
 print("Verified maintained runtime, notices, native runner, Java 17 helper classes and exact POC artifact.")

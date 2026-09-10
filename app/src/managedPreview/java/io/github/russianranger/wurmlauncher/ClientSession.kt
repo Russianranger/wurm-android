@@ -43,15 +43,15 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.16\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.17\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.14 passed local authentication but the server rejected missing player Thor. The bootstrap had disabled personal-server mode inside runServer. This build uses runServer(true,true) and reports the mode after startup. First-time character creation, login, visible world, audio and gameplay persistence need device verification. The earlier EGL/Scudo exit issue remains unresolved.\n\n" +
+            "Gate status: Thor 0.10.16 imported successfully; server created Thor and client entered the game loop with Define your character visible. This build adds direct touch and a visible game-thread pointer. Finishing character setup, terrain rendering, audio and gameplay persistence need device verification. The 0.10.16 GL4ES shader errors and earlier EGL/Scudo exit issue remain unresolved.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
             "\nLast graphics frame:\n" + runCatching { graphicsFrame(context).takeIf { it.isFile }?.let {
                 val frame = GraphicsFrame.read(it)
-                "sequence=${frame.sequence} size=${frame.width}x${frame.height} sha256=${ProbeInputs.sha256(it)}; retained frame, not a new run\n"
+                "sequence=${frame.sequence} size=${frame.width}x${frame.height} pointer=${frame.pointer} sha256=${ProbeInputs.sha256(it)}; retained frame, not a new run\n"
             } ?: "No frame\n" }.getOrElse { "Frame invalid: ${it.message}\n" } + "\nSession history:\n" +
             (file?.takeIf { it.isFile }?.readText() ?: recent()) +
             "\n\nServer Session Report from this app only (history; compare timestamps):\n" +

@@ -26,6 +26,8 @@ public class Check {
   if(args[1].equals("valid")) {
    FrameFile.write(output,w,h,1,data); FrameFile.write(output,w,h,2,data);
    if(data.position()!=8 || data.limit()!=1032) throw new AssertionError("buffer consumed");
+  } else if(args[1].equals("pointer")) {
+   FrameFile.write(output,w,h,3,data,8,7,true,42);
   } else if(args[1].equals("invalid")) {
    Files.writeString(output,"previous");
    for(int[] bounds:new int[][]{{0,16,1},{16,1025,1},{16,16,0},{16,17,1}}) {
@@ -59,6 +61,14 @@ public class Check {
         pixels=struct.unpack('>256I',data[20:])
         self.assertTrue(all(p==0xff0000ff for p in pixels[:128]))
         self.assertTrue(all(p==0xffff0000 for p in pixels[128:]))
+
+    def test_pointer_metadata_is_atomic_with_unmodified_pixels(self):
+        data = self.run_case('pointer').read_bytes()
+        self.assertEqual(struct.unpack('>9i', data[:36]), (0x57554746, 2, 16, 16, 3, 8, 7, 1, 42))
+        self.assertEqual(len(data), 36 + 16 * 16 * 4)
+        pixels = struct.unpack('>256I', data[36:])
+        self.assertTrue(all(p == 0xff0000ff for p in pixels[:128]))
+        self.assertTrue(all(p == 0xffff0000 for p in pixels[128:]))
 
     def test_invalid_dimensions_sequence_and_buffer_do_not_replace_previous_frame(self):
         self.assertEqual(self.run_case('invalid').read_text(),'previous')
