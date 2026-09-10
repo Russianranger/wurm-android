@@ -66,6 +66,9 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
+        assert int.from_bytes(window.read("wurm/graphics/WurmVisibility.class")[6:8], "big") == 61
+        assert b"WURM_VISIBILITY_POLICY" in window.read("wurm/graphics/WurmVisibility.class")
+        assert b"wurm/graphics/WurmVisibility" in window.read("wurm/graphics/CapabilityChecks.class")
         assert int.from_bytes(window.read("wurm/graphics/FramePacer.class")[6:8], "big") == 61
         assert "META-INF/LICENSE.pojav.txt" in window.namelist()
         for name in ("org/lwjgl/glfw/GLFW.class", "wurm/graphics/WindowBackend.class", "wurm/graphics/WindowInput.class", "wurm/graphics/WindowProbe.class", "wurm/graphics/OffscreenSupport.class", "wurm/graphics/ShaderQueries.class", "wurm/graphics/CapabilityChecks.class"):

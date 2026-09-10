@@ -1,5 +1,9 @@
 # Pojav Java API compatibility candidate
 
+0.10.24 disables Wurm's occlusion-query capability and option for GL4ES's
+placeholder sample results. Distance and frustum culling still apply. See the
+[visibility correction and test](../docs/CLIENT_VISIBILITY_FIX.md).
+
 0.10.23 adds the checked VAO buffer-offset correction and an ARM64 OpenAL Soft
 1.23.1 build using Android OpenSL ES. The legacy OpenAL context lifecycle is also
 corrected. See [evidence and test steps](../docs/CLIENT_AUDIO_BUFFER_FIX.md).

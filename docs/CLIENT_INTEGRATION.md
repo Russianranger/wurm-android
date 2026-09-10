@@ -1,14 +1,19 @@
 # Client integration architecture and qualification
 
-**Current test: 0.10.23 — audio and vertex buffer fix.** The Thor's 0.10.22
-report reached about 32 minutes at 1280 × 720, median 30 displayed FPS, before a
-native GL4ES array-copy crash. This release corrects a reproduced double-offset
-buffer overread, adds ARM64 Android OpenAL, and repairs the legacy audio context
-lifecycle. The working graphics settings, fullscreen gear and opacity are retained.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.23-audio-buffer).
-[Follow the test](CLIENT_AUDIO_BUFFER_FIX.md). Sound and longer gameplay stability need device testing.
+**Current test: 0.10.24 — nearby object visibility.** The Thor's 0.10.23 video
+shows nearby object groups disappearing even with Far distances. The pinned
+GL4ES occlusion-query implementation returns placeholder zero-sample results;
+Wurm treats these as hidden cells. This release disables that unsupported path
+while retaining distance/frustum culling and the working graphics/audio controls.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.24-visibility).
+[Follow the test](CLIENT_VISIBILITY_FIX.md). Visual confirmation and FPS comparison need the device.
 Keep older apps/backups and use an unused name; client login identity does not
 currently migrate between separate previews.
+
+**Previous test: 0.10.23 — audio and vertex buffer fix.** Audio is confirmed
+working on the Thor. This release corrected a reproduced VAO buffer-offset
+error and added Android OpenAL. The next report still contains separate native
+allocator failures at shader startup and after quitting; those remain unresolved.
 
 **Previous test: 0.10.22 — fullscreen and graphics controls.** The next Thor test
 confirmed graphics changes and sustained gameplay at 1280 × 720. Its client crash

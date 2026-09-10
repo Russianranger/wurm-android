@@ -34,7 +34,7 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.23").textSize = 24f
+        label("Wurm Client · 0.10.24").textSize = 24f
         label("Choose your player name, then Start Local Game. Complete any character setup shown in the game. This build tests a graphics crash fix.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")

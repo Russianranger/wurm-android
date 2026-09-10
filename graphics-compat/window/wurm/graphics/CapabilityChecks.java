@@ -62,6 +62,7 @@ public final class CapabilityChecks {
 
     /** Runs only after the real game's GLHelper.initialize(), in its startup check. */
     public static void verifyWurmRenderer() throws ReflectiveOperationException {
+        WurmVisibility.configure(glGetString(GL_VERSION));
         Class<?> helper = Class.forName("com.wurmonline.client.util.GLHelper");
         boolean deferred = (Boolean) helper.getMethod("useDeferredShading").invoke(null);
         boolean instancing = (Boolean) helper.getMethod("useInstancing").invoke(null);

@@ -50,7 +50,7 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.23\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.24\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
             "Gate status: Thor 0.10.22 reached about 32 minutes at 1280x720, median 30 displayed FPS, before a GL4ES array-copy SIGSEGV. This build corrects a reproduced legacy VBO double-offset overread and adds ARM64 Android OpenAL with corrected context lifecycle. Device sound and longer gameplay stability need confirmation. Prior visual artifacts and native shutdown issues remain tracked.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +

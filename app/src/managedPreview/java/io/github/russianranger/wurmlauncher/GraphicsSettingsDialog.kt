@@ -28,6 +28,9 @@ object GraphicsSettingsDialog {
         column.addView(TextView(activity).apply {
             text="Individual choices override the base preset and apply during play. Higher resolution, longer distances and extra effects can reduce speed. Fullscreen and panel opacity are in the gear menu."
         })
+        column.addView(TextView(activity).apply {
+            text="Occlusion culling is disabled for this renderer to prevent nearby objects being incorrectly hidden. Distance settings still apply."
+        })
         val reset=Button(activity).apply { text="Use preset values for all options"; column.addView(this) }
         val controls=GraphicsOptions.options.map { option ->
             val value=prefs.getInt("graphics-option-${option.field}",-1).takeIf(option::valid) ?: -1
