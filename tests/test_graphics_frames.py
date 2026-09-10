@@ -31,15 +31,20 @@ public class Check {
   } else if(args[1].equals("raw")) {
    FrameFile.writeRgba(output,w,h,4,data,8,7,true,43);
    if(data.position()!=8 || data.limit()!=1032) throw new AssertionError("buffer consumed");
-   for(int[] bounds:new int[][]{{0,16,1},{16,1025,1},{16,16,0},{16,17,1}}) {
+   for(int[] bounds:new int[][]{{0,16,1},{1281,16,1},{16,1025,1},{16,16,0},{16,17,1}}) {
     try { FrameFile.writeRgba(output,bounds[0],bounds[1],bounds[2],data,8,7,true,43); throw new AssertionError("accepted invalid raw"); }
     catch(IllegalArgumentException expected) {}
    }
    try { FrameFile.writeRgba(output,w,h,5,data,16,7,true,43); throw new AssertionError("accepted invalid pointer"); }
    catch(IllegalArgumentException expected) {}
+  } else if(args[1].equals("hd")) {
+   int width=1280,height=720;
+   ByteBuffer hd=ByteBuffer.allocateDirect(width*height*4);
+   hd.put(0,(byte)255); hd.put(hd.capacity()-1,(byte)127);
+   FrameFile.writeRgba(output,width,height,7,hd,1279,719,true,8);
   } else if(args[1].equals("invalid")) {
    Files.writeString(output,"previous");
-   for(int[] bounds:new int[][]{{0,16,1},{16,1025,1},{16,16,0},{16,17,1}}) {
+   for(int[] bounds:new int[][]{{0,16,1},{1281,16,1},{16,1025,1},{16,16,0},{16,17,1}}) {
     try { FrameFile.write(output,bounds[0],bounds[1],bounds[2],data); throw new AssertionError("accepted invalid"); }
     catch(IllegalArgumentException expected) {}
    }
@@ -86,6 +91,12 @@ public class Check {
         data = self.run_case('raw').read_bytes()
         self.assertEqual(struct.unpack('>9i', data[:36]), (0x57554746, 3, 16, 16, 4, 8, 7, 1, 43))
         self.assertEqual(data[36:], bytes([255,0,0,255])*128 + bytes([0,0,255,255])*128)
+
+    def test_720p_raw_frame_keeps_exact_dimensions_length_and_edge_pixels(self):
+        data=self.run_case('hd').read_bytes()
+        self.assertEqual(struct.unpack('>9i',data[:36]),(0x57554746,3,1280,720,7,1279,719,1,8))
+        self.assertEqual(len(data),36+1280*720*4)
+        self.assertEqual((data[36],data[-1]),(255,127))
 
     def test_supported_library_mapper_keeps_new_natives_out_of_legacy_lwjgl_names(self):
         self.run_case('names')

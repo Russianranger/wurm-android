@@ -82,7 +82,6 @@ public final class WindowBackend {
                     else if (line.equals("HUD restore-focus") || line.equals("HUD restore-button")) hud(line.substring(4));
                     else if (line.startsWith("VISUAL ")) {
                         String preset=line.substring(7);
-                        if (!java.util.List.of("performance", "imported").contains(preset)) throw new IllegalArgumentException("Unknown preset");
                         try { Class.forName("client.ClientVisualOptions").getMethod("apply", String.class).invoke(null,preset); }
                         catch (ReflectiveOperationException failure) { System.out.println("[client-ui] GRAPHICS_FAILED " + failure); }
                     } else pointer.apply(line);

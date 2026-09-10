@@ -1,6 +1,7 @@
 """Execute owned settings callbacks and reversible presets without game or JavaFX binaries."""
 from pathlib import Path
 import shutil
+import re
 import subprocess
 import tempfile
 import unittest
@@ -44,11 +45,16 @@ public class Options {
   public void set(int n) { if(fail) { fail=false; throw new IllegalStateException("fixture failure"); } v=n; }
  }
  public static class Bool { public boolean v=true; public boolean value(){return v;} public void set(boolean b){v=b;} }
- public static Multi waterDetail=new Multi(2,"Low","Medium","High"), reflections=new Multi(3,"Disabled","Sky","Sky & Terrain","All"),
+ public static Multi waterDetail=new Multi(2,"Low","Medium","High"), reflections=new Multi(3,"Disabled","Sky","Sky & Terrain","Sky, Terrain & Trees","Almost Everything"),
   treeRenderingDistance=new Multi(4,"Very Short","Short","Medium","Far","Extreme"),
   structureRenderingDistance=new Multi(3,"Very Short","Short","Medium","Far","Extreme"),
   itemCreatureRenderingDistance=new Multi(2,"Very Short","Short","Medium","Far","Extreme");
  public static Bool prettyTrees=new Bool(),prettyWeather=new Bool(),renderSunGlare=new Bool();
+ public static Multi caveDetail=new Multi(2,"Low","Medium","High"),
+  shadowLevel=new Multi(3,"Disabled","Simple Objects","Objects","Objects & Structures","Everything"),
+  shadowMapSize=new Multi(2,"Small","Medium","Large","Huge"),lod=new Multi(1,"Short","Normal","Far"),maxDynamicLights=new Multi(8);
+ public static Bool useBloom=new Bool(),useVignette=new Bool(),useFXAA=new Bool(),limitDynamicLights=new Bool();
+ public static String extra() {return caveDetail.v+","+shadowLevel.v+","+shadowMapSize.v+","+lod.v+","+useBloom.v+","+useVignette.v+","+useFXAA.v+","+limitDynamicLights.v+","+maxDynamicLights.v;}
  public static String state() {return waterDetail.v+","+reflections.v+","+treeRenderingDistance.v+","+structureRenderingDistance.v+","+itemCreatureRenderingDistance.v+","+prettyTrees.v+","+prettyWeather.v+","+renderSunGlare.v;}
 }''',
             'client/SettingsCheck.java': '''package client;
@@ -72,7 +78,33 @@ public class SettingsCheck {
    try {ClientSettingsPatch.prepare(original);throw new AssertionError("uninspected HUD accepted");} catch(java.io.IOException expected) {}
    return;
   }
-  String baseline=Options.state();
+  String baseline=Options.state(), extra=Options.extra();
+  if(args[0].equals("custom")) {
+   ClientVisualOptions.apply("performance:2,1,-1,2,0,1,-1,0,0,0,1,0,0,0,0,1,4");
+   check(Options.state().equals("2,1,1,2,0,true,false,false"));
+   check(Options.extra().equals("0,0,1,0,false,false,false,true,4"));
+   ClientVisualOptions.apply("performance"); check(extra.equals(Options.extra()));
+   ClientVisualOptions.apply("imported"); check(baseline.equals(Options.state()) && extra.equals(Options.extra()));
+   return;
+  }
+  if(args[0].equals("invalid")) {
+   String all="2,1,1,2,0,1,0,0,0,0,1,0,0,0,0,1,";
+   for(String command:new String[]{"performance:","imported:0","unknown:"+all+"4","performance:"+all+"0","performance:"+all+"17","performance:"+all+"-2","performance:"+all+"NaN","performance:"+all+"4:extra","performance:3,1,1,2,0,1,0,0,0,0,1,0,0,0,0,1,4","imported:"+all+"4,"}) {
+    try {ClientVisualOptions.apply(command);throw new AssertionError(command);}catch(IllegalArgumentException expected) {}
+    check(baseline.equals(Options.state()) && extra.equals(Options.extra()));
+   }
+   return;
+  }
+  if(args[0].equals("late-abi")) {
+   Options.shadowLevel.options[4]="Changed";
+   try {ClientVisualOptions.apply("performance");throw new AssertionError();}catch(IllegalStateException expected) {}
+   check(baseline.equals(Options.state()) && extra.equals(Options.extra())); return;
+  }
+  if(args[0].equals("late-rollback")) {
+   Options.maxDynamicLights.fail=true;
+   try {ClientVisualOptions.apply("performance:2,1,1,2,0,1,0,0,0,0,1,0,0,0,0,1,4");throw new AssertionError();}catch(java.lang.reflect.InvocationTargetException expected) {}
+   check(baseline.equals(Options.state()) && extra.equals(Options.extra())); return;
+  }
   if(args[0].equals("abi")) {
    Options.structureRenderingDistance.options[1]="Changed";
    try {ClientVisualOptions.apply("performance");throw new AssertionError();}catch(IllegalStateException expected) {}
@@ -111,6 +143,15 @@ public class SettingsCheck {
 
     def test_desktop_open_and_close_callbacks_work_repeatedly_without_javafx(self):
         self.assertEqual(self.run_case('bridge').count('[client-ui] OPEN_GRAPHICS_SETTINGS'),2)
+
+    def test_custom_values_inherit_base_and_restore_full_imported_profile(self): self.run_case('custom')
+    def test_invalid_commands_are_rejected_before_any_option_changes(self): self.run_case('invalid')
+    def test_new_option_abi_is_checked_before_changing_legacy_options(self): self.run_case('late-abi')
+    def test_last_setter_failure_restores_all_prior_options(self): self.run_case('late-rollback')
+    def test_android_and_jvm_option_wire_order_matches(self):
+        android=(ROOT/'app/src/managedPreview/java/io/github/russianranger/wurmlauncher/GraphicsOptions.kt').read_text()
+        jvm=(ROOT/'runtime-probe/src/client/ClientVisualOptions.java').read_text()
+        self.assertEqual(re.findall(r'Option\("(\w+)"',android),re.findall(r'new Spec\("(\w+)"',jvm))
 
     def test_live_preset_restores_exact_imported_values(self): self.run_case('preset')
     def test_unknown_option_labels_do_not_partially_change_graphics(self): self.run_case('abi')

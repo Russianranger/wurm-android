@@ -6,8 +6,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.*
 import android.widget.*
-import android.view.KeyEvent
-import android.view.MotionEvent
+import android.view.*
+import android.graphics.Color
 import java.util.concurrent.Executors
 
 /** Displays only actual readback frames from the JVM, never a stand-in GLES drawing. */
@@ -17,6 +17,32 @@ class GraphicsTestActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var frame: GameFrameView
     private lateinit var run: Button
+    private lateinit var panel: ScrollView
+    private lateinit var gear: Button
+    private lateinit var sessionLabel: TextView
+    private var panelOpen = false
+    private var fullscreen = true
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+    private fun updateInput() {
+        val enabled = !panelOpen && graphicsDialog?.isShowing != true
+        if (!enabled) frame.cancelTouch()
+        frame.isEnabled=enabled; capture?.enabled=enabled
+    }
+    private fun showPanel(show: Boolean) {
+        panelOpen=show
+        panel.visibility=if (show) View.VISIBLE else View.GONE
+        gear.text=if (show) "×" else "⚙"
+        gear.contentDescription=if (show) "Close game controls" else "Open game controls. Hold to reset panel opacity."
+        updateInput()
+        ClientSession.log("[graphics-ui] CONTROLS_OVERLAY open=$show fullscreen=$fullscreen")
+    }
+    private fun applyFullscreen() {
+        window.setDecorFitsSystemWindows(!fullscreen)
+        window.insetsController?.apply {
+            systemBarsBehavior=WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if (fullscreen) hide(WindowInsets.Type.systemBars()) else show(WindowInsets.Type.systemBars())
+        }
+    }
     private var displayedBitmap: Bitmap? = null
     private var mode = "render"
     private var capture: ControllerCapture? = null
@@ -39,6 +65,8 @@ class GraphicsTestActivity : Activity() {
         if (graphicsDialog?.isShowing == true) return
         frame.cancelTouch(); capture?.reset()
         graphicsDialog = GraphicsSettingsDialog.show(this,true)
+        updateInput()
+        graphicsDialog?.setOnDismissListener { graphicsDialog=null; updateInput(); applyFullscreen() }
     }
     private fun supportsRgbaCopy(): Boolean = runCatching {
         val probe=Bitmap.createBitmap(2,1,Bitmap.Config.ARGB_8888)
@@ -67,6 +95,11 @@ class GraphicsTestActivity : Activity() {
                 settingsSeen=ClientSession.settingsRequests; showGraphicsSettings()
             }
             run.isEnabled = !state.busy
+            sessionLabel.visibility=if (!state.busy || shownSequence == 0) View.VISIBLE else View.GONE
+            if (sessionLabel.isShown) {
+                val message=if (!state.busy) "${state.phase} · Tap ⚙ to start or retry" else "${state.phase} · Tap ⚙ for progress"
+                if (sessionLabel.text.toString() != message) sessionLabel.text=message
+            }
             if (restoreHudOnFocus && hasWindowFocus() && ClientSession.inputReady()) {
                 if (ClientSession.send("HUD restore-focus")) restoreHudOnFocus=false
             }
@@ -123,41 +156,116 @@ class GraphicsTestActivity : Activity() {
         rawCopy=supportsRgbaCopy()
         mode = intent.getStringExtra("mode")?.takeIf { it in listOf("window", "start", "local") } ?: "render"
         if (mode != "render") capture = ControllerCapture(this)
-        val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,12,12,12) }
-        setContentView(column)
-        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.21" else "LWJGL Window · 0.10.21"; textSize = 23f })
-        column.addView(TextView(this).apply { text = if (mode == "window") "90-second LWJGL test: left stick moves triangle; right stick moves cyan cursor; mouse clicks change triangle color. Finish, then export Client Report." else if (mode != "render") "Touch the game to select and drag. Right stick: pointer; A or RT: click; LT: right click. Use Send in the character dialog to continue." else "Expected: orange triangle on blue. Tests LWJGL, GL4ES, shader drawing and resize. No client import needed. This is not a Wurm game window." })
-        val controls = LinearLayout(this)
-        column.addView(HorizontalScrollView(this).apply { addView(controls) })
-        fun button(label: String, action: () -> Unit) = Button(this).apply { text = label; setOnClickListener { action() }; controls.addView(this) }
-        run = button(if (mode == "window") "Run Window / Input Test" else if (mode == "render") "Run Graphics Test" else "Retry Client") {
+        val prefs=getSharedPreferences("client-settings",MODE_PRIVATE)
+        fullscreen=prefs.getBoolean("viewer-fullscreen",mode != "render")
+        val root=FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+        setContentView(root)
+        frame=GameFrameView(this,mode != "render")
+        root.addView(frame,FrameLayout.LayoutParams(-1,-1))
+        sessionLabel=TextView(this).apply {
+            textSize=14f; setTextColor(Color.WHITE); setBackgroundColor(0xb0000000.toInt()); setPadding(dp(12),dp(8),dp(12),dp(8))
+        }
+        root.addView(sessionLabel,FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM or Gravity.START))
+        val column=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL; setPadding(dp(12),dp(8),dp(12),dp(12))
+            setBackgroundColor(0xff202124.toInt()); isClickable=true
+        }
+        panel=ScrollView(this).apply { addView(column); isClickable=true; elevation=dp(8).toFloat() }
+        root.addView(panel,FrameLayout.LayoutParams(dp(360),-2,Gravity.TOP or Gravity.END))
+        fun label(value: String, size: Float = 14f) = TextView(this).apply {
+            text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
+        }
+        label(if (mode == "render") "JVM Graphics Test · 0.10.22" else "Game controls · 0.10.22",20f)
+        fun button(label: String, action: () -> Unit) = Button(this).apply {
+            text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
+        }
+        if (mode in listOf("start","local")) button("Graphics settings · resolution") { showGraphicsSettings() }
+        column.addView(CheckBox(this).apply {
+            text="Fullscreen game"; setTextColor(Color.WHITE); isChecked=fullscreen
+            setOnCheckedChangeListener { _, value ->
+                fullscreen=value; prefs.edit().putBoolean("viewer-fullscreen",value).apply(); applyFullscreen()
+            }
+        })
+        val opacityLabel=label("")
+        val opacity=SeekBar(this).apply {
+            max=100; progress=prefs.getInt("overlay-opacity",85).coerceIn(0,100)
+            contentDescription="Control panel opacity"
+            column.addView(this,LinearLayout.LayoutParams(-1,dp(48)))
+        }
+        fun applyOpacity(value: Int) { panel.alpha=value/100f; opacityLabel.text="Panel opacity: $value% · Hold gear to reset" }
+        applyOpacity(opacity.progress)
+        opacity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { applyOpacity(progress) }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) { prefs.edit().putInt("overlay-opacity",opacity.progress).apply() }
+        })
+        button("Resume game / close controls") { showPanel(false) }
+        run=button(if (mode == "window") "Run Window / Input Test" else if (mode == "render") "Run Graphics Test" else "Retry Client") {
             if (!ClientSession.snapshot().busy) {
-                lastReadError = ""; readRetryAt=0; frame.clearFrame()
-                startForegroundService(Intent(this, ClientService::class.java).setAction(mode))
+                lastReadError=""; readRetryAt=0; frame.clearFrame()
+                startForegroundService(Intent(this,ClientService::class.java).setAction(mode))
+                if (mode != "render") showPanel(false)
             }
         }
         if (mode == "window") button("Finish Window Test") { ClientSession.send("STOP") }
-        button("Stop Client Test") { startService(Intent(this, ClientService::class.java).setAction("stop")) }
-        button("Back to Client / Export") { finish() }
-        if (mode in listOf("start","local")) button("Graphics Settings") { showGraphicsSettings() }
-        if (mode in listOf("start","local")) button("Restore Game UI") {
+        button("Stop client") { startService(Intent(this,ClientService::class.java).setAction("stop")) }
+        button("Back to client / export reports") { finish() }
+        if (mode in listOf("start","local")) button("Restore game UI") {
             frame.cancelTouch(); capture?.reset()
             val sent=ClientSession.send("HUD restore-button")
             Toast.makeText(this,if (sent) "Game UI restore requested." else "Start the client first.",Toast.LENGTH_SHORT).show()
         }
-        status = TextView(this).apply { textSize = 12f; setTextIsSelectable(true) }
-        val diagnostics = ScrollView(this).apply { addView(status); visibility = if (mode == "render") android.view.View.VISIBLE else android.view.View.GONE }
-        column.addView(diagnostics, LinearLayout.LayoutParams(-1, 0, 1f))
-        lateinit var toggle: Button
-        if (mode != "render") toggle = button("Show diagnostics") {
-            frame.cancelTouch()
-            val show = diagnostics.visibility != android.view.View.VISIBLE
-            diagnostics.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
-            toggle.text = if (show) "Expand game" else "Show diagnostics"
+        label(if (mode == "window") "90-second test: left stick moves triangle; right stick moves cursor; clicks change color."
+            else if (mode == "render") "Expected: orange triangle on blue. No client import needed."
+            else "Close these controls to play. Touch selects and drags; right stick moves pointer; A or RT clicks; LT right-clicks. Swipe from an edge for Android system bars.")
+        status=TextView(this).apply { textSize=12f; setTextColor(Color.WHITE); setTextIsSelectable(true); visibility=View.GONE }
+        lateinit var diagnostics: Button
+        diagnostics=button("Show diagnostics") {
+            val show=status.visibility != View.VISIBLE
+            status.visibility=if (show) View.VISIBLE else View.GONE
+            diagnostics.text=if (show) "Hide diagnostics" else "Show diagnostics"
         }
-        frame = GameFrameView(this, mode != "render")
-        column.addView(frame, LinearLayout.LayoutParams(-1,0,2f))
+        column.addView(status)
+        gear=Button(this).apply {
+            textSize=26f; minWidth=0; minimumWidth=0; minHeight=0; minimumHeight=0; setPadding(0,0,0,0)
+            elevation=dp(10).toFloat()
+            setOnClickListener { showPanel(!panelOpen) }
+            setOnLongClickListener {
+                opacity.progress=85; prefs.edit().putInt("overlay-opacity",85).apply(); showPanel(true); true
+            }
+        }
+        root.addView(gear,FrameLayout.LayoutParams(dp(52),dp(52),Gravity.TOP or Gravity.END))
+        var safeTop=0; var safeRight=0; var safeLeft=0; var safeBottom=0
+        fun layoutOverlay() {
+            if (root.width == 0 || root.height == 0) return
+            gear.layoutParams=(gear.layoutParams as FrameLayout.LayoutParams).apply {
+                topMargin=safeTop+dp(8); rightMargin=safeRight+dp(8)
+            }
+            panel.layoutParams=(panel.layoutParams as FrameLayout.LayoutParams).apply {
+                width=minOf(dp(360),root.width-safeLeft-safeRight-dp(16)).coerceAtLeast(1)
+                height=minOf(dp(560),root.height-safeTop-safeBottom-dp(76)).coerceAtLeast(1)
+                topMargin=safeTop+dp(68); rightMargin=safeRight+dp(8)
+            }
+            sessionLabel.layoutParams=(sessionLabel.layoutParams as FrameLayout.LayoutParams).apply {
+                leftMargin=safeLeft+dp(8); bottomMargin=safeBottom+dp(8)
+            }
+        }
+        root.setOnApplyWindowInsetsListener { _, insets ->
+            // Root already fits system bars when fullscreen is off; only cutouts need extra space.
+            val safe=insets.getInsets(WindowInsets.Type.displayCutout())
+            safeTop=safe.top; safeRight=safe.right; safeLeft=safe.left; safeBottom=safe.bottom
+            layoutOverlay(); insets
+        }
+        root.addOnLayoutChangeListener { _, l,t,r,b,ol,ot,or,ob ->
+            if (r-l != or-ol || b-t != ob-ot) layoutOverlay()
+        }
+        showPanel(savedInstanceState?.getBoolean("panel-open") ?: (mode == "render" || mode == "window"))
+        applyFullscreen()
     }
+    override fun onSaveInstanceState(outState: Bundle) { outState.putBoolean("panel-open",panelOpen); super.onSaveInstanceState(outState) }
+    @Deprecated("Platform back callback retained for this API 33 preview")
+    override fun onBackPressed() { showPanel(!panelOpen) }
+
     override fun onResume() {
         super.onResume(); capture?.resume(); resumed = true
         if (mode in listOf("start","local")) restoreHudOnFocus=true
@@ -176,6 +284,7 @@ class GraphicsTestActivity : Activity() {
             // Force an actual redraw when Android returns from a recorder/system overlay.
             if (::frame.isInitialized) frame.invalidate()
         }
+        if (hasFocus && ::gear.isInitialized) applyFullscreen()
     }
     override fun dispatchKeyEvent(event: KeyEvent): Boolean = capture?.key(event) == true || super.dispatchKeyEvent(event)
     override fun onGenericMotionEvent(event: MotionEvent): Boolean = capture?.motion(event) == true || super.onGenericMotionEvent(event)

@@ -1,15 +1,19 @@
 # From the working POC to Wurm Server
 
-**Current test: 0.10.21 — frame display and game UI recovery.** The Thor's 0.10.20
-report shows a median 30 producer FPS but only 1 displayed FPS. Android's file
-timestamp had whole-second precision, so the viewer skipped frames within each
-second. This build selects by frame sequence, restores HUD visibility when focus
-returns, and adds a Restore Game UI button and lifecycle/visibility observations.
-Actual display improvement and recorder recovery still need testing. The exact
-trigger of the HUD loss remains unconfirmed; GL errors and visual artifacts remain.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.21-frame-sequence).
-[Follow the test](CLIENT_FRAME_SEQUENCE_FIX.md). Keep older apps/backups and use an unused name:
-client login identity does not yet migrate between separate previews.
+**Current test: 0.10.22 — fullscreen and graphics controls.** The Thor's 0.10.21
+report confirms median 30 producer FPS and 29.9 displayed FPS; the recording keeps
+its HUD. This build fills the viewer with the game, adds a collapsible gear panel
+with 0–100% opacity, supports real 1280 × 720 rendering, and exposes 17 individual
+graphics options. The Performance preset and frame-sequence fix are retained.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.22-fullscreen).
+[Follow the test](CLIENT_FULLSCREEN_SETTINGS.md). Keep older apps/backups and use an unused name:
+client login identity does not yet migrate between separate previews. Higher
+resolution performance and the new overlay still need device confirmation.
+
+**Previous test: 0.10.21 — frame display and game UI recovery.** Fixed the viewer's
+whole-second timestamp gate. The next Thor test confirmed the display-rate gain
+and showed the HUD remaining visible. The report still ends with an EGL cache /
+native allocator abort after window closure; clean native shutdown is unresolved.
 
 **Previous test: 0.10.20 — Android graphics settings and frame delivery.** Replaced
 the failing JavaFX Settings route, added a Performance preset, and delivered raw

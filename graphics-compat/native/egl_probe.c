@@ -24,7 +24,7 @@ static void fail(JNIEnv *env, const char *operation) {
     (*env)->ThrowNew(env, (*env)->FindClass(env, "java/lang/IllegalStateException"), message);
 }
 
-static int valid_size(int w, int h) { return w >= 16 && h >= 16 && w <= 1024 && h <= 1024; }
+static int valid_size(int w, int h) { return w >= 16 && h >= 16 && w <= 1280 && h <= 1024; }
 static void dimensions(int *w, int *h) { *w = width; *h = height; }
 
 static int cleanup(void) {

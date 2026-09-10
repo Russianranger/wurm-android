@@ -19,6 +19,13 @@ class TouchPointerTest {
         assertNull(FramePointerGeometry.point(Float.NaN, 0f, 960, 540, 960, 540))
         assertNull(FramePointerGeometry.point(0f, 0f, 0, 540, 960, 540))
     }
+    @Test fun maps720pFullscreenCornersAndPreservesLetterboxingAfterBarsReturn() {
+        assertPoint(0f to 0f,FramePointerGeometry.point(0f,0f,1920,1080,1280,720))
+        assertPoint(.5f to .5f,FramePointerGeometry.point(960f,540f,1920,1080,1280,720))
+        assertPoint(1f to 1f,FramePointerGeometry.point(1920f,1080f,1920,1080,1280,720))
+        assertPoint(.5f to .5f,FramePointerGeometry.point(960f,500f,1920,1000,1280,720))
+        assertNull(FramePointerGeometry.point(20f,500f,1920,1000,1280,720))
+    }
     @Test fun tapMovesBeforePressAndReleasesAtFinalPosition() {
         val events = mutableListOf<String>()
         val pointer = TouchPointer { events.add(it); true }

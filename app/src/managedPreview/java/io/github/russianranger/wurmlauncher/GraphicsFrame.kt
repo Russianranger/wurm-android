@@ -25,7 +25,7 @@ data class GraphicsFrame(val width: Int, val height: Int, val sequence: Int, val
             val version = input.readInt()
             require(version in 1..3) { "Unknown graphics frame format" }
             val width = input.readInt(); val height = input.readInt(); val sequence = input.readInt()
-            require(width in 16..1024 && height in 16..1024 && sequence > 0) { "Invalid graphics frame bounds" }
+            require(width in 16..1280 && height in 16..1024 && sequence > 0) { "Invalid graphics frame bounds" }
             // Read header and pixels from the same open file, even across atomic replacement.
             // Skip duplicate payload allocation/copy without consulting mtime or file size.
             if (sequence <= afterSequence) return@use null

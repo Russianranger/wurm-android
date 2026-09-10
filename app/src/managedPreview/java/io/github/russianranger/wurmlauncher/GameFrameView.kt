@@ -36,6 +36,7 @@ class GameFrameView(context: Context, private val interactive: Boolean) : ImageV
     private fun point(event: MotionEvent, index: Int, clamp: Boolean = false) =
         FramePointerGeometry.point(event.getX(index), event.getY(index), width, height, frameWidth, frameHeight, clamp)
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!isEnabled) return true
         if (!interactive || drawable == null) return super.onTouchEvent(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {

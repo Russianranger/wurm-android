@@ -14,6 +14,21 @@ class GraphicsFrameTest {
                 if (tail) out.writeByte(1)
             }
         }
+    @Test fun reads720pRawFrameWithPointerAtLastPixel() {
+        val file=fixture()
+        try {
+            DataOutputStream(file.outputStream()).use { out ->
+                listOf(0x57554746,3,1280,720,7,1279,719,1,8).forEach(out::writeInt)
+                val pixels=ByteArray(1280*720*4); pixels[0]=-1; pixels[pixels.lastIndex]=127
+                out.write(pixels)
+            }
+            val data=GraphicsFrame.read(file)
+            assertEquals(1280,data.width); assertEquals(720,data.height)
+            assertEquals(GraphicsFrame.Pointer(1279,719,true,8),data.pointer)
+            assertEquals(1280*720*4,data.rawRgba!!.size)
+            assertEquals(255,data.rawRgba[0].toInt() and 255); assertEquals(127,data.rawRgba.last().toInt())
+        } finally { file.delete() }
+    }
     @Test fun readsExactArgbPixelsAndDimensions() {
         val file=fixture()
         try {
@@ -23,7 +38,7 @@ class GraphicsFrameTest {
         } finally { file.delete() }
     }
     @Test fun rejectsUnboundedInvalidAndTruncatedFrames() {
-        listOf(fixture(width=Int.MAX_VALUE), fixture(height=0), fixture(sequence=0), fixture(sequence=-1), fixture(pixels=255), fixture(tail=true)).forEach { file ->
+        listOf(fixture(width=Int.MAX_VALUE), fixture(width=1281), fixture(height=1025), fixture(height=0), fixture(sequence=0), fixture(sequence=-1), fixture(pixels=255), fixture(tail=true)).forEach { file ->
             try { assertTrue("Invalid frame accepted",runCatching { GraphicsFrame.read(file) }.isFailure) }
             finally { file.delete() }
         }

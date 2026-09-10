@@ -50,9 +50,10 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.21\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.22\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.20 produced a median 30 FPS but displayed only 1 FPS because the viewer selected frames by whole-second Android file timestamps. Settings opened and applied without the previous JavaFX crash. This build reads frame sequences directly and adds HUD restore on focus return plus a Restore Game UI button. The recording's HUD loss trigger remains unconfirmed; focus and HUD visibility are now logged. Device display rate, restoration and persistence still need testing; GL errors and rendering artifacts remain tracked.\n\n" +
+            "Gate status: Thor 0.10.21 reached a median 30 producer FPS and 29.9 displayed FPS; its recording retained the game HUD. This build adds fullscreen overlay controls, 1280x720 rendering and 17 individual graphics options. Device 720p performance, overlay input isolation and fullscreen return from recording need testing. GL errors, visual artifacts and an EGL cache/native allocator abort after window closure remain tracked.\n\n" +
+            "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -176,7 +177,10 @@ object ClientSession {
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
             val visual = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE)
             val preset = visual.getString("graphics-preset", "performance")?.takeIf { it in listOf("performance", "imported") } ?: "performance"
-            val resolution = visual.getString("resolution", "800x480")?.takeIf { it in listOf("800x480", "960x540") } ?: "800x480"
+            val graphicsCommand = GraphicsOptions.command(preset, GraphicsOptions.options.map { option ->
+                visual.getInt("graphics-option-${option.field}",-1).takeIf(option::valid) ?: -1
+            })
+            val resolution = visual.getString("resolution", "800x480")?.takeIf { it in GraphicsOptions.resolutions } ?: "800x480"
             val frameFps = visual.getInt("frame-fps", 30).takeIf { it in listOf(15,30) } ?: 30
             require(mode == "memory" || player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
@@ -205,7 +209,7 @@ object ClientSession {
                     "-cp", stageCp.joinToString(":")) + (if (stage in listOf("prepare-graphics", "entry")) listOf(
                         "-Dwurm.client.offscreenOverlay=$overlay"
                     ) else emptyList()) + (if (stage == "entry") listOf(
-                        "-Dwurm.client.graphicsPreset=$preset", "-Dwurm.client.resolution=$resolution",
+                        "-Dwurm.client.graphicsPreset=$graphicsCommand", "-Dwurm.client.resolution=$resolution",
                         "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
                         "--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED",
                         "-Dwurm.client.fontDir=/system/fonts", "-Dwurm.client.fontConfig=$session/fontconfig.properties"

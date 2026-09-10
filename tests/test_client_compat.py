@@ -97,7 +97,7 @@ public class WurmClientBase {
   if(!ticket.equals("WURM_ANDROID_LOCAL_V1:"+password)) throw new AssertionError("ticket identity mismatch");
   System.out.println("FIXTURE_LOCAL_LOGIN_CREDENTIAL_PASS");
   var screen=com.wurmonline.client.options.Options.screenSettings;
-  if(windowDirty || screen.maximized || screen.fullscreen || screen.resizable || screen.width!=960 || screen.height!=540 || screen.hz!=-1) throw new AssertionError("headless viewport");
+  if(windowDirty || screen.maximized || screen.fullscreen || screen.resizable || screen.width!=Integer.getInteger("fixture.width",960) || screen.height!=Integer.getInteger("fixture.height",540) || screen.hz!=-1) throw new AssertionError("headless viewport");
   if(!com.wurmonline.client.launcherfx.WurmMain.getServerIp().equals("127.0.0.1") || com.wurmonline.client.launcherfx.WurmMain.getServerPort()!=3724) throw new AssertionError("target");
   String[] icons=com.wurmonline.client.launcherfx.WurmStage.getIconNames();
   if(icons.length!=4 || !icons[0].equals("/icon2_128.png") || !icons[3].equals("/icon2_16.png")) throw new AssertionError("icons");
@@ -203,6 +203,15 @@ class ClientCompatibilityTest(unittest.TestCase):
         self.assertIn('FIXTURE_GAME_THREAD_FINISHED', result.stdout)
         self.assertIn('FIXTURE_LOCAL_LOGIN_CREDENTIAL_PASS', result.stdout)
         self.assertLess(result.stdout.index('FIXTURE_GAME_THREAD_FINISHED'), result.stdout.index('BOOTSTRAP_EXIT'))
+
+    def test_720p_launch_sets_real_offscreen_size_without_desktop_fullscreen(self):
+        result=self.run_mode(self.workspace(),'entry',{'wurm.client.player':'Thorhd','wurm.client.resolution':'1280x720',
+                                                     'fixture.width':'1280','fixture.height':'720'})
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('WINDOW_OPTIONS_ANDROID width=1280 height=720 maximized=false fullscreen=false',result.stdout)
+        result=self.run_mode(self.workspace(),'entry',{'wurm.client.resolution':'1920x1080'})
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('Unsupported Android resolution',result.stdout)
 
     def test_direct_login_reuses_persisted_ticket_identity_without_logging_it(self):
         home = self.workspace()

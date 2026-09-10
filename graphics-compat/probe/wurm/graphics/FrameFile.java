@@ -10,7 +10,7 @@ public final class FrameFile {
     /** V3 is raw RGBA/bottom-up. Android copies it directly and flips only while drawing. */
     public static void writeRgba(Path target, int width, int height, int sequence, ByteBuffer rgba,
                                  int cursorX, int cursorY, boolean visible, int applied) throws IOException {
-        if (width < 16 || height < 16 || width > 1024 || height > 1024 || sequence < 1 ||
+        if (width < 16 || height < 16 || width > 1280 || height > 1024 || sequence < 1 ||
             rgba.remaining() != width*height*4 || cursorX < 0 || cursorX >= width ||
             cursorY < 0 || cursorY >= height || applied < 0) throw new IllegalArgumentException("Invalid raw frame");
         Path pending=target.resolveSibling(target.getFileName()+".pending");
@@ -35,7 +35,7 @@ public final class FrameFile {
         writeFrame(target, width, height, sequence, rgba, new int[]{cursorX, cursorY, visible ? 1 : 0, applied});
     }
     private static void writeFrame(Path target, int width, int height, int sequence, ByteBuffer rgba, int[] pointer) throws IOException {
-        if (width < 16 || height < 16 || width > 1024 || height > 1024 || sequence < 1 ||
+        if (width < 16 || height < 16 || width > 1280 || height > 1024 || sequence < 1 ||
             rgba.remaining() != width * height * 4) throw new IllegalArgumentException("Invalid frame");
         Path pending = target.resolveSibling(target.getFileName()+".pending");
         try {

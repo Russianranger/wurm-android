@@ -10,6 +10,8 @@ import kotlin.math.max
 class ControllerCapture(private val activity: Activity) : InputManager.InputDeviceListener {
     private val handler = Handler(Looper.getMainLooper())
     private val manager = activity.getSystemService(InputManager::class.java)
+    var enabled = true
+        set(value) { if (!value) reset(); field=value }
     private var previous = 0L
     private var moves = 0
     private val mapper = ControllerMapping(runCatching { ControllerProfile.load(ClientSession.profileFile(activity)) }.getOrElse {
@@ -22,7 +24,7 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
     private val ticker = object : Runnable {
         override fun run() {
             val now = System.nanoTime()
-            if (activity.hasWindowFocus() && previous != 0L) mapper.tick((now-previous)/1_000_000_000f)
+            if (enabled && activity.hasWindowFocus() && previous != 0L) mapper.tick((now-previous)/1_000_000_000f)
             previous=now; handler.postDelayed(this,16)
         }
     }
@@ -36,7 +38,7 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
     override fun onInputDeviceChanged(deviceId: Int) { mapper.releaseDevice(deviceId); detect() }
     override fun onInputDeviceRemoved(deviceId: Int) { mapper.releaseDevice(deviceId); detect() }
     fun key(event: KeyEvent): Boolean {
-        if (!activity.hasWindowFocus()) return false
+        if (!enabled || !activity.hasWindowFocus()) return false
         val device = event.device
         val physical = device != null && (device.supportsSource(InputDevice.SOURCE_GAMEPAD) || device.supportsSource(InputDevice.SOURCE_JOYSTICK))
         val name = ControllerTestActivity.BUTTONS[event.keyCode]
@@ -47,7 +49,7 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
         return false
     }
     fun motion(event: MotionEvent): Boolean {
-        if (!activity.hasWindowFocus()) return false
+        if (!enabled || !activity.hasWindowFocus()) return false
         if (!event.isFromSource(InputDevice.SOURCE_JOYSTICK) || event.action != MotionEvent.ACTION_MOVE) return false
         val device = event.device ?: return false
         fun value(axis: Int) = event.getAxisValue(axis)

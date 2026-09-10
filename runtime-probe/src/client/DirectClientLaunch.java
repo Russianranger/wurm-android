@@ -33,12 +33,12 @@ public final class DirectClientLaunch {
         Object display = type("com.wurmonline.client.options.Options").getField("screenSettings").get(null);
         log("WINDOW_OPTIONS_IMPORTED " + display);
         // Verified order: maximized, width, height, Hz, fullscreen, resizable.
-        // Both dimensions fit the existing 1024-pixel pbuffer bound. Apply after
+        // Bounded offscreen rendering; Android owns fullscreen presentation. Apply after
         // profile loading/saving, for this attempt; do not save an Android override.
         String resolution = System.getProperty("wurm.client.resolution", "960x540");
-        if (!List.of("800x480", "960x540").contains(resolution)) throw new IllegalArgumentException("Unsupported Android resolution");
-        int width = resolution.equals("800x480") ? 800 : 960;
-        int height = resolution.equals("800x480") ? 480 : 540;
+        if (!List.of("800x480", "960x540", "1280x720").contains(resolution)) throw new IllegalArgumentException("Unsupported Android resolution");
+        String[] dimensions = resolution.split("x");
+        int width = Integer.parseInt(dimensions[0]), height = Integer.parseInt(dimensions[1]);
         display.getClass().getMethod("set", boolean.class, int.class, int.class, int.class, boolean.class, boolean.class)
             .invoke(display, false, width, height, -1, false, false);
         log("WINDOW_OPTIONS_ANDROID width="+width+" height="+height+" maximized=false fullscreen=false resizable=false; desktopScreenQuery=false");
