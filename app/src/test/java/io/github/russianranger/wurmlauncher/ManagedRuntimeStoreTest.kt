@@ -67,6 +67,50 @@ class ManagedRuntimeStoreTest {
         assertArrayEquals(poc, File(result.runtime, "wurm-arm64-poc.jar").readBytes())
     }
 
+    private fun legacyPoc(): ByteArray = Base64.getMimeDecoder().decode(
+        javaClass.getResource("/legacy-poc-0.10.14.jar.base64")!!.readText())
+
+    @Test fun upgradesKnownLegacyPocAtRootOrWrappedAndPreservesEverythingElse() {
+        val legacy = legacyPoc()
+        assertEquals("0fe4039a1a06afae93099b6eaf140e04fe7e0b1f1145323116468f8f78a884fe",
+            ManagedRuntimeStore.sha256(legacy))
+        listOf("", "runtime/").forEach { prefix ->
+            val files = runtime().apply { put("wurm-arm64-poc.jar", legacy) }
+            val archive = zip(files.mapKeys { prefix + it.key })
+            val original = archive.copyOf()
+            val home = temp.newFolder()
+            val messages = mutableListOf<String>()
+            val result = ManagedRuntimeStore(home).importZip(archive.inputStream(), poc, messages::add)
+            files.filterKeys { !it.endsWith("/") && it != "wurm-arm64-poc.jar" }.forEach { (path, bytes) ->
+                assertArrayEquals(path, bytes, File(result.runtime, path).readBytes())
+            }
+            assertArrayEquals(original, archive)
+            assertArrayEquals(poc, File(result.runtime, "wurm-arm64-poc.jar").readBytes())
+            assertEquals(files.count { !it.key.endsWith("/") }, result.fileCount)
+            assertEquals(files.values.sumOf { it.size.toLong() } - legacy.size + poc.size, result.bytes)
+            assertEquals(ManagedRuntimeStore.POC_SHA256, result.jarHashes["wurm-arm64-poc.jar"])
+            assertEquals(result, ManagedRuntimeStore(home).current())
+            assertTrue(messages.any { it.contains("POC_UPGRADED") })
+        }
+    }
+
+    @Test fun legacyUpgradeLimitAndAlteredLegacyPreserveCommittedRuntime() {
+        val home = temp.newFolder()
+        val first = ManagedRuntimeStore(home).importZip(zip(runtime()).inputStream(), poc)
+        val legacy = legacyPoc()
+        assertTrue(poc.size > legacy.size)
+        val files = runtime().apply { put("wurm-arm64-poc.jar", legacy) }
+        val extractedBytes = files.values.sumOf { it.size.toLong() }
+        fails("import limit") {
+            ManagedRuntimeStore(home, maxBytes = extractedBytes).importZip(zip(files).inputStream(), poc)
+        }
+        files["wurm-arm64-poc.jar"] = legacy.copyOf().apply { this[lastIndex] = (this[lastIndex].toInt() xor 1).toByte() }
+        fails("POC differs") { ManagedRuntimeStore(home).importZip(zip(files).inputStream(), poc) }
+        assertEquals(first, ManagedRuntimeStore(home).current())
+        assertArrayEquals(worldDb, File(first.runtime, "Adventure/sqlite/items.db").readBytes())
+        assertEquals(listOf("current", first.generation).sorted(), home.list()!!.sorted())
+    }
+
     @Test fun rejectsConflictingPocAndRetainsPreviousRuntime() {
         val store = ManagedRuntimeStore(temp.newFolder())
         val first = store.importZip(zip(runtime()).inputStream(), poc)

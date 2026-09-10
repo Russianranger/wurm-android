@@ -1,6 +1,15 @@
 # Wurm Server for Android
 
-**Current test: 0.10.15 — [personal-server character creation](docs/SERVER_PERSONAL_MODE_FIX.md).** The Thor's 0.10.14 test passed local authentication but rejected missing player Thor. The POC was turning personal-server mode off inside `runServer(false, true)`, overwriting its earlier true setting. The corrected `runServer(true, true)` enables Wurm's existing creation path and verifies the retained mode. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.15-personal-server). Import the same two ZIPs, select Adventure/Thor and use this version's **Start Local Game** with older servers stopped. Complete in-game setup if shown; send Client Report, Server Session Report and a screenshot. World entry/persistence still need testing; the earlier native exit issue remains unresolved.
+**Current test: 0.10.16 — existing runtime import fix.** 0.10.15 rejected existing
+ZIPs containing the previous bootstrap before startup. This release upgrades only
+that exact known bootstrap in the staged copy while preserving game/world/configuration
+bytes and the original ZIP. The personal-server character-creation fix is retained.
+[Download 0.10.16](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.16-import-upgrade).
+Follow [the import and local-game test](docs/SERVER_IMPORT_UPGRADE_FIX.md).
+World entry and persistence remain unverified.
+
+
+**Previous test: 0.10.15 — [personal-server character creation](docs/SERVER_PERSONAL_MODE_FIX.md).** The Thor's 0.10.14 test passed local authentication but rejected missing player Thor. The POC was turning personal-server mode off inside `runServer(false, true)`, overwriting its earlier true setting. The corrected `runServer(true, true)` enables Wurm's existing creation path and verifies the retained mode. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.15-personal-server). Import the same two ZIPs, select Adventure/Thor and use this version's **Start Local Game** with older servers stopped. Complete in-game setup if shown; send Client Report, Server Session Report and a screenshot. World entry/persistence still need testing; the earlier native exit issue remains unresolved.
 
 **Previous test: 0.10.14 — [local login credential fix](docs/CLIENT_LOGIN_IDENTITY_FIX.md).** The Thor's 0.10.13 server used the encoder fix successfully and accepted local authentication, then rejected the launcher's blank login credential. The direct launcher now supplies the persisted local identity already used by its Steam shim. [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.14-local-login). Import the same server and complete client ZIPs into this version, select Adventure/Thor and use its **Start Local Game** with older servers stopped. Export **Client Report** and **Server Session Report**. Login/world entry still need testing; the later EGL abort during exit remains unresolved.
 

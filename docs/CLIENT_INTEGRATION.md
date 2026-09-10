@@ -1,6 +1,15 @@
 # Client integration architecture and qualification
 
-## Current milestone: 0.10.15 personal-server character creation
+**Current test: 0.10.16 — existing runtime import fix.** 0.10.15 rejected existing
+ZIPs containing the previous bootstrap before startup. This release upgrades only
+that exact known bootstrap in the staged copy while preserving game/world/configuration
+bytes and the original ZIP. The personal-server character-creation fix is retained.
+[Download 0.10.16](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.16-import-upgrade).
+Follow [the import and local-game test](SERVER_IMPORT_UPGRADE_FIX.md).
+World entry and persistence remain unverified.
+
+
+## Previous milestone: 0.10.15 personal-server character creation
 
 The 0.10.14 Thor passes local authentication but fails with `No such player - Thor`.
 The POC sets personal mode true before calling `runServer(false, true)`. Inspection

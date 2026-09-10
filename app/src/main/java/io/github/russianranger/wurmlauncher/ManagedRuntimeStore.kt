@@ -140,8 +140,18 @@ class ManagedRuntimeStore(
             require(worlds.isNotEmpty()) { "No world found. Include Adventure/ (wurm.ini or sqlite/), or another existing world." }
             val poc = File(root, "wurm-arm64-poc.jar")
             if (poc.exists()) {
-                require(poc.isFile && hashes[poc.relativeTo(payload).invariantSeparatorsPath] == POC_SHA256) {
-                    "Imported POC differs from this app's source-backed JAR. Keep your backup; review the POC versions before re-exporting."
+                val importedHash = hashes[poc.relativeTo(payload).invariantSeparatorsPath]
+                require(poc.isFile && (importedHash == POC_SHA256 || importedHash == LEGACY_POC_SHA256)) {
+                    "Imported POC differs from this app's source-backed JAR. This bootstrap version is not recognized; keep your archive and export the session report."
+                }
+                if (importedHash == LEGACY_POC_SHA256) {
+                    val upgradedTotal = total - poc.length() + pocJar.size
+                    require(upgradedTotal <= maxBytes) { "ZIP plus upgraded POC exceeds the import limit." }
+                    check(home.usableSpace - pocJar.size > reserveBytes) { "Not enough free internal storage to upgrade POC." }
+                    // Only the exact historical authored bootstrap is replaced, in uncommitted staging.
+                    poc.writeBytes(pocJar)
+                    total = upgradedTotal
+                    progress("POC_UPGRADED: known previous bootstrap replaced with packaged personal-server fix.")
                 }
             } else {
                 require(total + pocJar.size <= maxBytes) { "ZIP plus POC exceeds the import limit." }
@@ -187,6 +197,8 @@ class ManagedRuntimeStore(
     }
 
     companion object {
+        // Exact authored artifact shipped through 0.10.14; never accept arbitrary imported bootstrap code.
+        private const val LEGACY_POC_SHA256 = "0fe4039a1a06afae93099b6eaf140e04fe7e0b1f1145323116468f8f78a884fe"
         const val POC_SHA256 = "82a39c9797a394b036785ad366e5c1a6ed0de935ab1f3b82e1fcc80f5181dfa4"
         val REQUIRED_JARS = listOf("server.jar", "common.jar",
             "poc-lib/sqlite-jdbc-3.53.2.1.jar", "poc-lib/sqlite-jdbc-3.53.2.1-natives-android.jar")

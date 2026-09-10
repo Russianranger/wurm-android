@@ -10,15 +10,15 @@ before server startup. This is an importer regression; the report does not test 
 
 Import accepts the current bootstrap unchanged, injects it when absent, and upgrades
 only the exact authored bootstrap shipped through 0.10.14:
-\`0fe4039a1a06afae93099b6eaf140e04fe7e0b1f1145323116468f8f78a884fe\`.
+`0fe4039a1a06afae93099b6eaf140e04fe7e0b1f1145323116468f8f78a884fe`.
 The replacement is the verified packaged 0.10.15 bootstrap:
-\`82a39c9797a394b036785ad366e5c1a6ed0de935ab1f3b82e1fcc80f5181dfa4\`.
+`82a39c9797a394b036785ad366e5c1a6ed0de935ab1f3b82e1fcc80f5181dfa4`.
 
 Replacement happens only in private staging, before publication. The source ZIP,
 game JARs, world databases and configuration bytes are preserved. Manifest size and
 hash reflect the replacement. Other bootstrap hashes remain rejected. An unsuccessful
 import preserves the previously committed runtime. A successful legacy migration logs
-\`POC_UPGRADED\`. No desktop launcher or archive editing is required.
+`POC_UPGRADED`. No desktop launcher or archive editing is required.
 
 ## Validation and remaining gate
 
