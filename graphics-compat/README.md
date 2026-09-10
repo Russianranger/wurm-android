@@ -1,5 +1,10 @@
 # Pojav Java API compatibility candidate
 
+0.10.23 adds the checked VAO buffer-offset correction and an ARM64 OpenAL Soft
+1.25.2 build using Android OpenSL ES. The legacy OpenAL context lifecycle is also
+corrected. See [evidence and test steps](../docs/CLIENT_AUDIO_BUFFER_FIX.md).
+
+
 **Current test: 0.10.10 — [server login trace](../docs/CLIENT_LOGIN_TEST.md).** Local authentication passed on Thor; login is waiting. Run both server and client in this preview to capture the missing server evidence.
 
 **0.10.9:** the Thor passed material preload and terrain preparation in 0.10.8,

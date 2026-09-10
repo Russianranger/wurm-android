@@ -10,7 +10,7 @@ object GraphicsRuntime {
         val info = JSONObject(context.assets.open("client-graphics.json").bufferedReader().use { it.readText() })
         val native = File(context.applicationInfo.nativeLibraryDir)
         val pins = info.getJSONObject("nativeSha256")
-        val names = setOf("libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so")
+        val names = setOf("libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so", "libwurm_openal.so")
         check(pins.keys().asSequence().toSet() == names) { "Unexpected graphics native manifest" }
         names.forEach { name ->
             check(ProbeInputs.sha256(File(native, name)) == pins.getString(name)) { "Graphics native checksum mismatch: $name" }

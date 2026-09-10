@@ -22,5 +22,10 @@
     "url": "https://github.com/PojavLauncherTeam/PojavLauncher/archive/b12ad048157b3aa255d078c235dd4571e1900309.tar.gz",
     "sha256": "cfb95c87a7e8b9045eccbfee36764376fa5cb25fdbd9b82c8d84b0550c4f9521",
     "root": "PojavLauncher-b12ad048157b3aa255d078c235dd4571e1900309"
+  },
+  "openal": {
+    "url": "https://github.com/kcat/openal-soft/archive/refs/tags/1.25.2.tar.gz",
+    "sha256": "fb27e5839aa11f0e5b9d33756965291fad5d6909ab928ea1f796f4a1a6877894",
+    "root": "openal-soft-1.25.2"
   }
 }

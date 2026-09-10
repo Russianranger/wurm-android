@@ -45,7 +45,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert "com/wurmonline/server/LoginHandler.class" not in jar.namelist(), asset
     graphics = json.loads(apk.read("assets/client-graphics.json"))
     assert graphics["sources"] == json.loads((ROOT/"graphics-compat/native-sources.json").read_text())
-    assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so"}
+    assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so", "libwurm_openal.so"}
+    assert graphics["audioBackend"] == "OpenAL Soft 1.25.2 / Android OpenSL ES"
+    assert "vao-buffer-offset-addresses" in graphics["gl4esPatches"]
+    assert "legacy-openal-context-lifecycle" in graphics["lwjglPatches"]
     for name, digest in graphics["nativeSha256"].items():
         data = apk.read("lib/arm64-v8a/"+name)
         assert hashlib.sha256(data).hexdigest() == digest
@@ -58,6 +61,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/pojav-wurm-api.jar"))) as adapter:
         assert "META-INF/LICENSE.lwjgl.txt" in adapter.namelist()
         assert "org/lwjgl/opengl/ARBProgram.class" in adapter.namelist()
+        assert b"OPENAL_CONTEXT_READY" in adapter.read("org/lwjgl/openal/AL.class")
         assert int.from_bytes(adapter.read("wurm/graphics/GraphicsTrace.class")[6:8], "big") == 52
         assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())

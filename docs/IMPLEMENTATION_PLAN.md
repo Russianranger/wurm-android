@@ -1,14 +1,18 @@
 # From the working POC to Wurm Server
 
-**Current test: 0.10.22 — fullscreen and graphics controls.** The Thor's 0.10.21
-report confirms median 30 producer FPS and 29.9 displayed FPS; the recording keeps
-its HUD. This build fills the viewer with the game, adds a collapsible gear panel
-with 0–100% opacity, supports real 1280 × 720 rendering, and exposes 17 individual
-graphics options. The Performance preset and frame-sequence fix are retained.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.22-fullscreen).
-[Follow the test](CLIENT_FULLSCREEN_SETTINGS.md). Keep older apps/backups and use an unused name:
-client login identity does not yet migrate between separate previews. Higher
-resolution performance and the new overlay still need device confirmation.
+**Current test: 0.10.23 — audio and vertex buffer fix.** The Thor's 0.10.22
+report reached about 32 minutes at 1280 × 720, median 30 displayed FPS, before a
+native GL4ES array-copy crash. This release corrects a reproduced double-offset
+buffer overread, adds ARM64 Android OpenAL, and repairs the legacy audio context
+lifecycle. The working graphics settings, fullscreen gear and opacity are retained.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.23-audio-buffer).
+[Follow the test](CLIENT_AUDIO_BUFFER_FIX.md). Sound and longer gameplay stability need device testing.
+Keep older apps/backups and use an unused name; client login identity does not
+currently migrate between separate previews.
+
+**Previous test: 0.10.22 — fullscreen and graphics controls.** The next Thor test
+confirmed graphics changes and sustained gameplay at 1280 × 720. Its client crash
+and silent audio startup are the focus of 0.10.23.
 
 **Previous test: 0.10.21 — frame display and game UI recovery.** Fixed the viewer's
 whole-second timestamp gate. The next Thor test confirmed the display-rate gain

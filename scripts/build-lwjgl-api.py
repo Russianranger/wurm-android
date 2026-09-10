@@ -13,6 +13,52 @@ JSR305_SHA256 = '766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c
 MODULES = ('core', 'lwjglx', 'opengl', 'opengles', 'openal', 'glfw', 'egl')
 
 
+def patch_legacy_audio(source):
+    old = '''            long contextHandle = ALC10.alcCreateContext(alDevice, attribs);
+            ALC10.alcMakeContextCurrent(contextHandle);
+            //alContext = new ALContext(alDevice, contextHandle);
+            alContext = ALC10.alcCreateContext(contextHandle, (IntBuffer)null);
+            alContextCaps = ALC.createCapabilities(alDevice);
+
+            alCaps = AL.createCapabilities(alContextCaps);
+
+            alcDevice = new ALCdevice(alDevice);
+            created_lwjgl2 = true;'''
+    if source.count(old) != 2 or source.count('alContext = -1;') != 1:
+        raise ValueError('Pinned LWJGL legacy OpenAL lifecycle changed')
+    source = source.replace(old, '            createLegacyContext(alDevice, attribs);')
+    source = source.replace('alContext = -1;', 'alContext = MemoryUtil.NULL;\n            alContextCaps = null;\n            alCaps = null;')
+    return append_methods(source, '''
+    private static void createLegacyContext(long device, IntBuffer attributes) throws LWJGLException {
+        long context = MemoryUtil.NULL;
+        boolean ready = false;
+        try {
+            context = ALC10.alcCreateContext(device, attributes);
+            if (context == MemoryUtil.NULL)
+                throw new LWJGLException("Cannot create the OpenAL context");
+            if (!ALC10.alcMakeContextCurrent(context))
+                throw new LWJGLException("Cannot make the OpenAL context current");
+            ALCCapabilities deviceCaps = ALC.createCapabilities(device);
+            ALCapabilities contextCaps = AL.createCapabilities(deviceCaps);
+            alContext = context;
+            alcDevice = new ALCdevice(device);
+            alContextCaps = deviceCaps;
+            alCaps = contextCaps;
+            created_lwjgl2 = true;
+            ready = true;
+            System.out.println("[audio] OPENAL_CONTEXT_READY device=" + device + " context=" + context);
+        } finally {
+            if (!ready) {
+                ALC10.alcMakeContextCurrent(MemoryUtil.NULL);
+                if (context != MemoryUtil.NULL) ALC10.alcDestroyContext(context);
+                ALC10.alcCloseDevice(device);
+                setCurrentProcess(null);
+            }
+        }
+    }
+''')
+
+
 def patch_display(source):
     original = '''    public static void destroy() {
         Window.releaseCallbacks();
@@ -182,6 +228,10 @@ def compile_verified_source(source, annotations, output, tracked, patches=True):
         original = source/'modules/lwjgl/core/src/main/java/org/lwjgl/system/Checks.java'
         target = output/'patched/Checks.java'
         target.write_text(patch_capability_checks(original.read_text()))
+        java[java.index(original)] = target
+        original = source/'modules/lwjgl/openal/src/main/java/org/lwjgl/openal/AL.java'
+        target = output/'patched/AL.java'
+        target.write_text(patch_legacy_audio(original.read_text()))
         java[java.index(original)] = target
     # Compile the legacy MemoryUtil last, as module-by-module upstream builds do:
     # exposing it earlier makes generated wildcard imports ambiguous with system.MemoryUtil.

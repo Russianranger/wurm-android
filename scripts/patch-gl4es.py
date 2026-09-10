@@ -69,3 +69,61 @@ def apply_draw(root: Path, header: Path):
         raise ValueError("Unexpected GL4ES fpe.c")
     target.write_text(patch_draw(patch_client_pointers(original.decode())))
     (target.parent / "wurm_draw_trace.h").write_bytes(header.read_bytes())
+
+
+def apply_array_addresses(root: Path):
+    """Keep VAO pointers as offset+buffer; resolve CPU addresses exactly once.
+
+    The upstream legacy setter stores base+offset but its copy helpers add the
+    offset again. Generic setters already use offset+buffer. Update every CPU
+    consumer of the legacy representation, including selection and GLES1.
+    """
+    pins = {
+        "gl4es.c": "354a3407e27b3b71af94e9fbe591c25631f488dc2f1a06a9adb59de42c0586f4",
+        "array.c": "2aa8f7f022902d03f773b6e8728db7deae62f823e70fa53c76e34861cd841e53",
+        "array.h": "d315361ea20947274826aac56b178a3bf43f97a20aef98ac8246d5ee5594e17a",
+        "drawing.c": "d6bb4c02c7c9f18e5f155ac023cd75cbcf080352026da97f0840e3d37c366543",
+        "render.c": "b796796f8d7e8989bbba1e9ed3688b18c5c321f931195f94995fc0a826cc0aaa",
+        "texture_params.c": "cfec863c617567723aa4251fe78f4646b96317c474a6d920b85abd62b3a2bcfd",
+    }
+    sources = {}
+    for name, digest in pins.items():
+        data = (root / "src/gl" / name).read_bytes()
+        if hashlib.sha256(data).hexdigest() != digest:
+            raise ValueError(f"Unexpected GL4ES {name}")
+        sources[name] = data.decode()
+
+    def replace(name, old, new, count):
+        if sources[name].count(old) != count:
+            raise ValueError(f"Pinned GL4ES address consumer changed: {name}: {old}")
+        sources[name] = sources[name].replace(old, new)
+
+    replace("array.h", '#include "gles.h"', '''#include "gles.h"
+#include <stdint.h>
+
+// CPU data comes from the currently captured buffer allocation, never from
+// real_pointer (which is an offset into a GLES buffer, including locked arrays).
+static inline const GLvoid *gl4es_pointer_address(const vertexattrib_t *p) {
+    return (const GLvoid*)((uintptr_t)p->pointer +
+                          (p->buffer ? (uintptr_t)p->buffer->data : 0));
+}''', 1)
+    replace("gl4es.c", "t.pointer = (void*)((char*)pointer + (uintptr_t)((glstate->vao->vertex)?glstate->vao->vertex->data:0));",
+            "t.pointer = pointer; t.buffer = glstate->vao->vertex;", 1)
+    replace("array.c", "(const GLvoid*)((uintptr_t)ptr->pointer+(uintptr_t)ptr->real_pointer)",
+            "gl4es_pointer_address(ptr)", 10)
+    replace("array.c", "(uintptr_t)p->pointer+(uintptr_t)p->real_pointer",
+            "(uintptr_t)gl4es_pointer_address(p)", 1)
+    # glArrayElement direct reads and compiled-array upload/range calculations.
+    replace("gl4es.c", "p->pointer", "gl4es_pointer_address(p)", 12)
+    replace("gl4es.c", "glstate->vao->vertexattrib[ATT_VERTEX].pointer",
+            "gl4es_pointer_address(&glstate->vao->vertexattrib[ATT_VERTEX])", 1)
+    replace("gl4es.c", "glstate->vao->vertexattrib[i].pointer",
+            "gl4es_pointer_address(&glstate->vao->vertexattrib[i])", 2)
+    for attr in ("ATT_COLOR", "ATT_SECONDARY"):
+        replace("drawing.c", f"glstate->vao->vertexattrib[{attr}].pointer",
+                f"gl4es_pointer_address(&glstate->vao->vertexattrib[{attr}])", 3)
+    replace("drawing.c", "p->pointer", "gl4es_pointer_address(p)", 3)
+    replace("render.c", "vtx->pointer", "gl4es_pointer_address(vtx)", 4)
+    replace("texture_params.c", "ptr->pointer", "gl4es_pointer_address(ptr)", 1)
+    for name, source in sources.items():
+        (root / "src/gl" / name).write_text(source)

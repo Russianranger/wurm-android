@@ -54,7 +54,7 @@ def main():
     native = output/'jniLibs/arm64-v8a'; native.mkdir(parents=True)
     work = output/'work'; work.mkdir()
     sources = {}
-    for name in ('lwjgl', 'gl4es', 'libffi', 'pojav'):
+    for name in ('lwjgl', 'gl4es', 'libffi', 'pojav', 'openal'):
         with tarfile.open(archives[name]) as archive:
             archive.extractall(work, filter='data')
         sources[name] = work/pins[name]['root']
@@ -63,6 +63,7 @@ def main():
     gl4es_patch = importlib.util.module_from_spec(spec); spec.loader.exec_module(gl4es_patch)
     gl4es_patch.apply(gl4es)
     gl4es_patch.apply_draw(gl4es, ROOT/'graphics-compat/native/wurm_draw_trace.h')
+    gl4es_patch.apply_array_addresses(gl4es)
     spec = importlib.util.spec_from_file_location('lwjgl_builder', ROOT/'scripts/build-lwjgl-api.py')
     api = importlib.util.module_from_spec(spec); spec.loader.exec_module(api)
     candidate = api.compile_verified_source(lwjgl, archives['jsr305'], work/'java-api',
@@ -110,6 +111,14 @@ def main():
         ['-ldl', '-lm', '-llog'])
     library('wurm_graphics', [ROOT/'graphics-compat/native/egl_probe.c'],
             ['-std=c11', '-O2', '-fPIC', '-Wall', '-Wextra', '-Werror'], ['-lEGL', '-lGLESv2', '-ldl'])
+    audio_build = work/'audio-build'
+    run(['cmake', '-S', ROOT/'graphics-compat/audio', '-B', audio_build,
+         '-DCMAKE_TOOLCHAIN_FILE='+str(ndk/'build/cmake/android.toolchain.cmake'),
+         '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-33', '-DANDROID_STL=c++_static',
+         '-DCMAKE_BUILD_TYPE=Release', '-DWURM_OPENAL_SOURCE='+str(sources['openal'])], work/'audio-configure.log')
+    run(['cmake', '--build', audio_build, '--target', 'OpenAL', '-j4'], work/'audio-build.log')
+    shutil.copyfile(audio_build/'openal/libwurm_openal.so', native/'libwurm_openal.so')
+    print('Built libwurm_openal.so with required Android OpenSL ES backend', flush=True)
     helper = work/'graphics-classes'; helper.mkdir()
     run(['java', 'com.sun.tools.javac.Main', '--release', '17', '-cp', candidate, '-d', helper,
          *sorted((ROOT/'graphics-compat/probe').rglob('*.java'))], work/'probe-compile.log')
@@ -124,6 +133,10 @@ def main():
     notices = [('LWJGL BSD notice', lwjgl/'LICENSE.md'), ('LWJGL dyncall notice', core/'org_lwjgl_system_SharedLibraryUtil.c'),
                ('LWJGL bundled liburing notice', lwjgl/'modules/lwjgl/core/liburing_license.txt'), ('GL4ES MIT notice (custom shader global-scope correction; bounded native draw breadcrumb)', gl4es/'LICENSE'),
                ('libffi MIT notice', ffi/'LICENSE'), ('Pojav Java GLFW LGPLv3 notice', sources['pojav']/'LICENSE'),
+               ('OpenAL Soft LGPL notice', sources['openal']/'COPYING'),
+               ('OpenAL Soft PFFFT notice', sources['openal']/'LICENSE-pffft'),
+               ('OpenAL Soft fmt notice', sources['openal']/'fmt-11.2.0/LICENSE'),
+               ('OpenAL Soft GSL notice', sources['openal']/'gsl/LICENSE'),
                ('Android utility Apache-2.0 notice', sources['pojav']/'jre_lwjgl3glfw/src/main/java/android/util/ArrayMap.java'),
                ('GPLv3 incorporated by LGPLv3', ROOT/'graphics-compat/licenses/GPL-3.0.txt'),
                ('Apache-2.0 license', ROOT/'graphics-compat/licenses/Apache-2.0.txt'), ('JSR305 annotation notice (build only)', None)]
@@ -132,7 +145,7 @@ def main():
         if path is None: continue
         notice_text.append(title+'\n'+path.read_text())
     (assets/'graphics-NOTICES.txt').write_text('\n\n'.join(notice_text))
-    system = {'libc.so', 'libm.so', 'libdl.so', 'liblog.so', 'libEGL.so', 'libGLESv2.so'}
+    system = {'libc.so', 'libm.so', 'libdl.so', 'liblog.so', 'libEGL.so', 'libGLESv2.so', 'libOpenSLES.so'}
     for path in native.glob('*.so'):
         contents = path.read_bytes()
         if contents[:6] != b'\x7fELF\x02\x01' or int.from_bytes(contents[18:20], 'little') != 183:
@@ -142,7 +155,9 @@ def main():
             if dependency not in system and not (native/dependency).is_file():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
-                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses'],
+                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses', 'vao-buffer-offset-addresses'],
+                    audioBackend='OpenAL Soft 1.25.2 / Android OpenSL ES',
+                    lwjglPatches=['legacy-openal-context-lifecycle'],
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},
                     assetsSha256={p.name: sha(p) for p in sorted(assets.iterdir())})
     (assets/'client-graphics.json').write_text(json.dumps(manifest, indent=2)+'\n')

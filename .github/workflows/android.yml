@@ -53,10 +53,13 @@ jobs:
       - name: Verify native graphics regressions and actual LWJGL input
         env:
           WURM_INPUT_API_JAR: ${{ github.workspace }}/app/build/generated/clientGraphics/assets/pojav-wurm-api.jar
+          WURM_LWJGL_ARCHIVE: ${{ github.workspace }}/app/build/graphicsDownloads/lwjgl.tar.gz
           WURM_GL4ES_ARCHIVE: ${{ github.workspace }}/app/build/graphicsDownloads/gl4es.tar.gz
         run: |
           python3 -m unittest discover -s tests -p test_gl4es_shader_wrapper.py -v
           python3 -m unittest discover -s tests -p test_gl4es_client_pointers.py -v
+          python3 -m unittest discover -s tests -p test_gl4es_array_addresses.py -v
+          python3 -m unittest discover -s tests -p test_legacy_openal.py -v
           python3 -m unittest discover -s tests -p test_window_input.py -v
       - name: Prepare import preview
         run: |
@@ -131,7 +134,7 @@ jobs:
           cp app/build/generated/clientGraphics/assets/client-graphics.json managed-dist/client-graphics.json
           cp app/build/generated/clientGraphics/assets/graphics-NOTICES.txt managed-dist/graphics-NOTICES.txt
           mkdir -p managed-dist/graphics-sources/upstream managed-dist/graphics-sources/scripts
-          cp app/build/graphicsDownloads/lwjgl.tar.gz app/build/graphicsDownloads/gl4es.tar.gz app/build/graphicsDownloads/libffi.tar.gz app/build/graphicsDownloads/pojav.tar.gz managed-dist/graphics-sources/upstream/
+          cp app/build/graphicsDownloads/lwjgl.tar.gz app/build/graphicsDownloads/gl4es.tar.gz app/build/graphicsDownloads/libffi.tar.gz app/build/graphicsDownloads/pojav.tar.gz app/build/graphicsDownloads/openal.tar.gz managed-dist/graphics-sources/upstream/
           cp -R graphics-compat managed-dist/graphics-sources/
           mkdir -p managed-dist/graphics-sources/runtime-probe/src/client
           cp runtime-probe/src/client/DesktopInput.java managed-dist/graphics-sources/runtime-probe/src/client/
@@ -155,6 +158,7 @@ jobs:
           cp docs/CLIENT_GC_TEST.md managed-dist/CLIENT_GC_TEST.md
           cp docs/SERVER_LOGIN_BASE64_FIX.md managed-dist/SERVER_LOGIN_BASE64_FIX.md
           cp docs/CLIENT_LOGIN_IDENTITY_FIX.md managed-dist/CLIENT_LOGIN_IDENTITY_FIX.md
+          cp docs/CLIENT_AUDIO_BUFFER_FIX.md managed-dist/CLIENT_AUDIO_BUFFER_FIX.md
           cp docs/CLIENT_FULLSCREEN_SETTINGS.md managed-dist/CLIENT_FULLSCREEN_SETTINGS.md
           cp docs/CLIENT_FRAME_SEQUENCE_FIX.md managed-dist/CLIENT_FRAME_SEQUENCE_FIX.md
           cp docs/CLIENT_GRAPHICS_SETTINGS_FIX.md managed-dist/CLIENT_GRAPHICS_SETTINGS_FIX.md
@@ -191,7 +195,7 @@ jobs:
           tar -czf managed-dist/Runtime-corresponding-source.tar.gz -C managed-dist runtime-sources
           rm -r managed-dist/runtime-sources
           cd managed-dist
-          sha256sum Wurm-Server.apk CLIENT_FULLSCREEN_SETTINGS.md CLIENT_FRAME_SEQUENCE_FIX.md CLIENT_GRAPHICS_SETTINGS_FIX.md CLIENT_VERTEX_POINTER_FIX.md CLIENT_SHADER_PERFORMANCE_FIX.md CLIENT_TOUCH_INPUT_FIX.md SERVER_IMPORT_UPGRADE_FIX.md SERVER_PERSONAL_MODE_FIX.md CLIENT_LOGIN_IDENTITY_FIX.md SERVER_LOGIN_BASE64_FIX.md CLIENT_GC_TEST.md SERVER_POSITION_SQLITE_FIX.md CLIENT_LOGIN_TEST.md CLIENT_CONNECTION_TEST.md CLIENT_CRASH_DIAGNOSTIC.md CLIENT_CAPABILITIES_FIX.md CLIENT_MATERIALS_FIX.md CLIENT_BUFFERS_FIX.md CLIENT_OFFSCREEN_FIX.md CLIENT_WINDOW_START_FIX.md CLIENT_FONTS_FIX.md CLIENT_SETTINGS_FIX.md GRAPHICS_THOR_TEST.md client-graphics.json graphics-NOTICES.txt Graphics-corresponding-source.tar.gz CLIENT_THOR_TEST.md CLIENT_INTEGRATION.md MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md STORAGE_VERIFICATION.md WORLD_CONFIGURATION_TEST.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
+          sha256sum Wurm-Server.apk CLIENT_AUDIO_BUFFER_FIX.md CLIENT_FULLSCREEN_SETTINGS.md CLIENT_FRAME_SEQUENCE_FIX.md CLIENT_GRAPHICS_SETTINGS_FIX.md CLIENT_VERTEX_POINTER_FIX.md CLIENT_SHADER_PERFORMANCE_FIX.md CLIENT_TOUCH_INPUT_FIX.md SERVER_IMPORT_UPGRADE_FIX.md SERVER_PERSONAL_MODE_FIX.md CLIENT_LOGIN_IDENTITY_FIX.md SERVER_LOGIN_BASE64_FIX.md CLIENT_GC_TEST.md SERVER_POSITION_SQLITE_FIX.md CLIENT_LOGIN_TEST.md CLIENT_CONNECTION_TEST.md CLIENT_CRASH_DIAGNOSTIC.md CLIENT_CAPABILITIES_FIX.md CLIENT_MATERIALS_FIX.md CLIENT_BUFFERS_FIX.md CLIENT_OFFSCREEN_FIX.md CLIENT_WINDOW_START_FIX.md CLIENT_FONTS_FIX.md CLIENT_SETTINGS_FIX.md GRAPHICS_THOR_TEST.md client-graphics.json graphics-NOTICES.txt Graphics-corresponding-source.tar.gz CLIENT_THOR_TEST.md CLIENT_INTEGRATION.md MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md STORAGE_VERIFICATION.md WORLD_CONFIGURATION_TEST.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
       - name: Upload managed server APK and matching runtime source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -275,14 +279,14 @@ jobs:
     steps:
       - name: Publish first passing managed server preview
         run: |
-          tag=v0.10.22-fullscreen
+          tag=v0.10.23-audio-buffer
           if gh release view "$tag" >/dev/null 2>&1; then
             echo 'Managed preview already published; keeping its APK and tag immutable.'
             exit 0
           fi
           gh run download "$GITHUB_RUN_ID" --name wurm-managed-server --dir dist
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title 'Wurm Server 0.10.22 — fullscreen and graphics controls' --notes-file dist/release-notes.md \
-            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/CLIENT_FULLSCREEN_SETTINGS.md dist/CLIENT_FRAME_SEQUENCE_FIX.md dist/CLIENT_GRAPHICS_SETTINGS_FIX.md dist/CLIENT_VERTEX_POINTER_FIX.md dist/CLIENT_SHADER_PERFORMANCE_FIX.md dist/CLIENT_TOUCH_INPUT_FIX.md dist/SERVER_IMPORT_UPGRADE_FIX.md dist/SERVER_PERSONAL_MODE_FIX.md dist/CLIENT_LOGIN_IDENTITY_FIX.md dist/SERVER_LOGIN_BASE64_FIX.md dist/CLIENT_GC_TEST.md dist/SERVER_POSITION_SQLITE_FIX.md dist/CLIENT_LOGIN_TEST.md dist/CLIENT_CONNECTION_TEST.md dist/CLIENT_CRASH_DIAGNOSTIC.md dist/CLIENT_CAPABILITIES_FIX.md dist/CLIENT_MATERIALS_FIX.md dist/CLIENT_BUFFERS_FIX.md dist/CLIENT_OFFSCREEN_FIX.md dist/CLIENT_WINDOW_START_FIX.md dist/CLIENT_FONTS_FIX.md dist/CLIENT_SETTINGS_FIX.md dist/CLIENT_THOR_TEST.md dist/CLIENT_INTEGRATION.md dist/MANAGED_SERVER_TEST.md \
+            --title 'Wurm Server 0.10.23 — audio and vertex buffer fix' --notes-file dist/release-notes.md \
+            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/CLIENT_AUDIO_BUFFER_FIX.md dist/CLIENT_FULLSCREEN_SETTINGS.md dist/CLIENT_FRAME_SEQUENCE_FIX.md dist/CLIENT_GRAPHICS_SETTINGS_FIX.md dist/CLIENT_VERTEX_POINTER_FIX.md dist/CLIENT_SHADER_PERFORMANCE_FIX.md dist/CLIENT_TOUCH_INPUT_FIX.md dist/SERVER_IMPORT_UPGRADE_FIX.md dist/SERVER_PERSONAL_MODE_FIX.md dist/CLIENT_LOGIN_IDENTITY_FIX.md dist/SERVER_LOGIN_BASE64_FIX.md dist/CLIENT_GC_TEST.md dist/SERVER_POSITION_SQLITE_FIX.md dist/CLIENT_LOGIN_TEST.md dist/CLIENT_CONNECTION_TEST.md dist/CLIENT_CRASH_DIAGNOSTIC.md dist/CLIENT_CAPABILITIES_FIX.md dist/CLIENT_MATERIALS_FIX.md dist/CLIENT_BUFFERS_FIX.md dist/CLIENT_OFFSCREEN_FIX.md dist/CLIENT_WINDOW_START_FIX.md dist/CLIENT_FONTS_FIX.md dist/CLIENT_SETTINGS_FIX.md dist/CLIENT_THOR_TEST.md dist/CLIENT_INTEGRATION.md dist/MANAGED_SERVER_TEST.md \
             dist/GRAPHICS_THOR_TEST.md dist/client-graphics.json dist/graphics-NOTICES.txt dist/Graphics-corresponding-source.tar.gz \
             dist/THOR_NATIVE_HEAP_FIX.md dist/STORAGE_VERIFICATION.md dist/WORLD_CONFIGURATION_TEST.md dist/runtime.json dist/Runtime-corresponding-source.tar.gz

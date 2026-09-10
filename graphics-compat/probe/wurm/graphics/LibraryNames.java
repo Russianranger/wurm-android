@@ -7,6 +7,7 @@ public final class LibraryNames implements Function<String, String> {
     public String apply(String name) {
         if (name.equals("lwjgl")) return "wurm_lwjgl3";
         if (name.equals("lwjgl_opengl")) return "wurm_lwjgl3_opengl";
+        if (name.equals("openal")) return "wurm_openal";
         return name;
     }
 }

@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.22\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.23\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.21 reached a median 30 producer FPS and 29.9 displayed FPS; its recording retained the game HUD. This build adds fullscreen overlay controls, 1280x720 rendering and 17 individual graphics options. Device 720p performance, overlay input isolation and fullscreen return from recording need testing. GL errors, visual artifacts and an EGL cache/native allocator abort after window closure remain tracked.\n\n" +
+            "Gate status: Thor 0.10.22 reached about 32 minutes at 1280x720, median 30 displayed FPS, before a GL4ES array-copy SIGSEGV. This build corrects a reproduced legacy VBO double-offset overread and adds ARM64 Android OpenAL with corrected context lifecycle. Device sound and longer gameplay stability need confirmation. Prior visual artifacts and native shutdown issues remain tracked.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -215,6 +215,7 @@ object ClientSession {
                         "-Dwurm.client.fontDir=/system/fonts", "-Dwurm.client.fontConfig=$session/fontconfig.properties"
                     ) else emptyList()) + if (stage == "render" || window) listOf(
                         "-Dorg.lwjgl.librarypath=$native", "-Dorg.lwjgl.opengl.explicitInit=true", "-Dorg.lwjgl.util.Debug=true",
+                        "-Dorg.lwjgl.openal.libname=${File(native, "libwurm_openal.so")}",
                         "-Dorg.lwjgl.system.bundledLibrary.nameMapper=wurm.graphics.LibraryNames",
                         "-Dorg.lwjgl.system.allocator=system",
                         "-Dwurm.graphics.trace=true",
@@ -234,6 +235,9 @@ object ClientSession {
                         environment()["LIBGL_ES"] = "2"; environment()["LIBGL_GL"] = "21"
                         environment()["LIBGL_GLES"] = "libGLESv2.so"; environment()["LIBGL_EGL"] = "libEGL.so"
                         environment()["LIBGL_NOPSA"] = "1"
+                        environment()["ALSOFT_DRIVERS"] = "opensl"
+                        environment()["ALSOFT_LOGLEVEL"] = "3"
+                        log("[audio] ANDROID_AUDIO library=${File(native, "libwurm_openal.so")} backend=opensl; native device/context results follow during game startup")
                         environment()["WURM_GL_DRAW_TRACE"] = nativeDrawTrace(context).absolutePath
                         log("[graphics] SHADER_CACHE disabled LIBGL_NOPSA=1; compile shaders per attempt to avoid cached-program failures")
                     }
