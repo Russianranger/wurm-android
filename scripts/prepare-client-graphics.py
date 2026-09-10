@@ -134,12 +134,13 @@ def main():
                ('LWJGL bundled liburing notice', lwjgl/'modules/lwjgl/core/liburing_license.txt'), ('GL4ES MIT notice (custom shader global-scope correction; bounded native draw breadcrumb)', gl4es/'LICENSE'),
                ('libffi MIT notice', ffi/'LICENSE'), ('Pojav Java GLFW LGPLv3 notice', sources['pojav']/'LICENSE'),
                ('OpenAL Soft LGPL notice', sources['openal']/'COPYING'),
-               ('OpenAL Soft PFFFT notice', sources['openal']/'LICENSE-pffft'),
-               ('OpenAL Soft fmt notice', sources['openal']/'fmt-11.2.0/LICENSE'),
-               ('OpenAL Soft GSL notice', sources['openal']/'gsl/LICENSE'),
                ('Android utility Apache-2.0 notice', sources['pojav']/'jre_lwjgl3glfw/src/main/java/android/util/ArrayMap.java'),
                ('GPLv3 incorporated by LGPLv3', ROOT/'graphics-compat/licenses/GPL-3.0.txt'),
                ('Apache-2.0 license', ROOT/'graphics-compat/licenses/Apache-2.0.txt'), ('JSR305 annotation notice (build only)', None)]
+    # Include toolchain runtime notices for the statically linked C++ runtime.
+    ndk_notices = sorted(ndk.glob("NOTICE*"))
+    if not ndk_notices: raise ValueError("Android NDK runtime notices missing")
+    notices.extend(("Android NDK runtime notice: "+p.name, p) for p in ndk_notices if p.is_file())
     notice_text = []
     for title, path in notices:
         if path is None: continue
@@ -156,7 +157,7 @@ def main():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
                     ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses', 'vao-buffer-offset-addresses'],
-                    audioBackend='OpenAL Soft 1.25.2 / Android OpenSL ES',
+                    audioBackend='OpenAL Soft 1.23.1 / Android OpenSL ES',
                     lwjglPatches=['legacy-openal-context-lifecycle'],
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},
                     assetsSha256={p.name: sha(p) for p in sorted(assets.iterdir())})

@@ -18,8 +18,10 @@ later shut down normally when stopped. Audio had fallen back to silent mode.
 - CPU consumers for colors, texture coordinates, selection and compiled arrays
   resolve the captured buffer's current allocation. GLES offsets stay separate.
   The earlier internal render-list pointer correction remains in place.
-- The APK includes a checksum-pinned ARM64 build of OpenAL Soft 1.25.2 with the
-  Android OpenSL ES backend. An explicit absolute library path avoids the 32-bit
+- The APK includes a checksum-pinned ARM64 build of OpenAL Soft 1.23.1 with the
+  Android OpenSL ES backend. This C++14 release builds with the existing pinned
+  NDK 26.1; 1.25.2 failed CI because that toolchain lacks its required C++20 library
+  functions. An explicit absolute library path avoids the 32-bit
   `libopenal.so` extracted from the imported client JAR in 0.10.22.
 - The LWJGL compatibility layer now retains the context it actually created,
   rather than passing that context to a second device-based creation call. It
@@ -67,7 +69,7 @@ fullscreen controls are unchanged.
 
 - [GL4ES source pin](https://github.com/ptitSeb/gl4es/tree/81547d986798e876de8b434193920b606a72363f)
 - [LWJGL compatibility source pin](https://github.com/PojavLauncherTeam/lwjgl3/tree/39272d4d0ca119379024e3ca7207699fd3fce237)
-- [OpenAL Soft 1.25.2](https://github.com/kcat/openal-soft/tree/1.25.2)
+- [OpenAL Soft 1.23.1](https://github.com/kcat/openal-soft/tree/1.23.1)
 
 `graphics-compat/native-sources.json` pins the source archives and hashes.
 `scripts/patch-gl4es.py` checks each changed upstream file before applying the
