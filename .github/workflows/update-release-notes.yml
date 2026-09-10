@@ -1,0 +1,22 @@
+name: Correct current preview test instructions
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/RELEASE_GRAPHICS_PREVIEW.md
+      - .github/workflows/update-release-notes.yml
+permissions:
+  contents: write
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Correct 0.10.18 notes without replacing its APK or tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Only this version's guide may update this immutable binary release.
+          test "$(head -n 1 docs/RELEASE_GRAPHICS_PREVIEW.md)" = '# Wurm Server 0.10.18 — shader and frame performance fix' || exit 0
+          gh release edit v0.10.18-shader-performance --notes-file docs/RELEASE_GRAPHICS_PREVIEW.md

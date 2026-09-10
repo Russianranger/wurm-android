@@ -8,7 +8,8 @@ transfer overhead and targets 15 presented FPS. It also records the last native
 draw; the crash is not yet proven resolved.
 [Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.18-shader-performance).
 [Follow the migration and performance test](CLIENT_SHADER_PERFORMANCE_FIX.md)
-to preserve Thor through a stopped working-runtime export.
+to back up the world and use a new test character; client identity transfer between
+preview packages is not implemented.
 
 
 **Previous test: 0.10.17 — touch and visible pointer controls.** The Thor's 0.10.16

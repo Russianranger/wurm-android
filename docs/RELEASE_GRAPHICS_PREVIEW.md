@@ -53,18 +53,28 @@ patch script and authored diagnostic header. Touch/controller controls, server
 bootstrap and separate server lifetime are retained. The optional window test now
 understands pointer frame metadata, and the original eight-button protocol is retained.
 
-## Thor test — keep the new character
+## Thor test — preserve the old world and use a test character
+
+The working-runtime export contains the world and its characters. The synthetic
+local login identity lives separately in each app's client user-home directory.
+This release does not migrate that identity. Importing the world alone does not
+let a new app log back in as the old character. Keep 0.10.17 and its data.
 
 1. In **0.10.17**, use **Stop Server**, wait until stopped, then **Export working
-   runtime ZIP**. Keep this ZIP and the old app. Use the working export, not the
-   before-start checkpoint, to carry forward character changes saved by the server.
-2. Install **0.10.18** (code 32, separate shaderperf package). Import that working
-   server ZIP and your same complete client ZIP; select **Adventure / Thor**.
-   If you use the original prepared server ZIP instead, expect to create Thor again.
-3. Start Local Game. Confirm whether the existing character returns.
+   runtime ZIP**. Keep the ZIP and old app as your character/world backup.
+2. Install **0.10.18** (code 32, separate shaderperf package). Import the working
+   server ZIP and your same complete client ZIP; select **Adventure** and a new
+   test-character name such as **Thorperf**. The imported world retains Thor's
+   data, but Thorperf uses this new app's local identity.
+3. Start Local Game and complete setup for Thorperf. If using your original prepared
+   server ZIP instead, an unused name such as Thor can be created afresh.
 4. Move and look around for two minutes, including the area where it crashed.
    Note perceived smoothness and missing/incorrect graphics; take a screenshot.
 5. If the client crashes, export **Client Report before Retry**. Stop Server
    normally, then export **Server Session Report**. Send both and the screenshot.
 6. If stable, stop Client and Server normally and export both reports anyway.
-   Restart without reimporting to check character/location persistence.
+   Restart in this same app without reimporting to check Thorperf's persistence.
+
+A future client identity export/import is needed for straightforward character
+continuity between separate preview packages. No password checks or character
+records are changed by this release.
