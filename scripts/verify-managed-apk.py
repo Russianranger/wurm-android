@@ -25,6 +25,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert b"HEAP_TAGGING_OFF" in runner and b"HEAP_TAGGING_ERROR" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
+        assert int.from_bytes(helper.read("client/ClientHudVisibility.class")[6:8], "big") == 61
         for name in ("probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/ServerSqlitePatch.class", "server/ServerLoginPatch.class", "server/LegacyBase64Encoder.class", "server/ServerPreflight.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientJvmDiagnostics.class", "client/ClientMemoryProbe.class", "client/ClientMemoryProbe$Kernel.class", "client/ClientMemoryProbe$Loader.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/ClientSettingsPatch.class", "client/ClientVisualOptions.class", "client/DesktopInput.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
         assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())

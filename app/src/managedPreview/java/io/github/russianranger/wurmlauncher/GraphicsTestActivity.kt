@@ -21,8 +21,8 @@ class GraphicsTestActivity : Activity() {
     private var mode = "render"
     private var capture: ControllerCapture? = null
     private var reading = false
-    private var shownIdentity = ""
-    private var failureIdentity = ""
+    private var lastReadError = ""
+    private var readRetryAt = 0L
     private var resumed = false
     private var epoch = -1L
     private var shownSequence = 0
@@ -30,6 +30,8 @@ class GraphicsTestActivity : Activity() {
     private var statsAt = 0L
     private var displayed = 0
     private var rawCopy = false
+    private var focusLost = false
+    private var restoreHudOnFocus = false
     private var settingsSeen = ClientSession.settingsRequests
     private var noticeSeen = ""
     private var graphicsDialog: AlertDialog? = null
@@ -65,24 +67,30 @@ class GraphicsTestActivity : Activity() {
                 settingsSeen=ClientSession.settingsRequests; showGraphicsSettings()
             }
             run.isEnabled = !state.busy
+            if (restoreHudOnFocus && hasWindowFocus() && ClientSession.inputReady()) {
+                if (ClientSession.send("HUD restore-focus")) restoreHudOnFocus=false
+            }
             val file = ClientSession.graphicsFrame(this@GraphicsTestActivity)
             val currentEpoch=ClientSession.frameEpoch
             if (epoch != currentEpoch) {
-                epoch=currentEpoch; shownSequence=0; shownIdentity=""; failureIdentity=""; frame.clearFrame()
+                epoch=currentEpoch; shownSequence=0; lastReadError=""; readRetryAt=0; frame.clearFrame()
                 statsAt=now; displayed=0
             }
-            val identity = "${file.lastModified()}:${file.length()}"
-            if (!file.isFile) { if (shownSequence != 0) frame.clearFrame(); shownIdentity = "" }
-            else if (!reading && identity != shownIdentity && identity != failureIdentity) {
+            if (!file.isFile) { if (shownSequence != 0) frame.clearFrame() }
+            else if (!reading && now >= readRetryAt) {
                 reading = true
+                val previousSequence=shownSequence
                 reader.execute {
-                    val result = runCatching { GraphicsFrame.read(file) }
+                    val readStart=SystemClock.elapsedRealtimeNanos()
+                    val result = runCatching { GraphicsFrame.readNewer(file,previousSequence) }
+                    val readMs=(SystemClock.elapsedRealtimeNanos()-readStart)/1e6
                     handler.post {
                         reading = false
                         // Atomic rename makes an opened frame complete even if a newer one arrives.
                         // Reject prior sessions/out-of-order frames, not a valid completed read.
                         if (!isDestroyed && resumed && ClientSession.frameEpoch == currentEpoch) result.fold({ data ->
-                            shownIdentity = identity
+                            lastReadError=""
+                            if (data == null) return@fold
                             if (data.sequence <= shownSequence) return@fold
                             val bitmap = displayedBitmap?.takeIf { it.width == data.width && it.height == data.height }
                                 ?: Bitmap.createBitmap(data.width, data.height, Bitmap.Config.ARGB_8888).also { it.setHasAlpha(false); displayedBitmap = it }
@@ -92,10 +100,13 @@ class GraphicsTestActivity : Activity() {
                             frame.setImageBitmap(bitmap)
                             frame.frame(data,direct)
                             shownSequence=data.sequence; displayed++
-                            if (data.sequence <= 3 || data.sequence % 25 == 0) ClientSession.log("[graphics-ui] FRAME_DISPLAYED sequence=${data.sequence} size=${data.width}x${data.height}")
+                            if (data.sequence <= 3 || data.sequence % 150 == 0) ClientSession.log("[graphics-ui] FRAME_DISPLAYED sequence=${data.sequence} size=${data.width}x${data.height} readMs=$readMs")
                         }, { failure ->
-                            failureIdentity = identity
-                            ClientSession.log("[graphics-ui] FRAME_READ_ERROR ${failure.javaClass.simpleName}: ${failure.message}")
+                            // Retry by time, not file identity: a later valid frame may share its mtime.
+                            readRetryAt=SystemClock.elapsedRealtime()+250
+                            val message="${failure.javaClass.simpleName}: ${failure.message}"
+                            if (lastReadError != message) ClientSession.log("[graphics-ui] FRAME_READ_ERROR $message")
+                            lastReadError=message
                         })
                     }
                 }
@@ -114,14 +125,14 @@ class GraphicsTestActivity : Activity() {
         if (mode != "render") capture = ControllerCapture(this)
         val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(12,12,12,12) }
         setContentView(column)
-        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.20" else "LWJGL Window · 0.10.20"; textSize = 23f })
+        column.addView(TextView(this).apply { text = if (mode == "render") "JVM Graphics Test · 0.10.21" else "LWJGL Window · 0.10.21"; textSize = 23f })
         column.addView(TextView(this).apply { text = if (mode == "window") "90-second LWJGL test: left stick moves triangle; right stick moves cyan cursor; mouse clicks change triangle color. Finish, then export Client Report." else if (mode != "render") "Touch the game to select and drag. Right stick: pointer; A or RT: click; LT: right click. Use Send in the character dialog to continue." else "Expected: orange triangle on blue. Tests LWJGL, GL4ES, shader drawing and resize. No client import needed. This is not a Wurm game window." })
         val controls = LinearLayout(this)
         column.addView(HorizontalScrollView(this).apply { addView(controls) })
         fun button(label: String, action: () -> Unit) = Button(this).apply { text = label; setOnClickListener { action() }; controls.addView(this) }
         run = button(if (mode == "window") "Run Window / Input Test" else if (mode == "render") "Run Graphics Test" else "Retry Client") {
             if (!ClientSession.snapshot().busy) {
-                shownIdentity = ""; failureIdentity = ""; frame.clearFrame()
+                lastReadError = ""; readRetryAt=0; frame.clearFrame()
                 startForegroundService(Intent(this, ClientService::class.java).setAction(mode))
             }
         }
@@ -129,6 +140,11 @@ class GraphicsTestActivity : Activity() {
         button("Stop Client Test") { startService(Intent(this, ClientService::class.java).setAction("stop")) }
         button("Back to Client / Export") { finish() }
         if (mode in listOf("start","local")) button("Graphics Settings") { showGraphicsSettings() }
+        if (mode in listOf("start","local")) button("Restore Game UI") {
+            frame.cancelTouch(); capture?.reset()
+            val sent=ClientSession.send("HUD restore-button")
+            Toast.makeText(this,if (sent) "Game UI restore requested." else "Start the client first.",Toast.LENGTH_SHORT).show()
+        }
         status = TextView(this).apply { textSize = 12f; setTextIsSelectable(true) }
         val diagnostics = ScrollView(this).apply { addView(status); visibility = if (mode == "render") android.view.View.VISIBLE else android.view.View.GONE }
         column.addView(diagnostics, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -142,9 +158,25 @@ class GraphicsTestActivity : Activity() {
         frame = GameFrameView(this, mode != "render")
         column.addView(frame, LinearLayout.LayoutParams(-1,0,2f))
     }
-    override fun onResume() { super.onResume(); capture?.resume(); resumed = true; statsAt=SystemClock.elapsedRealtime(); displayed=0; handler.post(refresh) }
-    override fun onPause() { frame.cancelTouch(); resumed = false; capture?.pause(); handler.removeCallbacks(refresh); super.onPause() }
-    override fun onWindowFocusChanged(hasFocus: Boolean) { super.onWindowFocusChanged(hasFocus); if (!hasFocus) { if (::frame.isInitialized) frame.cancelTouch(); capture?.reset() } }
+    override fun onResume() {
+        super.onResume(); capture?.resume(); resumed = true
+        if (mode in listOf("start","local")) restoreHudOnFocus=true
+        statsAt=SystemClock.elapsedRealtime(); displayed=0; handler.removeCallbacks(refresh); handler.post(refresh)
+        ClientSession.log("[graphics-ui] VIEW_RESUMED sequence=$shownSequence")
+    }
+    override fun onPause() { frame.cancelTouch(); focusLost=true; resumed = false; capture?.pause(); handler.removeCallbacks(refresh); ClientSession.log("[graphics-ui] VIEW_PAUSED sequence=$shownSequence"); super.onPause() }
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        ClientSession.log("[graphics-ui] VIEW_FOCUS $hasFocus sequence=$shownSequence")
+        if (!hasFocus) {
+            focusLost=true; if (::frame.isInitialized) frame.cancelTouch(); capture?.reset()
+        } else if (focusLost) {
+            focusLost=false
+            if (mode in listOf("start","local")) restoreHudOnFocus=true
+            // Force an actual redraw when Android returns from a recorder/system overlay.
+            if (::frame.isInitialized) frame.invalidate()
+        }
+    }
     override fun dispatchKeyEvent(event: KeyEvent): Boolean = capture?.key(event) == true || super.dispatchKeyEvent(event)
     override fun onGenericMotionEvent(event: MotionEvent): Boolean = capture?.motion(event) == true || super.onGenericMotionEvent(event)
     override fun onDestroy() { graphicsDialog?.dismiss(); reader.shutdown(); super.onDestroy() }

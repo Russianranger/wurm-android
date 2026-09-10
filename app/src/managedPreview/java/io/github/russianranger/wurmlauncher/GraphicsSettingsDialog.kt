@@ -20,8 +20,8 @@ object GraphicsSettingsDialog {
         }
         val preset=choice("Graphics preset",listOf("Performance: shorter distance, fewer effects", "Imported game settings"),
             if (prefs.getString("graphics-preset","performance") == "imported") 1 else 0)
-        val resolution=choice("Render resolution (after client restart)",listOf("800 × 450 — faster", "960 × 540 — sharper"),
-            if (prefs.getString("resolution","800x450") == "960x540") 1 else 0)
+        val resolution=choice("Render resolution (after client restart)",listOf("800 × 480 — faster", "960 × 540 — sharper"),
+            if (prefs.getString("resolution","800x480") == "960x540") 1 else 0)
         val fps=choice("Frame target",listOf("30 FPS — smoother", "15 FPS — lower load"),
             if (prefs.getInt("frame-fps",30) == 15) 1 else 0)
         column.addView(TextView(activity).apply {
@@ -30,7 +30,7 @@ object GraphicsSettingsDialog {
         return AlertDialog.Builder(activity).setTitle("Graphics settings").setView(ScrollView(activity).apply { addView(column) })
             .setNegativeButton("Cancel",null).setPositiveButton("Save") { _, _ ->
                 val name=if (preset.selectedItemPosition == 0) "performance" else "imported"
-                val size=if (resolution.selectedItemPosition == 0) "800x450" else "960x540"
+                val size=if (resolution.selectedItemPosition == 0) "800x480" else "960x540"
                 val rate=if (fps.selectedItemPosition == 0) 30 else 15
                 prefs.edit().putString("graphics-preset",name).putString("resolution",size).putInt("frame-fps",rate).apply()
                 val requested=live && ClientSession.inputReady() && ClientSession.send("VISUAL $name") && ClientSession.send("FPS $rate")

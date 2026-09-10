@@ -17,12 +17,18 @@ data class GraphicsFrame(val width: Int, val height: Int, val sequence: Int, val
         }
     }
     companion object {
-        fun read(file: File): GraphicsFrame = DataInputStream(file.inputStream().buffered()).use { input ->
+        fun read(file: File): GraphicsFrame = requireNotNull(readNewer(file, 0))
+        /** Sequence is authoritative. Android 13 File.lastModified() drops sub-second precision. */
+        fun readNewer(file: File, afterSequence: Int): GraphicsFrame? = DataInputStream(file.inputStream().buffered()).use { input ->
+            require(afterSequence >= 0) { "Invalid prior frame sequence" }
             require(input.readInt() == 0x57554746) { "Unknown graphics frame magic" }
             val version = input.readInt()
             require(version in 1..3) { "Unknown graphics frame format" }
             val width = input.readInt(); val height = input.readInt(); val sequence = input.readInt()
             require(width in 16..1024 && height in 16..1024 && sequence > 0) { "Invalid graphics frame bounds" }
+            // Read header and pixels from the same open file, even across atomic replacement.
+            // Skip duplicate payload allocation/copy without consulting mtime or file size.
+            if (sequence <= afterSequence) return@use null
             val pointer = if (version >= 2) {
                 val x = input.readInt(); val y = input.readInt(); val visible = input.readInt(); val applied = input.readInt()
                 require(x in 0 until width && y in 0 until height && visible in 0..1 && applied >= 0) { "Invalid pointer metadata" }

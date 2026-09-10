@@ -74,4 +74,49 @@ class GraphicsFrameTest {
         } finally { file.delete() }
     }
 
+    @Test fun consumesEverySequenceWhenAtomicFramesHaveIdenticalMtimeAndSize() {
+        val target=fixture()
+        val stamp=1_800_000_000_000L
+        var sequence=0
+        var oldIdentity=""
+        var timestampSelections=0
+        try {
+            repeat(30) { i ->
+                val replacement=fixture(sequence=i+1)
+                try {
+                    assertTrue(replacement.setLastModified(stamp))
+                    Files.move(replacement.toPath(),target.toPath(),java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                    val identity="${target.lastModified()}:${target.length()}"
+                    if (identity != oldIdentity) { timestampSelections++; oldIdentity=identity }
+                    val frame=requireNotNull(GraphicsFrame.readNewer(target,sequence))
+                    assertEquals(i+1,frame.sequence)
+                    sequence=frame.sequence
+                    assertNull(GraphicsFrame.readNewer(target,sequence))
+                } finally { replacement.delete() }
+            }
+            assertEquals("Previous viewer gate drops 29 frames",1,timestampSelections)
+            assertEquals(30,sequence)
+        } finally { target.delete() }
+    }
+
+    @Test fun skipsOldFramesAndRecoversAfterCorruptionWithoutTimestampChange() {
+        val target=fixture(sequence=2)
+        val stamp=1_800_000_000_000L
+        try {
+            assertNull(GraphicsFrame.readNewer(target,3))
+            target.writeBytes(byteArrayOf(1,2,3,4)); target.setLastModified(stamp)
+            assertTrue(runCatching { GraphicsFrame.readNewer(target,1) }.isFailure)
+            val replacement=fixture(sequence=2)
+            try {
+                replacement.setLastModified(stamp)
+                Files.move(replacement.toPath(),target.toPath(),java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                assertEquals(2,GraphicsFrame.readNewer(target,1)!!.sequence)
+                // A new viewer/session starts at sequence zero, regardless of the old session's value.
+                assertEquals(2,GraphicsFrame.readNewer(target,0)!!.sequence)
+            } finally { replacement.delete() }
+        } finally { target.delete() }
+    }
+
 }

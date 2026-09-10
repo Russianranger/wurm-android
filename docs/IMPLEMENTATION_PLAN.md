@@ -1,16 +1,21 @@
 # From the working POC to Wurm Server
 
-**Current test: 0.10.20 — Android graphics settings and frame delivery.** The Thor's
-0.10.19 test sustained visible gameplay, movement and interaction for about five
-minutes. Opening desktop Settings then caused a missing-JavaFX exception; graphics
-closed normally. This preview supplies an Android graphics dialog, a reversible
-Performance preset, 800 × 450 default rendering and a 30 FPS target. Raw RGBA
-transfer and accepting completed frames reduce presentation overhead. Device
-smoothness, settings use and same-app character persistence still need testing.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.20-graphics-settings).
-[Follow the test](CLIENT_GRAPHICS_SETTINGS_FIX.md). Keep older apps/backups and use an unused name:
-client login identity does not yet migrate between separate previews. Earlier
-shutdown corruption, intermittent GL errors and rendering artifacts remain tracked.
+**Current test: 0.10.21 — frame display and game UI recovery.** The Thor's 0.10.20
+report shows a median 30 producer FPS but only 1 displayed FPS. Android's file
+timestamp had whole-second precision, so the viewer skipped frames within each
+second. This build selects by frame sequence, restores HUD visibility when focus
+returns, and adds a Restore Game UI button and lifecycle/visibility observations.
+Actual display improvement and recorder recovery still need testing. The exact
+trigger of the HUD loss remains unconfirmed; GL errors and visual artifacts remain.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.21-frame-sequence).
+[Follow the test](CLIENT_FRAME_SEQUENCE_FIX.md). Keep older apps/backups and use an unused name:
+client login identity does not yet migrate between separate previews.
+
+**Previous test: 0.10.20 — Android graphics settings and frame delivery.** Replaced
+the failing JavaFX Settings route, added a Performance preset, and delivered raw
+RGBA frames at a 30 FPS target. The next Thor report confirmed settings application
+and 30 producer FPS, exposing the separate 1 FPS Android viewer bottleneck. Wurm
+used 800 × 480 despite the old 800 × 450 label; that label is corrected in 0.10.21.
 
 **Previous test: 0.10.19 — vertex pointer and name editor fix.** Corrected GL4ES
 rebasing internal host pointers as VBO offsets and moved name editing into a

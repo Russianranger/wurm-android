@@ -64,6 +64,13 @@ public final class WindowBackend {
     public static double x() { return pointer.x(); }
     public static double y() { return pointer.y(); }
     public static void cursor(double x, double y) { pointer.cursor(x,y); }
+    private static void hud(String action) {
+        if (System.getProperty("wurm.client.offscreenOverlay") == null) return;
+        try { Class.forName("client.ClientHudVisibility").getMethod("command",String.class).invoke(null,action); }
+        catch (ReflectiveOperationException failure) {
+            System.out.println("[client-ui] HUD_UNAVAILABLE "+(failure.getCause() == null ? failure : failure.getCause()));
+        }
+    }
     public static void poll() {
         if (owner == null) return;
         owned();
@@ -72,6 +79,7 @@ public final class WindowBackend {
             while ((line = events.poll()) != null) {
                 try {
                     if (line.startsWith("FPS ")) pacer.setFps(Integer.parseInt(line.substring(4)));
+                    else if (line.equals("HUD restore-focus") || line.equals("HUD restore-button")) hud(line.substring(4));
                     else if (line.startsWith("VISUAL ")) {
                         String preset=line.substring(7);
                         if (!java.util.List.of("performance", "imported").contains(preset)) throw new IllegalArgumentException("Unknown preset");
@@ -125,6 +133,7 @@ public final class WindowBackend {
                 "[window] FRAME_TIMING renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=%d",
                 swaps/seconds, published/seconds, readbackNanos/1e6/Math.max(1,published),
                 publishNanos/1e6/Math.max(1,published), pacer.fps()));
+            hud("observe");
             statsStart=now; swaps=0; published=0; readbackNanos=0; publishNanos=0;
         }
         NativeEgl.swap();

@@ -36,6 +36,7 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
     override fun onInputDeviceChanged(deviceId: Int) { mapper.releaseDevice(deviceId); detect() }
     override fun onInputDeviceRemoved(deviceId: Int) { mapper.releaseDevice(deviceId); detect() }
     fun key(event: KeyEvent): Boolean {
+        if (!activity.hasWindowFocus()) return false
         val device = event.device
         val physical = device != null && (device.supportsSource(InputDevice.SOURCE_GAMEPAD) || device.supportsSource(InputDevice.SOURCE_JOYSTICK))
         val name = ControllerTestActivity.BUTTONS[event.keyCode]
@@ -46,6 +47,7 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
         return false
     }
     fun motion(event: MotionEvent): Boolean {
+        if (!activity.hasWindowFocus()) return false
         if (!event.isFromSource(InputDevice.SOURCE_JOYSTICK) || event.action != MotionEvent.ACTION_MOVE) return false
         val device = event.device ?: return false
         fun value(axis: Int) = event.getAxisValue(axis)

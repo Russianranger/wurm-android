@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.20\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.21\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.19 sustained visible gameplay, movement and interaction for about five minutes, then exited 42 opening desktop JavaFX settings. Its graphics context closed normally. This build redirects settings to Android, adds live graphics presets, and uses raw RGBA frames with a 30 FPS target. Thor smoothness and settings acceptance remain to be tested; earlier native shutdown corruption and intermittent GL errors remain tracked.\n\n" +
+            "Gate status: Thor 0.10.20 produced a median 30 FPS but displayed only 1 FPS because the viewer selected frames by whole-second Android file timestamps. Settings opened and applied without the previous JavaFX crash. This build reads frame sequences directly and adds HUD restore on focus return plus a Restore Game UI button. The recording's HUD loss trigger remains unconfirmed; focus and HUD visibility are now logged. Device display rate, restoration and persistence still need testing; GL errors and rendering artifacts remain tracked.\n\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
             runCatching { context.assets.open("client-graphics.json").bufferedReader().use { it.readText() } }.getOrElse { "Unavailable: ${it.message}" } +
@@ -176,7 +176,7 @@ object ClientSession {
             val player = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getString("player", "Thor") ?: "Thor"
             val visual = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE)
             val preset = visual.getString("graphics-preset", "performance")?.takeIf { it in listOf("performance", "imported") } ?: "performance"
-            val resolution = visual.getString("resolution", "800x450")?.takeIf { it in listOf("800x450", "960x540") } ?: "800x450"
+            val resolution = visual.getString("resolution", "800x480")?.takeIf { it in listOf("800x480", "960x540") } ?: "800x480"
             val frameFps = visual.getInt("frame-fps", 30).takeIf { it in listOf(15,30) } ?: 30
             require(mode == "memory" || player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()

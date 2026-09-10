@@ -36,9 +36,9 @@ public final class DirectClientLaunch {
         // Both dimensions fit the existing 1024-pixel pbuffer bound. Apply after
         // profile loading/saving, for this attempt; do not save an Android override.
         String resolution = System.getProperty("wurm.client.resolution", "960x540");
-        if (!List.of("800x450", "960x540").contains(resolution)) throw new IllegalArgumentException("Unsupported Android resolution");
-        int width = resolution.equals("800x450") ? 800 : 960;
-        int height = resolution.equals("800x450") ? 450 : 540;
+        if (!List.of("800x480", "960x540").contains(resolution)) throw new IllegalArgumentException("Unsupported Android resolution");
+        int width = resolution.equals("800x480") ? 800 : 960;
+        int height = resolution.equals("800x480") ? 480 : 540;
         display.getClass().getMethod("set", boolean.class, int.class, int.class, int.class, boolean.class, boolean.class)
             .invoke(display, false, width, height, -1, false, false);
         log("WINDOW_OPTIONS_ANDROID width="+width+" height="+height+" maximized=false fullscreen=false resizable=false; desktopScreenQuery=false");
