@@ -25,8 +25,9 @@ class GraphicsFrameTest {
             val data=GraphicsFrame.read(file)
             assertEquals(1280,data.width); assertEquals(720,data.height)
             assertEquals(GraphicsFrame.Pointer(1279,719,true,8),data.pointer)
-            assertEquals(1280*720*4,data.rawRgba!!.size)
-            assertEquals(255,data.rawRgba[0].toInt() and 255); assertEquals(127,data.rawRgba.last().toInt())
+            val raw=requireNotNull(data.rawRgba)
+            assertEquals(1280*720*4,raw.size)
+            assertEquals(255,raw[0].toInt() and 255); assertEquals(127,raw.last().toInt())
         } finally { file.delete() }
     }
     @Test fun readsExactArgbPixelsAndDimensions() {
