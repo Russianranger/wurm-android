@@ -72,7 +72,7 @@ public class BufferFixture {
         for name, text in sources.items():
             p = cls.root/name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(text); paths.append(p)
         result = subprocess.run(['java','com.sun.tools.javac.Main','-source','17','-target','17',*EXPORTS,
-            '-d',str(cls.classes),*map(str,(ROOT/'runtime-probe/src/client').glob('*.java')),*map(str,paths)],capture_output=True,text=True)
+            '-d',str(cls.classes),*map(str,(ROOT/'runtime-probe/src/client').glob('*.java')), str(ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java'),*map(str,paths)],capture_output=True,text=True)
         if result.returncode: raise AssertionError(result.stdout+result.stderr)
 
     @classmethod

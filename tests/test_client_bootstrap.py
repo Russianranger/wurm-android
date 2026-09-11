@@ -18,7 +18,7 @@ class ClientBootstrapTest(unittest.TestCase):
         cls.helper = cls.home / "helper"
         cls.helper.mkdir()
         subprocess.run(["java", "com.sun.tools.javac.Main", "--release", "17", "-d", str(cls.helper),
-                        *map(str, (ROOT / "runtime-probe/src/client").glob("*.java"))], check=True)
+                        *map(str, (ROOT / "runtime-probe/src/client").glob("*.java")), str(ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java')], check=True)
 
     @classmethod
     def tearDownClass(cls):

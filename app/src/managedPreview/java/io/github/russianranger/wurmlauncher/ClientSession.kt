@@ -27,6 +27,7 @@ object ClientSession {
         private set
     private val queue = LinkedBlockingQueue<String>(512)
     private var file: File? = null
+    private var observations: RuntimeObservationLog? = null
     private val lines = ArrayDeque<String>()
     private var worker: Thread? = null
     fun snapshot() = state
@@ -38,11 +39,13 @@ object ClientSession {
     @Synchronized fun log(message: String) {
         val line = message.take(4000); lines.addLast(line)
         while (lines.size > 1500) lines.removeFirst()
+        runCatching { observations?.observe(line) }
         runCatching { file?.let { if (it.length() > 2 * 1024 * 1024) it.writeText(lines.joinToString("\n") + "\n") else it.appendText(line + "\n") } }
     }
     @Synchronized fun initialize(context: Context) {
         if (file != null) return
         file = File(context.filesDir, "client-session.txt")
+        observations = RuntimeObservationLog(File(context.filesDir, "client-runtime-observations.txt"))
         file?.takeIf { it.isFile }?.useLines { it.toList().takeLast(100).forEach { line -> lines.addLast(line.take(4000)) } }
     }
     private fun status(phase: String, detail: String) { state = State(true, phase, detail); log("[app] ${Instant.now()} $phase — $detail") }
@@ -50,9 +53,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.30\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.31\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.29 passed the native allocator/thread test, then ASan stopped two splash-screen attempts at the same GL4ES shader-cache overflow. clear_program passed uniform location keys to kh_del as bucket indices. This build frees cached values and clears the maps correctly; a host ASan regression reproduces the exact 32-byte flags overread in the old source and passes after correction. Retry local play; no standalone startup-test repeat is required. Further corruption and sustained game stability remain unverified.\n\n" +
+            "Gate status: Thor 0.10.30 completed about ten minutes with client/server exit zero; five recoverable pending GL errors remain unexplained. This build throttles ready-state TCP probes and adds bounded graphics-error attribution plus 30-second client/server/Android memory observations. Graphics, heaps, collectors and ASan settings are retained. Extended stability and save persistence still need device confirmation.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -62,7 +65,9 @@ object ClientSession {
             "\nLast graphics frame:\n" + runCatching { graphicsFrame(context).takeIf { it.isFile }?.let {
                 val frame = GraphicsFrame.read(it)
                 "sequence=${frame.sequence} size=${frame.width}x${frame.height} pointer=${frame.pointer} sha256=${ProbeInputs.sha256(it)}; retained frame, not a new run\n"
-            } ?: "No frame\n" }.getOrElse { "Frame invalid: ${it.message}\n" } + "\nSession history:\n" +
+            } ?: "No frame\n" }.getOrElse { "Frame invalid: ${it.message}\n" } +
+            "\nRuntime observations (history; entries may also appear in console; compare timestamps/PIDs):\n" +
+            runCatching { observations?.read().orEmpty() }.getOrDefault("Unavailable\n") + "\nSession history:\n" +
             (file?.takeIf { it.isFile }?.readText() ?: recent()) +
             "\n\nServer Session Report from this app only (history; compare timestamps):\n" +
             ManagedSession.report(context)
@@ -203,6 +208,7 @@ object ClientSession {
         context.assets.open("runtime-probe.jar").use { input -> helper.outputStream().use { input.copyTo(it) } }
         val compat = File(session, "client-compat.jar")
         val overlay = File(session, "client-graphics-overlay.jar")
+        var appMemory: AppMemoryMeasurements? = null
         context.assets.open("client-compat.jar").use { input -> compat.outputStream().use { input.copyTo(it) } }
         try {
             val graphics = if (mode !in listOf("input", "memory")) GraphicsRuntime.prepare(context, session, ::log).map { it.absolutePath } else emptyList()
@@ -228,6 +234,7 @@ object ClientSession {
                 checkCancelled(); queue.clear(); inputReady = false
                 status(when (stage) { "memory-g1", "memory-serial" -> "JVM memory test"; "input" -> "Input diagnostic"; "render" -> "Graphics diagnostic"; "window" -> "Window/input test"; else -> "Starting client" }, "Bootstrap stage: $stage")
                 val window = stage in listOf("window", "entry")
+                if (stage == "entry") appMemory = AppMemoryMeasurements(::log)
                 val stageCp = when {
                     window -> listOf(graphics.last()) + graphics.dropLast(1) + listOf(compat.absolutePath) +
                         (if (stage == "entry") listOf(overlay.absolutePath) else emptyList()) + cp
@@ -362,6 +369,7 @@ object ClientSession {
             else status(if (mode == "input" || connectionState.gameLoopReached) "Stopped" else if (entryTimedOut) "Client startup timed out" else "Blocked",
                 if (mode == "input") "Input diagnostic ended." else "Client attempt finished: $results. ${graphicsFailure.get().orEmpty()} Export Client Report; game-loop observation=${connectionState.gameLoopReached}, visible world requires device confirmation.")
         } finally {
+            appMemory?.close()
             reapChild()
             session.listFiles().orEmpty().filter { it.name.startsWith("hs_err_pid") }.forEach { f -> f.useLines { it.take(120).forEach(::log) } }
             session.deleteRecursively()

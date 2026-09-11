@@ -19,7 +19,7 @@ class ClientFontsTest(unittest.TestCase):
         cls.home = Path(cls.temp.name)
         cls.classes = cls.home/'classes'
         subprocess.run(['java', 'com.sun.tools.javac.Main', '--release', '17', '-d', str(cls.classes),
-                        *map(str, (ROOT/'runtime-probe/src/client').glob('*.java'))], check=True)
+                        *map(str, (ROOT/'runtime-probe/src/client').glob('*.java')), str(ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java')], check=True)
         cls.empty = cls.home/'empty-fontconfig.xml'
         cls.empty.write_text('<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"><fontconfig></fontconfig>')
 

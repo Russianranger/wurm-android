@@ -3,6 +3,47 @@
 from pathlib import Path
 import hashlib
 
+def patch_error_origin(header: str, getter: str):
+    replacements = [
+        ('static inline void errorGL() {', 'static inline void wurm_original_errorGL() {'),
+        ('static inline void errorShim(GLenum error) {', 'static inline void wurm_original_errorShim(GLenum error) {'),
+        ('static inline void noerrorShim() {', '''#include "wurm_error_trace.h"
+#define errorGL() do { wurm_error_driver(__func__, __LINE__); wurm_original_errorGL(); } while (0)
+#define errorShim(error) do { \\
+    GLenum wurm_error_value = (error); \\
+    if (glstate->shim_error == GL_NO_ERROR && wurm_error_value != GL_NO_ERROR) wurm_error_shim(__func__, __LINE__); \\
+    wurm_original_errorShim(wurm_error_value); \\
+} while (0)
+static inline void noerrorShim() {'''),
+    ]
+    for old, new in replacements:
+        if header.count(old) != 1: raise ValueError('Pinned GL4ES error helper changed')
+        header = header.replace(old, new)
+    start = getter.index('GLenum APIENTRY_GL4ES gl4es_glGetError(void) {')
+    end = getter.index('\nAliasExport(GLenum,glGetError', start)
+    body = getter[start:end]
+    for old, new in [
+        ('GLenum err = GL_NO_ERROR;', 'GLenum err = GL_NO_ERROR;\n    int wurm_from_driver = 0;'),
+        ('err = gles_glGetError();', 'err = gles_glGetError();\n        wurm_from_driver = (err != GL_NO_ERROR);'),
+        ('return err;', 'wurm_error_observed(err, wurm_from_driver);\n\treturn err;'),
+    ]:
+        if body.count(old) != 1: raise ValueError('Pinned GL4ES error getter changed')
+        body = body.replace(old, new)
+    return header, getter[:start] + '#include "wurm_error_trace.c"\n' + body + getter[end:]
+
+def apply_error_origin(root: Path, native: Path):
+    gl = root / 'src/gl'
+    pins = {'gl4es.h': '9bbf9bbeb9d3a8117934bfb2e0af666c792b93e0ea5a6a194860fed86b2b5dcb',
+            'getter.c': 'bc287740a3656c650f26a6629d9f0138bca965beb1959b3410bd812f8c759500'}
+    for name, digest in pins.items():
+        if hashlib.sha256((gl/name).read_bytes()).hexdigest() != digest:
+            raise ValueError('Unexpected GL4ES ' + name)
+    header, getter = patch_error_origin((gl/'gl4es.h').read_text(), (gl/'getter.c').read_text())
+    (gl/'gl4es.h').write_text(header)
+    (gl/'getter.c').write_text(getter)
+    for name in ('wurm_error_trace.h', 'wurm_error_trace.c'):
+        (gl/name).write_bytes((native/name).read_bytes())
+
 def patch_shader(source: str) -> str:
     old = """            int l_main = gl4es_getline_for(shad, gl4es_prev_str(shad, strstr(shad, "_gl4es_main"))) - 1;
             shad = gl4es_inplace_insert(gl4es_getline(shad, l_main), "lowp vec4 _gl4es_FragColor;\\n", shad, &shad_cap);"""

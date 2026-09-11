@@ -50,7 +50,7 @@ public class PatchFixture {
         for name, text in sources.items():
             p = cls.root/name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(text); paths.append(p)
         subprocess.run(['java','com.sun.tools.javac.Main','--release','17','-d',str(cls.classes),
-                        *map(str, (ROOT/'runtime-probe/src/client').glob('*.java')), *map(str, paths)], check=True)
+                        *map(str, (ROOT/'runtime-probe/src/client').glob('*.java')), str(ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java'), *map(str, paths)], check=True)
         cls.engine = cls.classes/'com/wurmonline/client/WurmClientBase.class'
 
     @classmethod

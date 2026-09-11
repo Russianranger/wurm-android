@@ -103,7 +103,8 @@ public final class WindowBackend {
         long frameStart = System.nanoTime();
         {
             int before = glGetError();
-            if (before != GL_NO_ERROR) throw new IllegalStateException("CLIENT_GL_ERROR before readback=0x"+Integer.toHexString(before));
+            if (before != GL_NO_ERROR) throw new IllegalStateException("CLIENT_GL_ERROR before readback=0x"+Integer.toHexString(before)+
+                " frame="+(sequence+1)+" time="+java.time.Instant.now()+"; pending before capture; see graphics-error origin/candidates");
             int alignment = glGetInteger(GL_PACK_ALIGNMENT);
             int rowLength = glGetInteger(GL_PACK_ROW_LENGTH), skipRows = glGetInteger(GL_PACK_SKIP_ROWS), skipPixels = glGetInteger(GL_PACK_SKIP_PIXELS);
             try {

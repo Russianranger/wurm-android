@@ -1,6 +1,14 @@
 # Wurm Server for Android
 
-**Current test: 0.10.30 — shader cache cleanup fix.** The Thor passed
+**Current test: 0.10.31 — runtime observations.** The Thor completed about ten
+minutes on 0.10.30 with normal client/server exits. This build reduces ready-state
+TCP checks from twice per second to once every 15 seconds, records bounded GL
+error origins, and samples client/server/Android memory every 30 seconds. It
+keeps the current rendering, heap and collector settings.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.31-runtime-observations).
+[30–45 minute device test](docs/RUNTIME_OBSERVATIONS_TEST.md).
+
+**Previous test: 0.10.30 — shader cache cleanup fix.** The Thor passed
 0.10.29's native startup test. ASan then stopped both splash-screen attempts at
 the same GL4ES shader-relink cache overread. Cleanup treated uniform location
 keys as hash-table bucket indices. This build frees cached values and clears

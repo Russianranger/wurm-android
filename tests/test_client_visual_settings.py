@@ -122,7 +122,7 @@ public class SettingsCheck {
   ClientVisualOptions.apply("performance"); ClientVisualOptions.apply("imported"); check(baseline.equals(Options.state()));
  }
 }'''
-        }, list((ROOT/'runtime-probe/src/client').glob('*.java')))
+        }, list((ROOT/'runtime-probe/src/client').glob('*.java')) + [ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java'])
 
     @classmethod
     def compile(cls, sources, extra=()):

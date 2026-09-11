@@ -13,6 +13,7 @@ public final class ManagedServerMain {
         ServerDiagnostics.install();
         ServerSqlitePatch.verifySelected();
         ServerLoginPatch.verifySelected();
+        probe.RuntimeMeasurements.start("server");
         // Resolve the API without initializing Wurm or opening its databases.
         // The public mod launcher hooks this exact ()V signature; imported
         // versions without it fail here instead of starting an unmanageable world.

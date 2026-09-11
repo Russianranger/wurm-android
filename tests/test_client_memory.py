@@ -14,7 +14,7 @@ class ClientMemoryTest(unittest.TestCase):
         cls.addClassCleanup(cls.temp.cleanup)
         cls.root = Path(cls.temp.name)
         subprocess.run(['java','com.sun.tools.javac.Main','--release','17','-d',str(cls.root),
-                        *map(str,(ROOT/'runtime-probe/src/client').glob('*.java'))],check=True)
+                        *map(str,(ROOT/'runtime-probe/src/client').glob('*.java')), str(ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java')],check=True)
 
     def launch(self, collector, expected=None, extra_cp=None):
         return subprocess.run(['java','-Xms32m','-Xmx256m',

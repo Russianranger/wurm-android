@@ -122,7 +122,7 @@ class ClientCompatibilityTest(unittest.TestCase):
         cls.compat_classes = cls.home/'compat'
         cls.helper = cls.home/'helper'
         cls.compile(cls.compat_classes, list((ROOT/'client-compat').rglob('*.java')))
-        cls.compile(cls.helper, list((ROOT/'runtime-probe/src/client').glob('*.java')))
+        cls.compile(cls.helper, list((ROOT/'runtime-probe/src/client').glob('*.java')) + [ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java'])
         cls.compat = cls.home/'client-compat.jar'
         with zipfile.ZipFile(cls.compat, 'w') as jar:
             for path in cls.compat_classes.rglob('*.class'):

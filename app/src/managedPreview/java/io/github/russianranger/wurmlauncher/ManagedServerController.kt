@@ -208,6 +208,8 @@ class ManagedServerController(private val context: Context, private val config: 
             var sentStop = false
             var cancelledStartup = false
             var stopTime = 0L
+            val probes = ServerProbeSchedule()
+            var probeCount = 0
             while (!server.waitFor(500, TimeUnit.MILLISECONDS)) {
                 if (stopRequested && !sentStop) {
                     sentStop = true; stopTime = System.nanoTime()
@@ -223,9 +225,13 @@ class ManagedServerController(private val context: Context, private val config: 
                     }
                 }
                 if (!stopRequested) {
+                    if (!probes.due(System.nanoTime())) continue
+                    probeCount++
                     val reachable = portOpen()
                     if (pocReturned && reachable) {
                         if (!wasReady) {
+                            probes.ready()
+                            log("[app] ${java.time.Instant.now()} TCP_PROBE_POLICY startupMs=500 readyMs=15000; process/stop polling remains 500ms")
                             log("[app] ${java.time.Instant.now()} TCP_READY port=${config.port}; POC returned. Wurm protocol/playability not yet tested.")
                             report {
                                 it.event("LOOPBACK_READY 127.0.0.1:${config.port}; POC returned")
@@ -236,7 +242,7 @@ class ManagedServerController(private val context: Context, private val config: 
                                 .onFailure { failure -> report { it.event("INSPECT_REQUEST_FAILED ${failure.javaClass.simpleName}") } }
                         }
                         wasReady = true
-                        status("Running", "Process alive · TCP ${config.port} reachable · ${config.world}")
+                        status("Running", "Process alive · TCP ${config.port} reachable at last check (15s interval) · ${config.world}")
                     } else if (wasReady) status("Running", "Process alive; TCP ${config.port} is not currently reachable.")
                 } else if (sentStop && System.nanoTime() - stopTime > TimeUnit.SECONDS.toNanos(60)) {
                     status("Stopping", "Still waiting for exit. Export logs; Force Stop is available if needed.")
@@ -245,6 +251,7 @@ class ManagedServerController(private val context: Context, private val config: 
             serverReader.join(3000)
             val exit = server.exitValue()
             child = null
+            log("[app] ${java.time.Instant.now()} TCP_PROBE_SUMMARY checks=$probeCount; readiness polling only; excludes preflight/occupied-port checks")
             log("[app] ${java.time.Instant.now()} SERVER_EXIT=$exit; elapsedMs=${(System.nanoTime() - started) / 1_000_000}; session=${run.name}; stopRequested=$stopRequested; force=$forced; startupCancelled=$cancelledStartup")
             val clean = stopRequested && exit == 0 && !forced && !cancelledStartup
             report { it.state("Child exited $exit; requested=$stopRequested; normalStop=$clean; forced=$forced; startupCancelled=$cancelledStartup") }

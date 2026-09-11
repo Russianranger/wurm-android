@@ -12,6 +12,7 @@ object ManagedSession {
     private var detail = "No server process owned by this app."
     private val lines = ArrayDeque<String>()
     private var logFile: File? = null
+    private var observations: RuntimeObservationLog? = null
     private var controller: ManagedServerController? = null
 
     fun workspace(context: Context) = ManagedWorkspace(File(context.filesDir, "managed-preview"))
@@ -21,6 +22,7 @@ object ManagedSession {
         val bounded = line.take(4000)
         lines.addLast(bounded)
         while (lines.size > 500) lines.removeFirst()
+        runCatching { observations?.observe(bounded) }
         runCatching {
             logFile?.let { file ->
                 if (file.length() > 1024 * 1024) file.writeText(lines.joinToString("\n") + "\n")
@@ -33,6 +35,7 @@ object ManagedSession {
         busy = true; phase = next; detail = next
         if (logFile == null) {
             logFile = File(context.filesDir, "managed-session.txt")
+            observations = RuntimeObservationLog(File(context.filesDir, "server-runtime-observations.txt"))
             logFile?.takeIf { it.isFile }?.readLines()?.takeLast(100)?.forEach { lines.addLast(it.take(4000)) }
         }
         log("\n[app] ${Instant.now()} — $next")
@@ -86,7 +89,10 @@ object ManagedSession {
         val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
         return "Wurm Server $version\nPackage: ${context.packageName}\nExported: ${Instant.now()}\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nFile persistence passed on Thor 0.5.0; specific gameplay saves remain unverified.\n\n" +
-            "Retained first errors (separate from rotating console):\n$evidence\n\nRecent session console:\n" +
+            "Retained first errors (separate from rotating console):\n$evidence\n\n" +
+            "Runtime observations (history; entries may also appear in console; compare timestamps/PIDs):\n" +
+            runCatching { (observations ?: RuntimeObservationLog(File(context.filesDir, "server-runtime-observations.txt"))).read() }.getOrDefault("Unavailable\n") +
+            "\nRecent session console:\n" +
             (if (saved.isFile) saved.readText() else state.log)
     }
 }

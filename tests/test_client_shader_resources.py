@@ -37,7 +37,7 @@ public class ShaderResourceFixture {
  }
 }''')
             subprocess.run(['java','com.sun.tools.javac.Main','--release','17','-d',str(work),
-                *map(str,(ROOT/'runtime-probe/src/client').glob('*.java')),str(source)],check=True)
+                *map(str,(ROOT/'runtime-probe/src/client').glob('*.java')), str(ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java'),str(source)],check=True)
             result = subprocess.run(['java','-cp',str(work),'client.ShaderResourceFixture'],capture_output=True,text=True,timeout=10)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertIn('SHADER_RESOURCE_CONTRACT_PASS',result.stdout)
