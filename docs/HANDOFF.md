@@ -2,16 +2,27 @@
 
 Updated: 2026-09-11. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Stable baseline
+## Latest released build — awaiting device confirmation
+
+- **0.10.34**, versionCode **48**, package `io.github.russianranger.wurmlauncher.graphicstabs`.
+- Release tag: `v0.10.34-graphics-tabs`; implementation commit `3c586f9ccc36b54ae49fa2cffd7046d34d0fc423`, tree `f64b127f4698ff81fc19b7b6a311e5ebbbfb10cc`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.34-graphics-tabs/Wurm-Server.apk), 52,831,145 bytes.
+- APK SHA-256: `40396cd757aee2c1053c0f2e273459fe6b863464eddb44dc6f678890f74ecb7a`.
+- [CI run 34619922092](https://github.com/Russianranger/wurm-android/actions/runs/34619922092): all four jobs succeeded. Build job 103331043313. Host suite: 154 tests with 17 expected initial fixture/platform skips; subsequent required native and actual LWJGL regressions passed, including both depth tests. Three Android variants built and passed unit/lint gates. APK v2 signature verified by CI.
+- Downloaded APK independently checked against release SHA256SUMS: correct package/version, new page classes, 47-option adapter including brightness, native depth preference and complete patch metadata, dark resources and runtime packaging. JVM, ASan runtime and server POC are byte-identical to 0.10.32.
+- Handoff-only commits after the implementation commit do not change this APK. Preserve this exact release/commit distinction.
+- **Next action:** user's Thor test. Compare the same building/distance/resolution first, then test tabs, Return to Game, live vs restart settings, and normal logout/reentry. Export both reports from Diagnostics. Do not claim the flicker is fixed on hardware until those results arrive.
+
+## Last device-confirmed stable baseline
 
 - Repository: Russianranger/wurm-android, branch main.
-- Latest published baseline: **0.10.32**, tag `v0.10.32-dark-theme`, commit `4f66c65a1eb52d565af067db8697b8fd98ffc88b`, versionCode 46, application suffix `.darktheme`.
+- Last device-confirmed baseline: **0.10.32**, tag `v0.10.32-dark-theme`, commit `4f66c65a1eb52d565af067db8697b8fd98ffc88b`, versionCode 46, application suffix `.darktheme`.
 - [APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.32-dark-theme/Wurm-Server.apk), SHA-256 `fb706f5fea9f32f23f173078c18a6ada9484d8715011e99f81eaa0b768d3ee66`.
 - CI run 34605432654 passed all four jobs; host tests, actual native regression checks, three Android variant unit/lint/build gates and APK verification passed.
 - Physical device: AYN Thor Max, Android 13/API 33, Snapdragon 8 Gen 2/Adreno 740, 16 GB RAM.
 - User now confirms repeated logout/login, app quit/reentry, movement and interaction work. Audio works. Object pop-in is resolved. Latest remaining visual issue: cross-beams flicker with viewing distance.
 
-## Current work in progress
+## Completed request and next step
 
 The user authorizes changes and continued device-test releases. Requested on 2026-09-11:
 
@@ -20,13 +31,13 @@ The user authorizes changes and continued device-test releases. Requested on 202
 3. Audit the underlying client's graphics options; expose usable options and explain compatibility restrictions.
 4. Organize the launcher into Server, Client and Diagnostics tabs. Move tests, reports and diagnostic output into Diagnostics; preserve basic server/client controls and running sessions.
 
-Status: implementation complete locally for 0.10.34; validation/release in progress. The handoff was first persisted in commit `6c1a9980c3e1f7905818af408d86baf1230bcd8a`. Do not confuse that documentation checkpoint with the release commit.
+Status: requested implementation, validation and release are complete for 0.10.34. Awaiting device results. The handoff was first persisted in commit `6c1a9980c3e1f7905818af408d86baf1230bcd8a`. Do not confuse that documentation checkpoint with the release commit.
 
 An intermediate 0.10.33 build at `0505ca4f8749d8834a7d0c1bc720317ae0281861` started CI before the final audit found additional startup-only consumers and postprocess brightness. Its Android unit gate failed on the obsolete 17-field assertion; it was not released. 0.10.34 includes these extra controls and a complete depth-patch manifest marker.
 
 Changes: one launcher host with persistent Server/Client/Diagnostics pages; 47 graphics controls (17 existing + 30 new) with restart-only deferral; verified EGL depth24 preference/depth16 fallback; pinned GL4ES unsized texture/renderbuffer precision changes. Runtime collectors, native memory checking and occlusion-query restrictions are preserved. ClientPage/DiagnosticsPage are new view controllers, not Activities. Return to Game reopens the viewer without starting a new client.
 
-Focused validation passed: 12 visual settings/pacing tests, 2 depth config/actual-source conversion tests. Full host suite: 154 tests passed (24 expected fixture/platform skips); native depth checks also ran with the pinned archive and passed. The initial Android APK compiled but the unit gate rejected an obsolete 17-field GraphicsOptionsTest expectation. It was updated to 47 fields with explicit range/wire-position checks; CI must pass on the final test-fix commit. See [the detailed audit and test plan](GRAPHICS_AND_TABS.md). Planned release: `v0.10.34-graphics-tabs`, versionCode 48, application suffix `.graphicstabs`. Device visual/lifecycle confirmation remains pending even after CI passes.
+Validation is complete as recorded above. The initial Android run caught an obsolete 17-field test expectation; the corrected Kotlin/JUnit tests passed locally and all CI gates passed on the final implementation commit. See [the detailed audit and test plan](GRAPHICS_AND_TABS.md). Hardware visual/lifecycle confirmation remains pending.
 
 Current attachments in the active scratch workspace:
 
