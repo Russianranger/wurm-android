@@ -1,5 +1,7 @@
 # Wurm Server for Android
 
+**Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
+
 **Current test: 0.10.32 — dark app theme and white pointer.** The Thor completed
 approximately 36 minutes on 0.10.31 with normal client/server exits and about
 29.9 FPS after startup. This release makes the app dark by default and changes
