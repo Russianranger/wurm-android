@@ -58,6 +58,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert "vao-buffer-offset-addresses" in graphics["gl4esPatches"]
     assert "program-cache-cleanup" in graphics["gl4esPatches"]
     assert "error-origin-breadcrumbs" in graphics["gl4esPatches"]
+    assert "supported-depth24" in graphics["gl4esPatches"]
     assert b"recent-errorGL-sites-not-proof" in apk.read("lib/arm64-v8a/libgl4es.so")
     assert "legacy-openal-context-lifecycle" in graphics["lwjglPatches"]
     for name, digest in graphics["nativeSha256"].items():

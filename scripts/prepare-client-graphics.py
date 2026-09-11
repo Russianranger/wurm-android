@@ -173,7 +173,7 @@ def main():
             if dependency not in system and not (native/dependency).is_file():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
-                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses', 'vao-buffer-offset-addresses', 'program-cache-cleanup', 'error-origin-breadcrumbs'],
+                    ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses', 'vao-buffer-offset-addresses', 'program-cache-cleanup', 'supported-depth24', 'error-origin-breadcrumbs'],
                     nativeHeapDiagnostic='ASan / isolated startup and client graphics stages / LLVM 17.0.2 native ELF TLS with prctl PAC and trampoline BTI fixes',
                     asanPatches=[asan_builder.PATCH, asan_builder.BTI_PATCH],
                     asanRuntimeFlags=asan_builder.RUNTIME_FLAGS,

@@ -55,9 +55,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.33\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.34\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.32 completed repeated login, logout and app reentry with normal client/server exits; user confirms object pop-in resolved. This build adds three launcher tabs, 41 graphics options and preferred 24-bit depth for the reported beam flicker. Depth precision, expanded controls and navigation still need physical-device confirmation. Heap, collectors and native memory checking are retained.\n\n" +
+            "Gate status: Thor 0.10.32 completed repeated login, logout and app reentry with normal client/server exits; user confirms object pop-in resolved. This build adds three launcher tabs, 47 graphics options and preferred 24-bit depth for the reported beam flicker. Depth precision, expanded controls and navigation still need physical-device confirmation. Heap, collectors and native memory checking are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +

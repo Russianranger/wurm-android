@@ -170,7 +170,7 @@ class GraphicsTestActivity : Activity() {
         fun label(value: String, size: Float = 14f) = TextView(this).apply {
             text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
         }
-        label(if (mode == "render") "JVM Graphics Test · 0.10.33" else "Game controls · 0.10.33",20f)
+        label(if (mode == "render") "JVM Graphics Test · 0.10.34" else "Game controls · 0.10.34",20f)
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
         }

@@ -78,6 +78,10 @@ public class Options {
  public static Bool gpuSkinning=new Bool();
  public static Multi maxShaderLights=new Multi(8);
  public static Multi resolutionScale=new Multi(0,"100%","125%","150%","175%","200%");
+ public static Multi tileDecorations=new Multi(2,"Very Sparse","Sparse","Medium","Dense","Extreme"),skyDetail=new Multi(1,"Low","Medium","High");
+ public static Bool renderDistant=new Bool(),useCompressedTexture=new Bool(),useCompressedTextureS3TC=new Bool();
+ public static class FloatValue {public float v=0; public float value(){return v;} public void set(float n){v=n;}}
+ public static FloatValue screenBrightness=new FloatValue();
  public static String extra() {return caveDetail.v+","+shadowLevel.v+","+shadowMapSize.v+","+lod.v+","+useBloom.v+","+useVignette.v+","+useFXAA.v+","+limitDynamicLights.v+","+maxDynamicLights.v;}
  public static String state() {return waterDetail.v+","+reflections.v+","+treeRenderingDistance.v+","+structureRenderingDistance.v+","+itemCreatureRenderingDistance.v+","+prettyTrees.v+","+prettyWeather.v+","+renderSunGlare.v;}
 }''',
@@ -104,14 +108,23 @@ public class SettingsCheck {
   }
   String baseline=Options.state(), extra=Options.extra();
   if(args[0].equals("expanded")) {
-   String[] values=new String[41]; java.util.Arrays.fill(values,"-1");
+   String[] values=new String[47]; java.util.Arrays.fill(values,"-1");
+   values[45]="0"; values[46]="0"; values[41]="4"; values[42]="2"; values[43]="0"; values[44]="125";
    values[17]="4"; values[18]="2"; values[31]="200"; values[36]="110"; values[39]="2";
    String custom="imported:"+String.join(",",values);
    ClientVisualOptions.apply(custom);
    check(Options.anisotropicFilteringLevel.v==0 && Options.terrainDetail.v==0 && Options.fovHorizontal.v==80);
-   check(Options.contributionCullingStatic.v==200);
+   check(Options.contributionCullingStatic.v==200 && Options.screenBrightness.v==0.25f);
+   check(Options.tileDecorations.v==2 && Options.skyDetail.v==1 && Options.renderDistant.v);
    ClientVisualOptions.applyStartup(custom);
+   check(Options.tileDecorations.v==4 && Options.skyDetail.v==2 && !Options.renderDistant.v && !Options.useCompressedTexture.v && !Options.useCompressedTextureS3TC.v);
    check(Options.anisotropicFilteringLevel.v==4 && Options.terrainDetail.v==2 && Options.fovHorizontal.v==110 && Options.maxShaderLights.v==2);
+   values[44]="201";
+   try {ClientVisualOptions.apply("imported:"+String.join(",",values));throw new AssertionError();}catch(IllegalArgumentException expected) {}
+   check(Options.screenBrightness.v==0.25f);
+   values[44]="0"; ClientVisualOptions.apply("imported:"+String.join(",",values)); check(Options.screenBrightness.v==-1f);
+   values[44]="200"; ClientVisualOptions.apply("imported:"+String.join(",",values)); check(Options.screenBrightness.v==1f);
+   values[44]="125";
    ClientVisualOptions.apply("imported"); // live reset preserves active startup-only settings
    check(Options.terrainDetail.v==2 && Options.fovHorizontal.v==110);
    values[31]="201";
@@ -122,7 +135,7 @@ public class SettingsCheck {
    return;
   }
   if(args[0].equals("startup-rollback")) {
-   String[] values=new String[41]; java.util.Arrays.fill(values,"-1");
+   String[] values=new String[47]; java.util.Arrays.fill(values,"-1");
    values[18]="2"; values[39]="2"; Options.maxShaderLights.fail=true;
    try {ClientVisualOptions.applyStartup("performance:"+String.join(",",values));throw new AssertionError();}
    catch(java.lang.reflect.InvocationTargetException expected) {}

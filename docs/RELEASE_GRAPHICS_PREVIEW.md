@@ -1,11 +1,11 @@
-# 0.10.33 — three tabs and graphics controls
+# 0.10.34 — three tabs and graphics controls
 
 The 0.10.32 device tests passed repeated logout/login and app reentry with normal
 client/server exits. Nearby object pop-in is resolved. This release:
 
 - Adds fixed Server, Client and Diagnostics tabs. Tests, reports and live logs
   move to Diagnostics. Client includes Return to Game; navigation keeps services running.
-- Expands graphics from 17 to 41 controls, including texture filtering/quality,
+- Expands graphics from 17 to 47 controls, including texture filtering/quality,
   terrain detail, particles, animations, field of view and supersampling.
   Restart-only choices are labeled and deferred; unavailable settings are explained.
 - Prefers a 24-bit EGL depth buffer with a verified 16-bit fallback. Unsized

@@ -20,11 +20,13 @@ The user authorizes changes and continued device-test releases. Requested on 202
 3. Audit the underlying client's graphics options; expose usable options and explain compatibility restrictions.
 4. Organize the launcher into Server, Client and Diagnostics tabs. Move tests, reports and diagnostic output into Diagnostics; preserve basic server/client controls and running sessions.
 
-Status: implementation complete locally for 0.10.33; validation/release in progress. The handoff was first persisted in commit `6c1a9980c3e1f7905818af408d86baf1230bcd8a`. Do not confuse that documentation checkpoint with the release commit.
+Status: implementation complete locally for 0.10.34; validation/release in progress. The handoff was first persisted in commit `6c1a9980c3e1f7905818af408d86baf1230bcd8a`. Do not confuse that documentation checkpoint with the release commit.
 
-Changes: one launcher host with persistent Server/Client/Diagnostics pages; 41 graphics controls (17 existing + 24 new) with restart-only deferral; verified EGL depth24 preference/depth16 fallback; pinned GL4ES unsized texture/renderbuffer precision changes. Runtime collectors, native memory checking and occlusion-query restrictions are preserved. ClientPage/DiagnosticsPage are new view controllers, not Activities. Return to Game reopens the viewer without starting a new client.
+An intermediate 0.10.33 build at `0505ca4f8749d8834a7d0c1bc720317ae0281861` started CI before the final audit found additional startup-only consumers and postprocess brightness. It is not the final requested build. 0.10.34 includes these extra controls and a complete depth-patch manifest marker.
 
-Focused validation passed: 12 visual settings/pacing tests, 2 depth config/actual-source conversion tests. Full host suite: 154 tests passed (24 expected fixture/platform skips); native depth checks also ran with the pinned archive and passed. Android CI pending. See [the detailed audit and test plan](GRAPHICS_AND_TABS.md). Planned release: `v0.10.33-graphics-tabs`, versionCode 47, application suffix `.graphicstabs`. Device visual/lifecycle confirmation remains pending even after CI passes.
+Changes: one launcher host with persistent Server/Client/Diagnostics pages; 47 graphics controls (17 existing + 30 new) with restart-only deferral; verified EGL depth24 preference/depth16 fallback; pinned GL4ES unsized texture/renderbuffer precision changes. Runtime collectors, native memory checking and occlusion-query restrictions are preserved. ClientPage/DiagnosticsPage are new view controllers, not Activities. Return to Game reopens the viewer without starting a new client.
+
+Focused validation passed: 12 visual settings/pacing tests, 2 depth config/actual-source conversion tests. Full host suite: 154 tests passed (24 expected fixture/platform skips); native depth checks also ran with the pinned archive and passed. Android CI pending. See [the detailed audit and test plan](GRAPHICS_AND_TABS.md). Planned release: `v0.10.34-graphics-tabs`, versionCode 48, application suffix `.graphicstabs`. Device visual/lifecycle confirmation remains pending even after CI passes.
 
 Current attachments in the active scratch workspace:
 

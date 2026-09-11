@@ -2,12 +2,12 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current test: 0.10.33 — three tabs, expanded graphics and depth precision.**
+**Current test: 0.10.34 — three tabs, expanded graphics and depth precision.**
 The Thor passed repeated login/logout and app reentry on 0.10.32; object pop-in
 is resolved. This build separates Server, Client and Diagnostics, expands the
-menu to 41 graphics controls, and prefers supported 24-bit depth for the reported
+menu to 47 graphics controls, and prefers supported 24-bit depth for the reported
 cross-beam flicker. The visual correction still needs device confirmation.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.33-graphics-tabs).
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.34-graphics-tabs).
 [Graphics audit, report findings and device checks](docs/GRAPHICS_AND_TABS.md).
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

@@ -1,4 +1,4 @@
-# 0.10.33 graphics audit and launcher tabs
+# 0.10.34 graphics audit and launcher tabs
 
 ## Latest device evidence
 
@@ -39,7 +39,7 @@ Audited public option fields, constructor labels/ranges, mutability groups and s
 - `Options.class`: SHA-256 `c8e240acafd430ca80dd0d9c5be9df37a3ccf5aa49e574f2a44adbd8653f6a14`
 - `renderer/backend/FBO.class`: SHA-256 `1461cb33bc67df90353f974aceb3449494776fbdf2d8fead50ef8b081995932d`
 
-No proprietary classes or disassembly are committed. Runtime enum-label checks reject a changed ABI before any setting is applied. Preferences remain in the Android app; the imported profile is not rewritten by this adapter. Settings marked restart are applied before launching the engine and are skipped by live requests. Legacy 17-field commands still work; omitted new fields inherit the captured base values. All 41 settings default to inherited values, preserving the established preset unless changed by the user.
+No proprietary classes or disassembly are committed. Runtime enum-label checks reject a changed ABI before any setting is applied. Preferences remain in the Android app; the imported profile is not rewritten by this adapter. Settings marked restart are applied before launching the engine and are skipped by live requests. Legacy 17- and 41-field commands still work; omitted new fields inherit the captured base values. All 47 settings default to inherited values, preserving the established preset unless changed by the user.
 
 | Group | Exposed controls | Application |
 | --- | --- | --- |
@@ -51,13 +51,17 @@ No proprietary classes or disassembly are committed. Runtime enum-label checks r
 | Lighting | Shadow level/resolution; bloom; vignette; FXAA; limit/max dynamic lights | Live; renderer capability dependent |
 | Offscreen quality | Offscreen texture quality; supersampling; high-resolution binoculars | Live; potentially large performance/memory cost |
 | Texture loading | Anisotropic filtering; max texture quality; player texture size; terrain texture size; texture scaling filter | Restart; avoids mixed old/new loaded textures |
-| Terrain and shading | Terrain detail; normal maps; max shader lights | Restart |
+| Terrain and shading | Terrain detail; normal maps; max shader lights; ground decoration density; sky detail; distant terrain | Restart |
+| Texture format | Compression and S3TC compression | Restart; the client still disables requests if the required extensions are missing |
+| Brightness | Game brightness −100% to +100% | Live; maps to the inspected postprocess brightness range −1 to +1 |
 | Animation loading | Model loading thread count; model animation detail | Restart |
 | View | Horizontal field of view 60–110; game font smoothing | Restart |
 | Owned viewer | 800×480, 960×540, 1280×720 render resolution | Restart |
 | Owned viewer | 15/30 FPS; fullscreen; gear expand/collapse; opacity | Live |
 
-The first 17 controls remain in their original protocol positions; 24 additional controls follow. Frame target/resolution and fullscreen/opacity are separate from the 41 client options.
+The audit distinguishes live-change categories from actual consumers: ground decorations, sky detail, distant terrain and compression are marked unready by the original live console but are read by renderer/loading code. They are therefore exposed at startup. Brightness is read by PostProcessRenderer and is exposed live; it is not a desktop display-gamma control.
+
+The first 17 controls remain in their original protocol positions; 30 additional controls follow. Frame target/resolution and fullscreen/opacity are separate from the 47 client options.
 
 ### Explicit exclusions shown by the menu
 
@@ -67,9 +71,8 @@ The menu includes **Compatibility and unavailable options**. These controls are 
 | --- | --- |
 | Occlusion queries | Forced off by the working visibility correction; do not re-enable through preferences |
 | Desktop MSAA samples / VSync | No complete connection to the owned pbuffer/frame-file viewer; use FXAA/frame target |
-| Tile decoration density, sky detail, distant terrain, texture compression/S3TC, fog-coordinate source | This client marks them unready; exposing a selector would imply a working change path |
-| Renderer selection and GL extension switches (GLSL, VBO, FBO, multidraw, NPOT, automatic mipmaps, depth clamping) | Compatibility policy; remain outside ordinary graphics preferences to avoid contradictory capability requests |
-| Desktop gamma/brightness | Display gamma is not implemented by this Android window adapter |
+| Fog-coordinate source | No consumer found in the inspected client; no functional control exposed |
+| Modern/deferred renderer and GL extension switches (GLSL, VBO, FBO, multidraw, NPOT, automatic mipmaps, depth clamping) | GLHelper requires desktop OpenGL 3.3 for deferred shading; this compatibility runtime advertises GL 2.1. Low-level capabilities stay managed |
 | Fast-yield/clock workarounds, OS thread priority, native/background FPS limit and timers | Runtime scheduling controls, not alternate graphics quality controls; owned frame pacing remains authoritative |
 | Phobia models, camera bob/third-person, selection outlines, GUI skin/transparency/font sizing, screenshot format | Gameplay/accessibility/UI preferences; not included in this graphics pass |
 | Debug rendering switches, forced season, residency and instrumentation flags | Diagnostic/developer behavior, not supported gameplay graphics controls |
@@ -90,7 +93,7 @@ The game gear retains gameplay controls and links to Client and Diagnostics. Inl
 
 ## Validation and next device test
 
-Focused host tests cover live/startup separation, ranges, invalid commands, full rollback, enum ABI, old commands, config fallback and pinned depth conversions. The complete host suite and Android build/unit/lint/native/package gates must pass for the release. See the maintained handoff for final release verification.
+Focused host tests cover live/startup separation, ranges, invalid commands, full rollback, enum ABI, old commands, config fallback and pinned depth conversions. The 41-option intermediate passed the full 154-test host suite and Android build/unit/lint gates; the final 47-option revision repeats the focused settings checks and all CI gates before release. See the maintained handoff for final release verification.
 
 1. Keep 0.10.32 and backups. Install the separate `.graphicstabs` APK, import the stopped working server export and client ZIP, and select the same world/player.
 2. Set 1280×720 and your previous distances. Start local play. Repeat the video’s approach/retreat at the same building. Keep other settings unchanged for this first comparison.

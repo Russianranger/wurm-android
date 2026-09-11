@@ -44,15 +44,21 @@ public final class ClientVisualOptions {
         new Spec("highResBinoculars", -1),
         new Spec("gpuSkinning", -1),
         new Spec("maxShaderLights", -1),
-        new Spec("resolutionScale", -1, "100%", "125%", "150%", "175%", "200%")
+        new Spec("resolutionScale", -1, "100%", "125%", "150%", "175%", "200%"),
+        new Spec("tileDecorations", -1, "Very Sparse", "Sparse", "Medium", "Dense", "Extreme"),
+        new Spec("skyDetail", -1, "Low", "Medium", "High"), new Spec("renderDistant", -1),
+        new Spec("screenBrightness", -1), new Spec("useCompressedTexture", -1), new Spec("useCompressedTextureS3TC", -1)
     );
-    private static final Set<String> RESTART = Set.of("anisotropicFilteringLevel", "terrainDetail", "normalMapping", "enableFontSmoothing", "modelLoaderThreadCount", "maxTextureSize", "playerTextureSize", "megaTextureSize", "textureScalingHint", "colladaAnimations", "fovHorizontal", "maxShaderLights");
+    private static final Set<String> RESTART = Set.of("anisotropicFilteringLevel", "terrainDetail", "normalMapping", "enableFontSmoothing", "modelLoaderThreadCount", "maxTextureSize", "playerTextureSize", "megaTextureSize", "textureScalingHint", "colladaAnimations", "fovHorizontal", "maxShaderLights", "tileDecorations", "skyDetail", "renderDistant", "useCompressedTexture", "useCompressedTextureS3TC");
     private static final Map<String,int[]> RANGES = Map.of("maxDynamicLights",new int[]{1,16},
-        "contributionCullingStatic",new int[]{0,200}, "fovHorizontal",new int[]{60,110}, "maxShaderLights",new int[]{2,8});
+        "contributionCullingStatic",new int[]{0,200}, "fovHorizontal",new int[]{60,110}, "maxShaderLights",new int[]{2,8}, "screenBrightness",new int[]{0,200});
     private record Setting(Object option, Method setter, Method getter, Object imported, Object low) {}
     private static List<Setting> settings;
     private static boolean bool(Spec s) { return s.labels.length == 0 && !RANGES.containsKey(s.field); }
-    private static Object value(Spec s, int n) { return bool(s) ? (Object)(n == 1) : n; }
+    private static Object value(Spec s, int n) {
+        if (s.field.equals("screenBrightness")) return (n-100)/100f;
+        return bool(s) ? (Object)(n == 1) : n;
+    }
 
     public static void apply(String command) throws Exception { apply(command,false); }
     public static void applyStartup(String command) throws Exception { apply(command,true); }
@@ -65,7 +71,7 @@ public final class ClientVisualOptions {
         int[] overrides = new int[SPECS.size()]; Arrays.fill(overrides, -1);
         if (parts.length == 2) {
             String[] fields = parts[1].split(",", -1);
-            if (fields.length != SPECS.size() && fields.length != 17) throw new IllegalArgumentException("Invalid graphics option count");
+            if (fields.length != SPECS.size() && fields.length != 41 && fields.length != 17) throw new IllegalArgumentException("Invalid graphics option count");
             for (int i=0; i<fields.length; i++) {
                 Spec s = SPECS.get(i);
                 if (!fields[i].matches("-1|[0-9]{1,3}")) throw new IllegalArgumentException("Invalid graphics value");
@@ -85,7 +91,7 @@ public final class ClientVisualOptions {
                     throw new IllegalStateException("GRAPHICS_OPTION_ABI_CHANGED " + s.field);
                 Method get = option.getClass().getMethod("value");
                 Object imported = get.invoke(option);
-                resolved.add(new Setting(option, option.getClass().getMethod("set", bool(s) ? boolean.class : int.class),
+                resolved.add(new Setting(option, option.getClass().getMethod("set", s.field.equals("screenBrightness") ? float.class : bool(s) ? boolean.class : int.class),
                     get, imported, s.low == -1 ? imported : value(s, s.low)));
             }
             settings = List.copyOf(resolved);

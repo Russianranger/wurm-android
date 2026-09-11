@@ -49,7 +49,13 @@ object GraphicsOptions {
         Option("highResBinoculars", "High resolution binoculars", onOff, 0, false),
         Option("gpuSkinning", "GPU character animation", onOff, 0, false),
         Option("maxShaderLights", "Maximum shader lights", (2..8).map(Int::toString), 2, true),
-        Option("resolutionScale", "Supersampling", listOf("100%","125%","150%","175%","200%"), 0, false)
+        Option("resolutionScale", "Supersampling", listOf("100%","125%","150%","175%","200%"), 0, false),
+        Option("tileDecorations", "Ground decoration density", listOf("Very Sparse","Sparse","Medium","Dense","Extreme"), 0, true),
+        Option("skyDetail", "Sky detail", quality, 0, true),
+        Option("renderDistant", "Distant terrain", onOff, 0, true),
+        Option("screenBrightness", "Game brightness", (-100..100).map { "$it%" }, 0, false),
+        Option("useCompressedTexture", "Texture compression (if supported)", onOff, 0, true),
+        Option("useCompressedTextureS3TC", "S3TC compression (if supported)", onOff, 0, true)
     )
     val resolutions = listOf("800x480", "960x540", "1280x720")
     fun command(preset: String, values: List<Int>): String {

@@ -116,8 +116,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 47
-        versionName = "0.10.33"
+        versionCode = 48
+        versionName = "0.10.34"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

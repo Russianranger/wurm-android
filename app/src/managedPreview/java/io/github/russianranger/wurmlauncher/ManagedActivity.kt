@@ -49,7 +49,7 @@ class ManagedActivity : Activity() {
         super.onCreate(savedInstanceState)
         ClientSession.initialize(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        root.addView(TextView(this).apply { text="Wurm · 0.10.33"; textSize=22f; setPadding(20,12,20,8) })
+        root.addView(TextView(this).apply { text="Wurm · 0.10.34"; textSize=22f; setPadding(20,12,20,8) })
         val navigation=LinearLayout(this)
         root.addView(navigation)
         val content=android.widget.FrameLayout(this)
