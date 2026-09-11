@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.24\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.25\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.22 reached about 32 minutes at 1280x720, median 30 displayed FPS, before a GL4ES array-copy SIGSEGV. This build corrects a reproduced legacy VBO double-offset overread and adds ARM64 Android OpenAL with corrected context lifecycle. Device sound and longer gameplay stability need confirmation. Prior visual artifacts and native shutdown issues remain tracked.\n\n" +
+            "Gate status: Thor 0.10.24 authenticated and initialized audio/visibility, then twice aborted in JVM Sweeper thread cleanup with a corrupted native heap header. This slower ASan diagnostic instruments client graphics/audio libraries to capture an earlier invalid access. It is not a confirmed crash fix. Character creation, pop-in and extended stability still need device confirmation.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -229,9 +229,11 @@ object ClientSession {
                 val evidence = ClientCrashEvidence(android.os.Process.myUid(), System.currentTimeMillis())
                 val process = ProcessBuilder(args).directory(installed?.root ?: session).redirectErrorStream(true).apply {
                     environment().clear(); environment().putAll(ProbeEnvironment.create(home, native, tmp))
+                    environment().putAll(ClientNativeHeap.environment(stage, native))
                     environment()["WURM_HEAP_TAGGING"] = "off"
                     environment()["WURM_WORLD_LOCK"] = File(store.home, "process.lock").absolutePath
                     if (stage == "render" || window) {
+                        log("[native-heap] ASAN_REQUESTED stage=$stage; slower diagnostic; symbols resolved against this release; ${ClientNativeHeap.options}")
                         environment()["LIBGL_ES"] = "2"; environment()["LIBGL_GL"] = "21"
                         environment()["LIBGL_GLES"] = "libGLESv2.so"; environment()["LIBGL_EGL"] = "libEGL.so"
                         environment()["LIBGL_NOPSA"] = "1"

@@ -45,13 +45,16 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert "com/wurmonline/server/LoginHandler.class" not in jar.namelist(), asset
     graphics = json.loads(apk.read("assets/client-graphics.json"))
     assert graphics["sources"] == json.loads((ROOT/"graphics-compat/native-sources.json").read_text())
-    assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so", "libwurm_openal.so"}
+    assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so", "libwurm_openal.so", "libclang_rt.asan-aarch64-android.so", "libc++_shared.so"}
+    assert graphics["nativeHeapDiagnostic"] == "ASan / client graphics stages only / NDK 26.1.10909125"
+    assert b"ASAN_READY" in apk.read("lib/arm64-v8a/libwurm_graphics.so")
     assert graphics["audioBackend"] == "OpenAL Soft 1.23.1 / Android OpenSL ES"
     assert "vao-buffer-offset-addresses" in graphics["gl4esPatches"]
     assert "legacy-openal-context-lifecycle" in graphics["lwjglPatches"]
     for name, digest in graphics["nativeSha256"].items():
         data = apk.read("lib/arm64-v8a/"+name)
         assert hashlib.sha256(data).hexdigest() == digest
+        if name.startswith(("libwurm_", "libgl4es")): assert b"__asan_init" in data, name
         assert data[:6] == b"\x7fELF\x02\x01" and int.from_bytes(data[18:20], "little") == 183
     for name, digest in graphics["assetsSha256"].items():
         assert hashlib.sha256(apk.read("assets/"+name)).hexdigest() == digest

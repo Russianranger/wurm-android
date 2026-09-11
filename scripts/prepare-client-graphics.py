@@ -45,6 +45,7 @@ def main():
         raise ValueError('Use Android NDK 26.1.10909125')
     cc = ndk/'toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang'
     readelf = cc.parent/'llvm-readelf'
+    sanitizer = ['-fsanitize=address', '-fno-omit-frame-pointer', '-g']
     pins = json.loads((ROOT/'graphics-compat/native-sources.json').read_text())
     cache = ROOT/'app/build/graphicsDownloads'; cache.mkdir(parents=True, exist_ok=True)
     archives = {name: fetch(cache, name, pin) for name, pin in pins.items()}
@@ -53,6 +54,10 @@ def main():
     assets = output/'assets'; assets.mkdir(parents=True)
     native = output/'jniLibs/arm64-v8a'; native.mkdir(parents=True)
     work = output/'work'; work.mkdir()
+    asan = list((cc.parent.parent/'lib/clang').glob('*/lib/linux/libclang_rt.asan-aarch64-android.so'))
+    if len(asan) != 1: raise ValueError('Expected one NDK ARM64 ASan runtime')
+    shutil.copyfile(asan[0], native/asan[0].name)
+    shutil.copyfile(cc.parent.parent/'sysroot/usr/lib/aarch64-linux-android/libc++_shared.so', native/'libc++_shared.so')
     sources = {}
     for name in ('lwjgl', 'gl4es', 'libffi', 'pojav', 'openal'):
         with tarfile.open(archives[name]) as archive:
@@ -71,7 +76,7 @@ def main():
     shutil.copyfile(candidate, assets/'pojav-wurm-api.jar')
     ffi_build = work/'ffi-build'; ffi_build.mkdir()
     env = dict(os.environ, CC=str(cc), CXX=str(cc)+'++', AR=str(cc.parent/'llvm-ar'),
-               RANLIB=str(cc.parent/'llvm-ranlib'), CFLAGS='-O2 -fPIC')
+               RANLIB=str(cc.parent/'llvm-ranlib'), CFLAGS='-O2 -fPIC '+ ' '.join(sanitizer), LDFLAGS='-fsanitize=address')
     run(['bash', ffi/'configure', '--host=aarch64-linux-android', '--disable-shared', '--enable-static', '--disable-docs'], work/'ffi-configure.log', ffi_build, env)
     run(['make', '-j4'], work/'ffi-build.log', ffi_build, env)
     ffi_lib = next(ffi_build.rglob('libffi.a'))
@@ -89,12 +94,12 @@ def main():
         def compile_one(pair):
             index, source = pair
             obj = folder/f'{index}.o'
-            run([cc, *options, '-c', source, '-o', obj], folder/f'{index}.log')
+            run([cc, *options, *sanitizer, '-c', source, '-o', obj], folder/f'{index}.log')
             return obj
         with ThreadPoolExecutor(max_workers=4) as pool:
             objects = list(pool.map(compile_one, enumerate(files)))
         target = native/f'lib{name}.so'
-        run([cc, '-shared', '-Wl,--no-undefined', '-Wl,-z,max-page-size=16384', f'-Wl,-soname,lib{name}.so',
+        run([cc, '-shared', *sanitizer, '-Wl,--build-id=sha1', '-Wl,--no-undefined', '-Wl,-z,max-page-size=16384', f'-Wl,-soname,lib{name}.so',
              *objects, *libraries, '-o', target], folder/'link.log')
         print(f'Built {target.name}', flush=True)
 
@@ -114,7 +119,9 @@ def main():
     audio_build = work/'audio-build'
     run(['cmake', '-S', ROOT/'graphics-compat/audio', '-B', audio_build,
          '-DCMAKE_TOOLCHAIN_FILE='+str(ndk/'build/cmake/android.toolchain.cmake'),
-         '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-33', '-DANDROID_STL=c++_static',
+         '-DANDROID_ABI=arm64-v8a', '-DANDROID_PLATFORM=android-33', '-DANDROID_STL=c++_shared',
+         '-DCMAKE_C_FLAGS='+ ' '.join(sanitizer), '-DCMAKE_CXX_FLAGS='+ ' '.join(sanitizer),
+         '-DCMAKE_SHARED_LINKER_FLAGS=-fsanitize=address -Wl,--build-id=sha1',
          '-DCMAKE_BUILD_TYPE=Release', '-DWURM_OPENAL_SOURCE='+str(sources['openal'])], work/'audio-configure.log')
     run(['cmake', '--build', audio_build, '--target', 'OpenAL', '-j4'], work/'audio-build.log')
     shutil.copyfile(audio_build/'openal/libwurm_openal.so', native/'libwurm_openal.so')
@@ -137,7 +144,7 @@ def main():
                ('Android utility Apache-2.0 notice', sources['pojav']/'jre_lwjgl3glfw/src/main/java/android/util/ArrayMap.java'),
                ('GPLv3 incorporated by LGPLv3', ROOT/'graphics-compat/licenses/GPL-3.0.txt'),
                ('Apache-2.0 license', ROOT/'graphics-compat/licenses/Apache-2.0.txt'), ('JSR305 annotation notice (build only)', None)]
-    # Include toolchain runtime notices for the statically linked C++ runtime.
+    # Include notices for the packaged NDK ASan and shared C++ runtimes.
     ndk_notices = sorted(ndk.glob("NOTICE*"))
     if not ndk_notices: raise ValueError("Android NDK runtime notices missing")
     notices.extend(("Android NDK runtime notice: "+p.name, p) for p in ndk_notices if p.is_file())
@@ -151,12 +158,15 @@ def main():
         contents = path.read_bytes()
         if contents[:6] != b'\x7fELF\x02\x01' or int.from_bytes(contents[18:20], 'little') != 183:
             raise ValueError('Not ARM64 ELF: '+path.name)
+        if path.name.startswith(('libwurm_', 'libgl4es')):
+            assert b'__asan_init' in contents, 'Missing ASan instrumentation: '+path.name
         dynamic = subprocess.check_output([str(readelf), '-d', str(path)], text=True)
         for dependency in re.findall(r'\(NEEDED\).*?\[(.*?)\]', dynamic):
             if dependency not in system and not (native/dependency).is_file():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
                     ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses', 'vao-buffer-offset-addresses'],
+                    nativeHeapDiagnostic='ASan / client graphics stages only / NDK 26.1.10909125',
                     audioBackend='OpenAL Soft 1.23.1 / Android OpenSL ES',
                     lwjglPatches=['legacy-openal-context-lifecycle'],
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},

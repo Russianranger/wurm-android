@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "wurm_heap_check.h"
 
 static EGLDisplay display = EGL_NO_DISPLAY;
 static EGLContext context = EGL_NO_CONTEXT;
@@ -42,6 +43,7 @@ static int cleanup(void) {
 JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_open(JNIEnv *env, jclass type, jstring library, jint w, jint h) {
     (void)type;
     if (!valid_size(w, h) || display != EGL_NO_DISPLAY) { fail(env, "Invalid dimensions or already open"); return; }
+    if (!wurm_heap_check_ready()) { fail(env, "Native heap diagnostic inactive"); return; }
     owner = pthread_self(); width = w; height = h;
     const char *path = (*env)->GetStringUTFChars(env, library, NULL);
     if (path == NULL) return;
