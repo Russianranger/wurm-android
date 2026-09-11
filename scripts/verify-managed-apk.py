@@ -23,6 +23,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     runner = apk.read("lib/arm64-v8a/libwurmjvm_runner.so")
     assert runner[:6] == b"\x7fELF\x02\x01" and int.from_bytes(runner[18:20], "little") == 183
     assert b"HEAP_TAGGING_OFF" in runner and b"HEAP_TAGGING_ERROR" in runner
+    assert b"HEAP_ASAN_READY" in runner and b"HEAP_ASAN_ERROR" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
         assert int.from_bytes(helper.read("client/ClientHudVisibility.class")[6:8], "big") == 61

@@ -21,8 +21,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          state=$(gh run view 34545774273 --json status --jq .status)
-          if [ "$state" != completed ]; then gh run cancel 34545774273; fi
+          for run in 34545774273 34546385722; do
+            state=$(gh run view "$run" --json status --jq .status)
+            if [ "$state" != completed ]; then gh run cancel "$run"; fi
+          done
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
