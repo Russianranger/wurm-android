@@ -1,9 +1,50 @@
-# 0.10.27 — heap diagnostic entry and crash capture fix
+# 0.10.28 — isolated native startup test
 
-[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.27-heap-bti/Wurm-Server.apk).
+[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.28-startup-trace/Wurm-Server.apk).
 
-This is a slower diagnostic build, not a confirmed crash fix or a performance
-comparison. Run one short attempt to character creation, then export both reports.
+Run **Native Memory Startup Test** in the Client tab and export the client report.
+No runtime imports, server, player name or character creation are required.
+This release adds evidence collection; it does not claim to fix either the new
+startup failure or the original in-game memory corruption.
+
+## Evidence from 0.10.27
+
+The supplied client report dated 2026-09-11 10:10:40 contains one entry attempt:
+PID 27303, exit 139, SIGSEGV code 1 / SEGV_MAPERR at address `0x7fd3f5dbc0`.
+Inventory, compatibility and graphics preparation pass. Entry fails before
+`HEAP_ASAN_READY`, Java initialization or any graphics trace. The parent now
+records the correct child PID, but Android returns no matching exec-child
+exit record. The available log has no PC, module mapping or backtrace. An
+invalid-access address is not enough to identify the faulting instruction or
+to conclude that the stack overflowed. The server saves and exits zero after
+the user's stop request; no server failure is shown.
+
+## What 0.10.28 adds
+
+- A small executable `.preinit_array` callback, before shared-library
+  constructors, enabled only by `WURM_STARTUP_TRACE=1` in diagnostic client
+  children. It uses direct Linux syscalls and has no libc/ASan imports.
+- A private 64 KiB alternate signal stack. Before Java starts, fatal signals
+  produce signal/code/address, PC/SP/FP, ARM64 LR/general registers and at most
+  96 KiB of the current process's `/proc/self/maps`. No unsafe stack walk or
+  another process's memory is read. A failed maps read is explicitly reported.
+- Existing handlers receive the fatal signal after capture; the child is never
+  resumed as if the fault succeeded. On successful native startup, preceding
+  handlers and the preceding alternate stack are restored before loading Java.
+  Failure to restore blocks Java. A fault before executable preinit, or a later
+  library replacing the recorder, may still evade this capture.
+- An isolated **Native Memory Startup Test**, with a 30-second limit and Stop
+  Client support. It uses the same ASan/C++ preload order and allocator/thread
+  checks as game entry, with verbose ASan startup output. It loads no JVM,
+  graphics, imported runtime or server. Success requires both exit zero and
+  the exact native `STARTUP_PROBE_PASS` marker.
+- Startup fault details take precedence over an absent graphics trace in the
+  summary; a specific ASan memory-error report still has higher priority.
+
+The ASan source, PAC/BTI patches, build flags, graphics instrumentation, JVM,
+server POC and game settings remain unchanged from 0.10.27. Preinit phase `1`
+means before `main`; phase `2` means runner startup before Java. A passing
+isolated probe would establish allocator/thread startup only, not game stability.
 
 ## Evidence from 0.10.26 and the additional correction
 
@@ -20,7 +61,7 @@ with the `0xdd0` page offset in all three crashes. A full stack and load address
 were unavailable, so that exact fault-site mapping remains an inference.
 
 LLVM fixed this defect in `1c792d24e0a228ad49cc004a1c26bbd7cd87f030` (#84061).
-This release backports that correction to both assembly and C++-declared
+The retained 0.10.27 change backports that correction to both assembly and C++-declared
 interceptor trampolines. Branch protection remains enabled. The build now
 checks every distinct exported function entry (1,518 in the tested ARM64
 runtime), in addition to checking the prctl return sequence. This expanded gate
@@ -86,12 +127,13 @@ uses that tag for its internal header accesses, including when tagging is off.
 The earlier shader-link and EGL-shutdown aborts may share a source of memory
 corruption, but the reports do not prove that.
 
-## What this build changes
+## Retained memory diagnostic
 
 - Instrument GL4ES, LWJGL native bindings, libffi C code, the owned EGL bridge,
   and OpenAL with AddressSanitizer (ASan), retaining frame pointers and symbols.
 - Package the corrected LLVM ARM64 ASan and pinned NDK shared C++ runtimes. Preload ASan first
-  in the client entry, window-test and graphics-test children before Java loads.
+  in the client entry, window-test and graphics-test children before Java loads,
+  and the isolated native startup test which loads no Java.
   Other bootstrap stages, JVM memory tests, the app process and server receive
   no sanitizer preload.
 - Use the shared C++ runtime for this diagnostic's OpenAL build, consistent with
@@ -119,21 +161,27 @@ The changed allocator and timing can also change whether a crash reproduces.
 
 ## Test on the Thor
 
-1. Keep the working older apps and exports. Install the separate `heapbti`
-   preview and import the same complete client and server runtime ZIPs.
-   Stop the older server before starting this one.
-2. Use an unused player name such as **Thorprobe**. Client login identity still
-   does not migrate between separate previews, including through a world export.
-3. Keep the same graphics settings for this attempt and start local play.
-   Try to reach and complete gender/kingdom selection. No separate JVM memory
-   test is required.
-4. If the client stops, export both reports immediately. If it remains running,
-   move briefly and stop after about two minutes, then export both reports.
-   Poorer FPS is expected in this diagnostic and is not a regression measurement.
-5. Send the reports even if the game fails before a window appears. Sanitizer
-   startup failures and early invalid-access reports are useful evidence.
+1. Keep older apps and saved data. Install the separate `startuptrace` preview.
+2. Open its Client tab. Tap **Native Memory Startup Test** once. No imports,
+   player-name change, server startup or game window are needed.
+3. Wait for passed/failed status (at most 30 seconds plus report collection),
+   then tap **Export Client Report** and send it even if the test failed.
+   No new server report is needed for this isolated test.
+4. Send the report even on success; game startup and the original in-game
+   corruption remain unverified. Existing local-game controls remain available,
+   but another character-creation attempt is not required for this test.
 
 ## Verification
+
+New host regressions execute faults in an actual shared-library constructor
+before `main`, verify that the PC falls in the captured module's executable
+mapping, exhaust the main stack to exercise alternate-stack capture, verify
+that disabled capture does not change the fault, and restore a previous handler
+and alternate stack before normal execution. The ARM64 build rejects recorder
+objects with any undefined symbol and runners without a PREINIT_ARRAY entry.
+These host checks cannot establish that every Thor preload path reaches preinit.
+Kotlin tests verify opt-in isolation and startup/sanitizer summary precedence.
+
 
 The host test executes the same native allocation and thread checks, then verifies that an
 instrumented one-byte overrun produces a heap-buffer-overflow report with the
@@ -149,6 +197,11 @@ all public BTI entry points, the diagnostic runtimes, exact asset hashes and the
 These checks do not replace testing the ASan/HotSpot combination on the Thor.
 
 ## Sources and reproduction
+
+- [Android 13 dynamic linker](https://github.com/aosp-mirror/platform_bionic/blob/android13-release/linker/linker_main.cpp): executable preinit is called before shared-library constructors.
+- Owned early recorder: `runtime-probe/native/startup_crash.c`.
+- Constructor-fault regressions: `tests/test_startup_crash.py`.
+
 
 - [LLVM interceptor BTI fix](https://github.com/llvm/llvm-project/commit/1c792d24e0a228ad49cc004a1c26bbd7cd87f030).
 - [Android 13 UNIXProcess](https://android.googlesource.com/platform/libcore/+/refs/tags/android-13.0.0_r1/ojluni/src/main/java/java/lang/UNIXProcess.java): public `toString()` formats for live/exited children.

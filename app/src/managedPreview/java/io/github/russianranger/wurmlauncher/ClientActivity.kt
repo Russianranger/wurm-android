@@ -34,10 +34,11 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.27").textSize = 24f
-        label("Choose your player name, then Start Local Game. Complete any character setup shown in the game. This build checks native memory errors. Expect slower performance; export reports after one short attempt.")
+        label("Wurm Client · 0.10.28").textSize = 24f
+        label("Run Native Memory Startup Test and export the client report. No imports or running server are needed for this test.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
+        button("Native Memory Startup Test", true) { startForegroundService(Intent(this, ClientService::class.java).setAction("native-heap")) }
         button("Import Client ZIP", true) {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), 10)
         }

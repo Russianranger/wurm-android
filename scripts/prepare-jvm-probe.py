@@ -107,14 +107,27 @@ def build_runner(ndk, native):
     compiler = Path(ndk) / "toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang"
     if not compiler.is_file():
         raise ValueError("JVM test build requires Linux x86_64 NDK 26.1.10909125; set ANDROID_NDK_HOME")
+    recorder = native / "startup_crash.o"
+    subprocess.run([str(compiler), "-O2", "-Wall", "-Wextra", "-Werror", "-fPIC",
+                    "-ffreestanding", "-fno-builtin", "-fno-stack-protector", "-mbranch-protection=bti",
+                    "-c", str(ROOT / "runtime-probe/native/startup_crash.c"), "-o", str(recorder)], check=True)
+    # A preinit recorder must not enter libc/ASan while those libraries initialize.
+    undefined = subprocess.check_output([str(compiler.parent / "llvm-nm"), "-u", str(recorder)], text=True)
+    if undefined.strip():
+        raise ValueError("Startup recorder unexpectedly depends on external functions: " + undefined)
     subprocess.run([str(compiler), "-O2", "-Wall", "-Wextra", "-Werror", "-fPIE", "-pie",
                     "-Wl,-z,max-page-size=16384", "-Wl,--export-dynamic-symbol=dl_iterate_phdr",
                     "-Wl,--export-dynamic-symbol=dladdr", str(ROOT / "runtime-probe/native/jvm_runner.c"),
                     str(ROOT / "runtime-probe/native/jvm_layout.c"),
                     str(ROOT / "runtime-probe/native/world_lock.c"),
                     str(ROOT / "runtime-probe/native/heap_compat.c"),
+                    str(recorder),
                     "-pthread", "-ldl", "-o", str(native / "libwurmjvm_runner.so")], check=True)
+    recorder.unlink()
     readelf = compiler.parent / "llvm-readelf"
+    dynamic = subprocess.check_output([str(readelf), "-d", str(native / "libwurmjvm_runner.so")], text=True)
+    if "PREINIT_ARRAY" not in dynamic:
+        raise ValueError("Native runner missing early startup recorder")
     symbols = subprocess.check_output([str(readelf), "--dyn-syms", str(native / "libwurmjvm_runner.so")], text=True)
     for name in ("dl_iterate_phdr", "dladdr"):
         if not any(line.split()[-1:] == [name] and " GLOBAL " in line and " UND " not in line

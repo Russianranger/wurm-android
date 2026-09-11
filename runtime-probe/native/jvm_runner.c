@@ -3,12 +3,14 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/prctl.h>
 #include <signal.h>
 #include <unistd.h>
 #include "jvm_layout.h"
 #include "world_lock.h"
 #include "heap_compat.h"
+#include "startup_crash.h"
 
 /* OpenJDK libjli's public launcher entry point (java.h, JDK 17). */
 typedef int (*jli_launch_fn)(int, char **, int, const char **, int, const char **,
@@ -16,6 +18,7 @@ typedef int (*jli_launch_fn)(int, char **, int, const char **, int, const char *
                             unsigned char, unsigned char, unsigned char, int);
 
 int main(int argc, char **argv) {
+    wurm_startup_main();
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
     /* Terminate this disposable test if its owning app process dies. */
@@ -29,6 +32,13 @@ int main(int argc, char **argv) {
         return 71;
     }
     if (wurm_configure_heap(getenv("WURM_HEAP_TAGGING")) != 0) return 78;
+    if (wurm_startup_finish() != 0) return 79;
+    if (argc == 2 && strcmp(argv[1], "--wurm-heap-probe") == 0) {
+        if (getenv("WURM_HEAP_TAGGING") == NULL || strcmp(getenv("WURM_HEAP_TAGGING"), "asan") != 0)
+            return 78;
+        puts("[native-heap] STARTUP_PROBE_PASS allocator and thread verified; no Java, graphics or game loaded");
+        return 0;
+    }
     if (wurm_world_lock(getenv("WURM_WORLD_LOCK")) < 0) {
         fprintf(stderr, "[native] Workspace is busy or inaccessible.\n");
         return 77;

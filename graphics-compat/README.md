@@ -1,6 +1,7 @@
 # Pojav Java API compatibility candidate
 
-0.10.27 retains native ASan instrumentation and builds LLVM 17.0.2 ASan with
+0.10.28 adds an isolated native startup test and a preinit fault recorder, with
+no new ASan runtime patch. It retains native ASan instrumentation and builds LLVM 17.0.2 ASan with
 the upstream prctl/PAC and interceptor BTI corrections, verifying all exported
 function entries and keeping the NDK shared C++ runtime for
 client-only preload. This is a short, slower crash

@@ -10,6 +10,27 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class NativeHeapCheckTest(unittest.TestCase):
+    def test_preinit_recorder_coexists_with_preloaded_asan_and_thread_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            recorder = home / "recorder.o"
+            subprocess.run(["gcc", "-O2", "-fPIC", "-ffreestanding", "-fno-builtin", "-fno-stack-protector",
+                "-c", str(ROOT / "runtime-probe/native/startup_crash.c"), "-o", str(recorder)], check=True)
+            source = home / "probe.c"
+            source.write_text('#include "heap_compat.h"\n#include "startup_crash.h"\n'
+                'int main() { wurm_startup_main(); if (wurm_configure_heap("asan")) return 78; return wurm_startup_finish(); }\n')
+            binary = home / "probe"
+            subprocess.run(["gcc", "-O1", "-g", "-no-pie", "-pthread", "-I" + str(ROOT / "runtime-probe/native"),
+                str(source), str(ROOT / "runtime-probe/native/heap_compat.c"), str(recorder), "-ldl", "-o", str(binary)], check=True)
+            asan = subprocess.check_output(["gcc", "-print-file-name=libasan.so"], text=True).strip()
+            result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10,
+                env=dict(os.environ, LD_PRELOAD=asan, WURM_STARTUP_TRACE="1",
+                    ASAN_OPTIONS="detect_leaks=0:abort_on_error=1:handle_segv=0:handle_sigbus=0:handle_sigfpe=0:use_sigaltstack=0"))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for marker in ("CAPTURE_READY preinit", "MAIN_ENTERED", "CAPTURE_RELEASED before Java"):
+                self.assertIn(marker, result.stderr)
+            self.assertIn("HEAP_ASAN_THREADS_READY", result.stdout)
+
     def test_runner_asan_policy_requires_active_redzones_without_mallopt(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)

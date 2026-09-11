@@ -6,6 +6,7 @@ class ClientCrashEvidence(val uid: Int, val startedAt: Long) {
         private set
     private val pending = linkedMapOf<Long, String>()
     private var sanitizer: String? = null
+    private var startup: String? = null
     private var last = "No graphics trace received"
     /** Android 13 UNIXProcess.toString keeps the PID even after a pre-main crash.
      * Use the Process returned by our own start(); no hidden API reflection. */
@@ -19,6 +20,7 @@ class ClientCrashEvidence(val uid: Int, val startedAt: Long) {
         if (identity != null && identity.groupValues[1].toIntOrNull() == uid && identity.groupValues[2].toIntOrNull() == uid)
             identity.groupValues[3].toIntOrNull()?.takeIf { it > 0 && pid == 0 }?.let { pid = it }
         if (line.contains("ERROR: AddressSanitizer:")) sanitizer = line.substringAfter("ERROR: AddressSanitizer:").trim().take(220)
+        if (line.startsWith("[startup-crash] SIGNAL ")) startup = line.take(300)
         if (!line.startsWith("[graphics-trace] ")) return
         last = line.take(400)
         val event = Regex("^\\[graphics-trace] (BEGIN|END|THREW) seq=(\\d+)(?: .*)?$").matchEntire(line) ?: return
@@ -30,6 +32,7 @@ class ClientCrashEvidence(val uid: Int, val startedAt: Long) {
     }
     @Synchronized fun summary(exit: Int): String {
         sanitizer?.let { return "Client child exited $exit; AddressSanitizer: $it; export the full client report" }
+        startup?.let { return "Client child exited $exit during native startup; $it; register/map evidence follows in the full report" }
         val call = pending.values.lastOrNull()
         return "Client child exited $exit" + (if (exit == 134) " (possible SIGABRT; crash evidence required)" else "") +
             "; " + (if (call != null) "unfinished graphics call: $call" else "last graphics event: $last")

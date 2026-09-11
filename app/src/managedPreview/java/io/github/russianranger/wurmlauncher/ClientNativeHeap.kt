@@ -14,10 +14,11 @@ internal object ClientNativeHeap {
         "fast_unwind_on_malloc=1:symbolize=0"
 
     fun environment(stage: String, native: File): Map<String, String> {
-        if (stage !in setOf("entry", "window", "render")) return emptyMap()
+        if (stage !in setOf("entry", "window", "render", "native-heap")) return emptyMap()
         val libraries = listOf(runtime, cxx).map { File(native, it) }
         check(libraries.all { it.isFile }) { "Native heap diagnostic libraries missing" }
         return mapOf("LD_PRELOAD" to libraries.joinToString(":") { it.absolutePath },
-            "ASAN_OPTIONS" to options, "WURM_HEAP_TAGGING" to "asan")
+            "ASAN_OPTIONS" to (options + if (stage == "native-heap") ":verbosity=1" else ""),
+            "WURM_HEAP_TAGGING" to "asan", "WURM_STARTUP_TRACE" to "1")
     }
 }

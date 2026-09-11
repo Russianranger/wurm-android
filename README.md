@@ -1,17 +1,20 @@
 # Wurm Server for Android
 
-**Current test: 0.10.27 — heap diagnostic entry and crash capture fix.** The
-0.10.26 reports contain three SIGILL/ILL_ILLOPC failures before the first native
-marker. The checker advertised BTI protection but its assembly trampolines
-lacked valid landing instructions. This build adds LLVM's BTI correction and
-checks all exported entry points, retaining the prior prctl/PAC fix. It also
-captures the child PID from the parent so early crashes can supply tombstones.
-The original in-game heap corruption remains unidentified; this is a short,
-slower diagnostic and device startup is unverified.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.27-heap-bti).
-[Run one short attempt and export both reports](docs/CLIENT_NATIVE_HEAP_TRACE.md).
-Keep older apps/backups and use an unused name; client login identity does not
-currently migrate between separate previews.
+**Current test: 0.10.28 — isolated native startup test.** The 0.10.27
+client exits 139 / SIGSEGV before Java or graphics. Parent PID capture worked,
+but Android supplied no matching exit record or faulting instruction. This
+build keeps the same ASan runtime and adds an opt-in executable preinit recorder
+using syscalls only, with an alternate stack and register/module-map output.
+It restores the preceding signal handlers before loading Java. Run **Native
+Memory Startup Test** in the Client tab and export the client report; no
+client/server imports or server startup are needed. This is evidence collection,
+not a confirmed startup or in-game crash fix.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.28-startup-trace).
+[Test instructions and limits](docs/CLIENT_NATIVE_HEAP_TRACE.md). Keep older apps and their saved data.
+
+**Previous test: 0.10.27 — BTI entry correction and parent PID capture.** All
+1,518 public ASan entries pass the expanded BTI check. On the Thor, startup now
+fails with SIGSEGV/SEGV_MAPERR before native markers. No Java or game was reached.
 
 **Previous test: 0.10.26 — heap diagnostic thread startup fix.** Backported
 LLVM's prctl/PAC correction. The next device report exposed missing BTI landing

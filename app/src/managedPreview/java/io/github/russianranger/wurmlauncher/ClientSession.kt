@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.27\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.28\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.26 had three SIGILL/ILL_ILLOPC failures before the first native marker. Its ASan runtime advertised BTI but had invalid assembly entry points. This build applies the upstream BTI correction, retains the prctl PAC correction and captures the child PID from the parent for early tombstones. The original in-game heap corruption remains unidentified; device startup and stability are unverified.\n\n" +
+            "Gate status: Thor 0.10.27 exits 139 with SIGSEGV/SEGV_MAPERR before any native marker. The parent captured PID 27303 but Android provided no matching exit record, so the faulting instruction is unknown. This build retains the same ASan runtime and adds a preinit register/map recorder plus an isolated Native Memory Startup Test requiring no imports or server. Neither this startup failure nor the original in-game heap corruption is fixed or identified yet.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -88,7 +88,8 @@ object ClientSession {
                                 log(installed.inventory)
                             }
                             status("Stopped", "Client import validated. Start Client runs the bootstrap probes.")
-                        } else run(context, store, mode)
+                        } else if (mode == "native-heap") runNativeHeap(context, store)
+                        else run(context, store, mode)
                     }
                 }
             } catch (failure: Throwable) {
@@ -120,6 +121,42 @@ object ClientSession {
     }
     private fun checkCancelled() { if (cancelled || Thread.currentThread().isInterrupted) throw InterruptedException("Client operation cancelled") }
     private fun reachable() = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", 3724), 300) }; true }.getOrDefault(false)
+    private fun runNativeHeap(context: Context, store: ClientStore) {
+        val native = File(context.applicationInfo.nativeLibraryDir)
+        val evidence = ClientCrashEvidence(android.os.Process.myUid(), System.currentTimeMillis())
+        status("Native memory startup test", "Checking allocator and thread startup; no imports, server, Java or graphics needed.")
+        val process = ProcessBuilder(File(native, "libwurmjvm_runner.so").absolutePath, "--wurm-heap-probe")
+            .directory(store.home).redirectErrorStream(true).apply {
+                environment().clear()
+                environment()["PATH"] = "/system/bin"
+                environment()["LD_LIBRARY_PATH"] = native.absolutePath
+                environment().putAll(ClientNativeHeap.environment("native-heap", native))
+            }.start().also { child = it }
+        evidence.observeProcess(process.toString())
+        log("[client] CHILD_PROCESS stage=native-heap pid=${evidence.pid}; no server or game launched")
+        val passed = java.util.concurrent.atomic.AtomicBoolean(false)
+        val reader = Thread({
+            try { RootServerController.consumeLines(process.inputStream) { line ->
+                evidence.observe(line); log(line)
+                if (line == "[native-heap] STARTUP_PROBE_PASS allocator and thread verified; no Java, graphics or game loaded") passed.set(true)
+            } } catch (failure: Exception) { log("[client] OUTPUT_CLOSED stage=native-heap ${failure.javaClass.simpleName}: ${failure.message}") }
+        }, "wurm-native-startup-output").apply { isDaemon = true; start() }
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30)
+        var timedOut = false
+        while (!process.waitFor(100, TimeUnit.MILLISECONDS)) {
+            checkCancelled()
+            if (System.nanoTime() >= deadline) { timedOut = true; process.destroyForcibly(); break }
+        }
+        process.waitFor(); reader.join(3000)
+        val exit = process.exitValue()
+        child = null
+        log("[native-heap] STARTUP_PROBE_EXIT code=$exit verified=${passed.get()} timeout=$timedOut")
+        if (!timedOut && exit in 128..159) ClientCrashCapture.collect(context, evidence, ::log)
+        checkCancelled()
+        status(if (!timedOut && exit == 0 && passed.get()) "Native memory startup passed" else "Native memory startup failed",
+            (if (timedOut) "Test timed out." else if (exit == 0 && passed.get()) "Allocator and thread startup passed; game startup is still untested."
+            else if (exit == 0) "Test ended without its verified completion marker." else evidence.summary(exit)) + " Export Client Report.")
+    }
     private fun run(context: Context, store: ClientStore, mode: String) {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
