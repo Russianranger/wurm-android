@@ -1,11 +1,55 @@
-# 0.10.28 — isolated native startup test
+# 0.10.29 — native heap startup recursion fix
 
-[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.28-startup-trace/Wurm-Server.apk).
+[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.29-native-tls/Wurm-Server.apk).
 
-Run **Native Memory Startup Test** in the Client tab and export the client report.
-No runtime imports, server, player name or character creation are required.
-This release adds evidence collection; it does not claim to fix either the new
-startup failure or the original in-game memory corruption.
+Run **Native Memory Startup Test** in the Client tab first. No runtime imports,
+server, player name or character creation are required for that test. This
+release corrects the demonstrated checker startup recursion. Device startup
+and the original in-game corruption still need verification.
+
+## Evidence from 0.10.28 and the correction
+
+The 2026-09-11 10:39:37 report contains a standalone native test, PID 3686.
+The preinit recorder ran, ASan initialized its interceptors and shadow mappings,
+then SIGSEGV/SEGV_MAPERR occurred before `main`. PC `0x732fb12da0` maps to
+`__interceptor_malloc+104`, offset `0xf9da0`, in ASan build ID
+`86421f6fd90a061272a7b92bcc65c936ff3c0b0d` (SHA-256
+`4eb563c2221af2be2784bfc0d18a260f38310e1f6cacb74ee39b64075d10933d`).
+The fault address equals SP `0x7fd7a3a990`, which is `0x670` below the mapped
+8 MiB stack's lower boundary, `0x7fd7a3b000`.
+
+The Android trace contains 183 complete frames before truncation, repeating:
+
+1. `__asan::Allocator::Allocate` tags the allocation via `__lsan::DisabledInThisThread`.
+2. That function reads `disable_counter` through `__emutls_get_address`.
+3. The emulated TLS helper calls `malloc` for its first per-thread storage.
+4. ASan intercepts that allocation and re-enters the same counter lookup before
+   the initial storage has been installed. The cycle exhausts the stack.
+
+The exact released machine code confirms both call edges. The fault is in the
+standalone memory checker; no JVM, game JAR, graphics or server was loaded.
+`detect_leaks=0` does not avoid the lookup: ASan's allocator still reads this
+counter when setting allocation metadata.
+
+LLVM 17's CMake parses `ANDROID_API_LEVEL` from `-target` in `CMAKE_C_FLAGS`.
+Our recipe set the API-33 compiler wrapper and `CMAKE_C_COMPILER_TARGET`, but
+omitted that flag. The API detection was therefore empty and LLVM's API>=29
+`-fno-emulated-tls` path did not run. This was a configuration error in the
+source-built checker. The fixed recipe supplies the explicit API-33 target
+and native-TLS flag in C/C++/assembly compilation. It retains the LLVM source,
+existing PAC/BTI patches, ASan checks and client-only preload policy.
+
+The new binary gate requires the counter to be an ELF TLS symbol, a PT_TLS
+segment, and a direct `TPIDR_EL0` lookup with no function call. It rejects
+emulated TLS variables and `__emutls_get_address`. The NDK's separate
+`__emutls_unregister_key` stub is harmless (`bti c; ret`) and is permitted.
+This gate rejects the exact 0.10.28 runtime and accepts the rebuilt ARM64 one.
+All 1,518 BTI entries and the prior prctl/PAC correction still pass.
+
+The early recorder re-raises the original fatal signal after recording it,
+which explains the later Android `SI_TKILL` line. The recorder's original
+`SEGV_MAPERR`, registers and maps identify the original fault. The Android
+exit-info record also became available in this run.
 
 ## Evidence from 0.10.27
 
@@ -19,7 +63,7 @@ invalid-access address is not enough to identify the faulting instruction or
 to conclude that the stack overflowed. The server saves and exits zero after
 the user's stop request; no server failure is shown.
 
-## What 0.10.28 adds
+## Retained early recorder and standalone test
 
 - A small executable `.preinit_array` callback, before shared-library
   constructors, enabled only by `WURM_STARTUP_TRACE=1` in diagnostic client
@@ -41,8 +85,8 @@ the user's stop request; no server failure is shown.
 - Startup fault details take precedence over an absent graphics trace in the
   summary; a specific ASan memory-error report still has higher priority.
 
-The ASan source, PAC/BTI patches, build flags, graphics instrumentation, JVM,
-server POC and game settings remain unchanged from 0.10.27. Preinit phase `1`
+The ASan source, PAC/BTI patches, graphics instrumentation, JVM, server POC and
+game settings remain unchanged; the ASan target/TLS build flags are corrected above. Preinit phase `1`
 means before `main`; phase `2` means runner startup before Java. A passing
 isolated probe would establish allocator/thread startup only, not game stability.
 
@@ -161,17 +205,29 @@ The changed allocator and timing can also change whether a crash reproduces.
 
 ## Test on the Thor
 
-1. Keep older apps and saved data. Install the separate `startuptrace` preview.
-2. Open its Client tab. Tap **Native Memory Startup Test** once. No imports,
-   player-name change, server startup or game window are needed.
-3. Wait for passed/failed status (at most 30 seconds plus report collection),
-   then tap **Export Client Report** and send it even if the test failed.
-   No new server report is needed for this isolated test.
-4. Send the report even on success; game startup and the original in-game
-   corruption remain unverified. Existing local-game controls remain available,
-   but another character-creation attempt is not required for this test.
+1. Keep older apps and saved data. Install the separate `nativetls` preview.
+2. Open its Client tab and tap **Native Memory Startup Test** once. No imports,
+   player-name change or server startup are needed.
+3. If it fails, export and send the **Client Report**. Do not repeat game setup
+   for a failed standalone test.
+4. If it passes, import the same complete client and stopped-server runtime
+   ZIPs, stop any older server, and try local play with an unused name such as
+   **Thorprobe**. Complete gender/kingdom selection if it appears, then move
+   briefly and stop after about two minutes or the first crash.
+5. Export the client report after the standalone test and, if local play was
+   attempted, send both client and server reports. A passing startup test alone
+   does not establish game stability. The memory checker can reduce performance.
 
 ## Verification
+
+The new NDK regression compiles the same LSan TLS declaration in three modes:
+initial-exec native TLS, forced emulated TLS, and a dynamic lookup. The gate
+accepts the direct native form and rejects the two resolver forms. A full
+ARM64 ASan rebuild passes the TLS, BTI and prctl/PAC machine-code gates; the
+actual preceding release fails the TLS gate. The manifest records the exact
+runtime flags, and packaging requires this metadata. The released APK is
+checked again against these gates after download.
+
 
 New host regressions execute faults in an actual shared-library constructor
 before `main`, verify that the PC falls in the captured module's executable
@@ -197,6 +253,13 @@ all public BTI entry points, the diagnostic runtimes, exact asset hashes and the
 These checks do not replace testing the ASan/HotSpot combination on the Thor.
 
 ## Sources and reproduction
+
+- [LLVM 17 build configuration](https://github.com/llvm/llvm-project/blob/llvmorg-17.0.2/compiler-rt/CMakeLists.txt): API detection and native TLS flag selection.
+- [LLVM 17 LSan counter](https://github.com/llvm/llvm-project/blob/llvmorg-17.0.2/compiler-rt/lib/lsan/lsan_common_linux.cpp): initial-exec thread-local declaration.
+- [LLVM 17 ASan allocation](https://github.com/llvm/llvm-project/blob/llvmorg-17.0.2/compiler-rt/lib/asan/asan_allocator.cpp): unconditional counter lookup for allocation metadata when leak support is compiled in.
+- [Android ELF TLS](https://android.googlesource.com/platform/bionic/+/HEAD/docs/elf-tls.md): direct access for initially loaded modules.
+- Android compiler regression: `tests/test_asan_tls.py`.
+
 
 - [Android 13 dynamic linker](https://github.com/aosp-mirror/platform_bionic/blob/android13-release/linker/linker_main.cpp): executable preinit is called before shared-library constructors.
 - Owned early recorder: `runtime-probe/native/startup_crash.c`.

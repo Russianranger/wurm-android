@@ -1,16 +1,22 @@
 # From the working POC to Wurm Server
 
-**Current test: 0.10.28 — isolated native startup test.** The 0.10.27
-client exits 139 / SIGSEGV before Java or graphics. Parent PID capture worked,
-but Android supplied no matching exit record or faulting instruction. This
-build keeps the same ASan runtime and adds an opt-in executable preinit recorder
-using syscalls only, with an alternate stack and register/module-map output.
-It restores the preceding signal handlers before loading Java. Run **Native
-Memory Startup Test** in the Client tab and export the client report; no
-client/server imports or server startup are needed. This is evidence collection,
-not a confirmed startup or in-game crash fix.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.28-startup-trace).
-[Test instructions and limits](CLIENT_NATIVE_HEAP_TRACE.md). Keep older apps and their saved data.
+**Current test: 0.10.29 — native heap startup recursion fix.** The
+0.10.28 recorder captured a repeating allocator → thread-local lookup → allocator
+cycle that exhausts the stack before `main`. The source-built ASan was missing
+LLVM's Android API detection flag and used allocating emulated TLS. This build
+supplies the explicit API-33 target and `-fno-emulated-tls`, verifies native ELF
+TLS and an allocation-free lookup, and retains the PAC/BTI fixes and early
+recorder. The check rejects the actual failed binary and accepts the rebuilt
+ARM64 runtime. Run **Native Memory Startup Test** first; no imports or server
+are needed for that test. Device startup and the original in-game crash still
+need testing.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.29-native-tls).
+[Test instructions and limits](CLIENT_NATIVE_HEAP_TRACE.md). Keep older apps and saved data.
+
+**Previous test: 0.10.28 — isolated native startup test.** Its preinit recorder
+worked on the Thor and obtained registers, maps, and a 183-frame stack trace.
+The fault is now localized to ASan's emulated TLS allocation recursion. Neither
+Java nor graphics loaded in that standalone test.
 
 **Previous test: 0.10.27 — BTI entry correction and parent PID capture.** All
 1,518 public ASan entries pass the expanded BTI check. On the Thor, startup now

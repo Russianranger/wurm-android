@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Build LLVM 17 ASan with upstream AArch64 PAC and BTI corrections."""
+"""Build LLVM 17 ASan with native ELF TLS and AArch64 PAC/BTI corrections."""
 from pathlib import Path
 import re
 import subprocess
 
 PATCH = '6bbf0c30ca4449e325beb2d28db00d258d3a1a10'
 BTI_PATCH = '1c792d24e0a228ad49cc004a1c26bbd7cd87f030'
+# LLVM 17's CMake derives ANDROID_API_LEVEL from -target in CMAKE_C_FLAGS,
+# not CMAKE_C_COMPILER_TARGET or the NDK wrapper name. Make both target and
+# native TLS explicit: emulated TLS allocates through the allocator it serves.
+RUNTIME_FLAGS = '-target aarch64-linux-android33 -mbranch-protection=standard -fno-emulated-tls -g'
 
 
 def patch(source):
@@ -92,7 +96,32 @@ def verify_exports(runtime, objdump):
     print(f'ASAN_BTI_VERIFIED: {len(exports)} distinct public entries accept indirect calls', flush=True)
 
 
+def verify_tls(runtime, objdump):
+    """Reject the actual emutls -> malloc -> LSan TLS recursion seen on Thor."""
+    readelf = objdump.parent / 'llvm-readelf'
+    symbols = subprocess.check_output([str(readelf), '--symbols', '--wide', str(runtime)], text=True)
+    # NDK crtbegin can contain a harmless __emutls_unregister_key stub even
+    # with native TLS. Reject the allocating resolver and emulated variables.
+    if '__emutls_get_address' in symbols or '__emutls_v.' in symbols or '__emutls_t.' in symbols:
+        raise ValueError('ASan contains emulated TLS: its first TLS allocation can recurse through malloc')
+    counter = [line.split() for line in symbols.splitlines()
+               if line.split()[-1:] == ['_ZN6__lsan15disable_counterE']]
+    if not counter or any(row[3] != 'TLS' or not row[6].isdigit() for row in counter):
+        raise ValueError('ASan LSan disable counter must be a defined ELF TLS variable')
+    headers = subprocess.check_output([str(readelf), '--program-headers', '--wide', str(runtime)], text=True)
+    if not re.search(r'^\s*TLS\s', headers, re.MULTILINE):
+        raise ValueError('ASan is missing its ELF TLS segment')
+    output = subprocess.check_output([str(objdump), '-d', '--no-show-raw-insn',
+        '--disassemble-symbols=_ZN6__lsan20DisabledInThisThreadEv', str(runtime)], text=True)
+    if not re.search(r'\bmrs\s+x\d+,\s*TPIDR_EL0\b', output, re.IGNORECASE):
+        raise ValueError('ASan LSan TLS lookup must read the ARM64 thread pointer directly')
+    if re.search(r'^\s*[0-9a-f]+:\s+(?:b|br|bl|blr|braa|brab|blraa|blrab)\s', output, re.MULTILINE):
+        raise ValueError('ASan LSan TLS lookup must not call an allocating TLS resolver')
+    print('ASAN_TLS_VERIFIED: native ELF TLS; allocation-free LSan lookup; no emulated TLS resolver', flush=True)
+
+
 def verify(runtime, objdump):
+    verify_tls(runtime, objdump)
     output = subprocess.check_output([str(objdump), '-d', '--no-show-raw-insn',
         '--disassemble-symbols=__interceptor_prctl', str(runtime)], text=True)
     if '<__interceptor_prctl>:' not in output or not re.search(r'\bbti\s+c\b', output):
@@ -113,7 +142,7 @@ def build(ndk, source, cmake_source, llvm_source, work, run):
     cmake_source.rename(source.parent/'cmake')
     patch(source)
     folder = work/'asan-build'
-    flags = '-mbranch-protection=standard -g'
+    flags = RUNTIME_FLAGS
     run(['cmake', '-S', source, '-B', folder,
          '-DCMAKE_SYSTEM_NAME=Linux', '-DCMAKE_SYSTEM_PROCESSOR=aarch64', '-DANDROID=1',
          '-DCMAKE_C_COMPILER='+str(cc/'aarch64-linux-android33-clang'),

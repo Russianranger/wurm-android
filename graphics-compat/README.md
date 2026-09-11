@@ -1,11 +1,11 @@
 # Pojav Java API compatibility candidate
 
-0.10.28 adds an isolated native startup test and a preinit fault recorder, with
-no new ASan runtime patch. It retains native ASan instrumentation and builds LLVM 17.0.2 ASan with
-the upstream prctl/PAC and interceptor BTI corrections, verifying all exported
-function entries and keeping the NDK shared C++ runtime for
-client-only preload. This is a short, slower crash
-diagnostic, not a confirmed fix. See [test and limits](../docs/CLIENT_NATIVE_HEAP_TRACE.md).
+0.10.29 corrects the ASan build target/API detection and explicitly uses native
+ELF TLS. The 0.10.28 report showed emulated TLS recursively calling ASan malloc
+until its startup stack overflowed. Binary checks now require a direct,
+allocation-free LSan counter lookup and reject the failed runtime. The PAC/BTI
+fixes, early recorder, isolated startup test and client graphics instrumentation
+are retained. See [evidence and test](../docs/CLIENT_NATIVE_HEAP_TRACE.md).
 
 0.10.24 disables Wurm's occlusion-query capability and option for GL4ES's
 placeholder sample results. Distance and frustum culling still apply. See the

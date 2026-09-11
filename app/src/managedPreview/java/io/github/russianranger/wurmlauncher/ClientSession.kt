@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.28\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.29\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.27 exits 139 with SIGSEGV/SEGV_MAPERR before any native marker. The parent captured PID 27303 but Android provided no matching exit record, so the faulting instruction is unknown. This build retains the same ASan runtime and adds a preinit register/map recorder plus an isolated Native Memory Startup Test requiring no imports or server. Neither this startup failure nor the original in-game heap corruption is fixed or identified yet.\n\n" +
+            "Gate status: The 0.10.28 standalone report captured allocator -> LSan TLS lookup -> emulated TLS -> malloc recursion, exhausting the startup stack before main. This build fixes the omitted Android target flag and explicitly builds ASan with native ELF TLS; machine-code checks reject the old allocating lookup and verify the corrected one. Run Native Memory Startup Test first. Device startup is unverified, and the original in-game heap corruption remains unidentified.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +

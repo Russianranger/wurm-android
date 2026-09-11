@@ -34,7 +34,7 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.28").textSize = 24f
+        label("Wurm Client · 0.10.29").textSize = 24f
         label("Run Native Memory Startup Test and export the client report. No imports or running server are needed for this test.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
