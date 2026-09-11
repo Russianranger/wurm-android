@@ -20,7 +20,11 @@ The user authorizes changes and continued device-test releases. Requested on 202
 3. Audit the underlying client's graphics options; expose usable options and explain compatibility restrictions.
 4. Organize the launcher into Server, Client and Diagnostics tabs. Move tests, reports and diagnostic output into Diagnostics; preserve basic server/client controls and running sessions.
 
-Status: investigation started; implementation and next APK are not yet complete. Update this section before release.
+Status: implementation complete locally for 0.10.33; validation/release in progress. The handoff was first persisted in commit `6c1a9980c3e1f7905818af408d86baf1230bcd8a`. Do not confuse that documentation checkpoint with the release commit.
+
+Changes: one launcher host with persistent Server/Client/Diagnostics pages; 41 graphics controls (17 existing + 24 new) with restart-only deferral; verified EGL depth24 preference/depth16 fallback; pinned GL4ES unsized texture/renderbuffer precision changes. Runtime collectors, native memory checking and occlusion-query restrictions are preserved. ClientPage/DiagnosticsPage are new view controllers, not Activities. Return to Game reopens the viewer without starting a new client.
+
+Focused validation passed: 12 visual settings/pacing tests, 2 depth config/actual-source conversion tests. Full host suite: 154 tests passed (24 expected fixture/platform skips); native depth checks also ran with the pinned archive and passed. Android CI pending. See [the detailed audit and test plan](GRAPHICS_AND_TABS.md). Planned release: `v0.10.33-graphics-tabs`, versionCode 47, application suffix `.graphicstabs`. Device visual/lifecycle confirmation remains pending even after CI passes.
 
 Current attachments in the active scratch workspace:
 
@@ -28,7 +32,7 @@ Current attachments in the active scratch workspace:
 - `upload/wurm-server-report(20260911-152659).txt`
 - `upload/Wurm Server_2026-09-11 10_20_44.mp4`
 
-The latest client header is 0.10.32 and reports a normal entry exit code 0, with game-loop observation true. Detailed review is pending. Read uploaded files from scratch; do not fetch them through Library. Scratch may disappear between sessions: request missing reports or owned runtime JARs again when necessary.
+The latest client header is 0.10.32 and reports a normal entry exit code 0, with game-loop observation true. Detailed review is in GRAPHICS_AND_TABS.md: three client entry exits 0, two requested server exits 0, median recorded presented FPS 29.8; recoverable startup GL errors remain, and samples are too short for long-term memory conclusions. Read uploaded files from scratch; do not fetch them through Library. Scratch may disappear between sessions: request missing reports or owned runtime JARs again when necessary.
 
 ## Established architecture and constraints
 
@@ -42,7 +46,7 @@ The latest client header is 0.10.32 and reports a normal entry exit code 0, with
 ## Key source locations
 
 - `app/src/managedPreview/java/io/github/russianranger/wurmlauncher/`: launcher activities, services, reports, settings and frame viewer.
-- `ManagedActivity.kt`, `ClientActivity.kt`: currently separate server/client pages; diagnostic controls are mixed into both.
+- `ManagedActivity.kt`, `ClientActivity.kt`: single three-tab host plus compatibility client redirect; `ClientPage.kt` and `DiagnosticsPage.kt` own their page controls.
 - `GraphicsOptions.kt`, `GraphicsSettingsDialog.kt`, `runtime-probe/src/client/ClientVisualOptions.java`: Android graphics catalog, settings UI and runtime option application. Keep wire order/validation consistent and extend meaningful tests with new options.
 - `GraphicsTestActivity.kt`, `GameFrameView.kt`, `GraphicsFrame.kt`: fullscreen gear panel, frame consumption, pointer and input.
 - `graphics-compat/`, `scripts/patch-gl4es.py`: graphics compatibility and checked downstream source fixes.
@@ -65,7 +69,7 @@ The latest client header is 0.10.32 and reports a normal entry exit code 0, with
 ## Outstanding performance observations from the preceding run
 
 - Client ran approximately 36 minutes and exited normally. Steady rendering/viewing approximately 29.9 FPS at 1280 x 720. No fatal ASan, OOM or frame-readback failures.
-- Post-warmup PSS: client 1.59–1.78 GiB, server 1.01–1.03 GiB, Android viewer 111–143 MiB; no swap or proven continuing leak.
+- Post-warmup PSS: client 1592–1777 MiB, server 1007–1030 MiB, Android viewer 111–143 MiB; no swap or proven continuing leak.
 - Client Serial full GC pauses roughly 0.38–0.64 seconds and young pauses often 90–215 ms. `World.tick()` calls `System.gc()` about every ten minutes; disabling this globally may affect direct-buffer reclamation. Controlled collector comparison is future work, not an established fix.
 - Server file descriptors fluctuate and drop around young collections; inspect owners before claiming a leak.
 - Recoverable GL errors occurred during startup only. A GL4ES `glBindFramebuffer` attribution point reads existing driver error state, so it is not conclusive proof that binding caused the error.

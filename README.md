@@ -2,7 +2,15 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current test: 0.10.32 — dark app theme and white pointer.** The Thor completed
+**Current test: 0.10.33 — three tabs, expanded graphics and depth precision.**
+The Thor passed repeated login/logout and app reentry on 0.10.32; object pop-in
+is resolved. This build separates Server, Client and Diagnostics, expands the
+menu to 41 graphics controls, and prefers supported 24-bit depth for the reported
+cross-beam flicker. The visual correction still needs device confirmation.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.33-graphics-tabs).
+[Graphics audit, report findings and device checks](docs/GRAPHICS_AND_TABS.md).
+
+**Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed
 approximately 36 minutes on 0.10.31 with normal client/server exits and about
 29.9 FPS after startup. This release makes the app dark by default and changes
 the pointer to white with a black outline. GC stalls remain the highest-priority

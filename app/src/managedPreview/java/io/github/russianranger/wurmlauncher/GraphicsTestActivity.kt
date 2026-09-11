@@ -14,7 +14,6 @@ import java.util.concurrent.Executors
 class GraphicsTestActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val reader = Executors.newSingleThreadExecutor()
-    private lateinit var status: TextView
     private lateinit var frame: GameFrameView
     private lateinit var run: Button
     private lateinit var panel: ScrollView
@@ -81,10 +80,6 @@ class GraphicsTestActivity : Activity() {
             val state = ClientSession.snapshot()
             val now=SystemClock.elapsedRealtime()
             if (now-statusAt >= 500) {
-                if (status.isShown) {
-                    val value="${state.phase}: ${state.detail}\n${ClientSession.recent().lines().takeLast(8).joinToString("\n")}"
-                    if (status.text.toString() != value) status.text=value
-                }
                 statusAt=now
                 if (noticeSeen != ClientSession.graphicsNotice) {
                     noticeSeen=ClientSession.graphicsNotice
@@ -175,7 +170,7 @@ class GraphicsTestActivity : Activity() {
         fun label(value: String, size: Float = 14f) = TextView(this).apply {
             text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
         }
-        label(if (mode == "render") "JVM Graphics Test · 0.10.32" else "Game controls · 0.10.32",20f)
+        label(if (mode == "render") "JVM Graphics Test · 0.10.33" else "Game controls · 0.10.33",20f)
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
         }
@@ -209,7 +204,7 @@ class GraphicsTestActivity : Activity() {
         }
         if (mode == "window") button("Finish Window Test") { ClientSession.send("STOP") }
         button("Stop client") { startService(Intent(this,ClientService::class.java).setAction("stop")) }
-        button("Back to client / export reports") { finish() }
+        button("Client tab") { startActivity(ManagedActivity.tabIntent(this,ManagedActivity.CLIENT)); finish() }
         if (mode in listOf("start","local")) button("Restore game UI") {
             frame.cancelTouch(); capture?.reset()
             val sent=ClientSession.send("HUD restore-button")
@@ -218,14 +213,9 @@ class GraphicsTestActivity : Activity() {
         label(if (mode == "window") "90-second test: left stick moves triangle; right stick moves cursor; clicks change color."
             else if (mode == "render") "Expected: orange triangle on blue. No client import needed."
             else "Close these controls to play. Touch selects and drags; right stick moves pointer; A or RT clicks; LT right-clicks. Swipe from an edge for Android system bars.")
-        status=TextView(this).apply { textSize=12f; setTextColor(Color.WHITE); setTextIsSelectable(true); visibility=View.GONE }
-        lateinit var diagnostics: Button
-        diagnostics=button("Show diagnostics") {
-            val show=status.visibility != View.VISIBLE
-            status.visibility=if (show) View.VISIBLE else View.GONE
-            diagnostics.text=if (show) "Hide diagnostics" else "Show diagnostics"
+        button("Diagnostics / export reports") {
+            startActivity(ManagedActivity.tabIntent(this,ManagedActivity.DIAGNOSTICS)); finish()
         }
-        column.addView(status)
         gear=Button(this).apply {
             textSize=26f; minWidth=0; minimumWidth=0; minHeight=0; minimumHeight=0; setPadding(0,0,0,0)
             elevation=dp(10).toFloat()

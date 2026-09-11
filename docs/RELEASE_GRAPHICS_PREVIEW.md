@@ -1,3 +1,33 @@
+# 0.10.33 — three tabs and graphics controls
+
+The 0.10.32 device tests passed repeated logout/login and app reentry with normal
+client/server exits. Nearby object pop-in is resolved. This release:
+
+- Adds fixed Server, Client and Diagnostics tabs. Tests, reports and live logs
+  move to Diagnostics. Client includes Return to Game; navigation keeps services running.
+- Expands graphics from 17 to 41 controls, including texture filtering/quality,
+  terrain detail, particles, animations, field of view and supersampling.
+  Restart-only choices are labeled and deferred; unavailable settings are explained.
+- Prefers a 24-bit EGL depth buffer with a verified 16-bit fallback. Unsized
+  offscreen depth formats use 24-bit precision when supported. This targets the
+  distance-dependent beam flicker; visual improvement is not yet device-confirmed.
+- Retains the dark theme, white pointer, audio, occlusion-query fix and native
+  memory checking. Hidden launcher pages no longer build or refresh log text.
+
+The APK uses a separate `.graphicstabs` package to preserve the prior install.
+Keep the old app and backups. Import your stopped, exported working server runtime
+and client ZIP into this version; do not restore the original world unless intended.
+
+On the Thor, start local play, repeat the building-distance walk from the video,
+change one live setting and one restart-only setting, then test each tab and Return
+to Game while the server/client are running. Restart the client to apply texture
+settings. Export both reports from Diagnostics after stopping normally.
+
+[Complete audit and test checklist](GRAPHICS_AND_TABS.md).
+[Maintained project handoff](HANDOFF.md).
+
+---
+
 # 0.10.32 — dark app theme and white pointer
 
 [Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.32-dark-theme/Wurm-Server.apk).

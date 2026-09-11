@@ -13,7 +13,7 @@ class ClientService : Service() {
         if (owns || intent?.action !in listOf("import", "start", "local", "input", "render", "window", "memory", "native-heap")) { if (!owns) stopSelf(); return START_NOT_STICKY }
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel("wurm_client", "Wurm client", NotificationManager.IMPORTANCE_LOW))
-        val open = PendingIntent.getActivity(this, 10, Intent(this, ClientActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val open = PendingIntent.getActivity(this, 10, ManagedActivity.tabIntent(this,ManagedActivity.CLIENT), PendingIntent.FLAG_IMMUTABLE)
         val stop = PendingIntent.getService(this, 11, Intent(this, ClientService::class.java).setAction("stop"), PendingIntent.FLAG_IMMUTABLE)
         startForeground(3726, Notification.Builder(this, "wurm_client").setSmallIcon(R.drawable.ic_server).setContentTitle("Wurm client")
             .setContentText("Client operation active").setContentIntent(open).setOngoing(true)

@@ -26,15 +26,21 @@ object GraphicsSettingsDialog {
         val fps=choice("Frame target",listOf("30 FPS — smoother", "15 FPS — lower load"),
             if (prefs.getInt("frame-fps",30) == 15) 1 else 0)
         column.addView(TextView(activity).apply {
-            text="Individual choices override the base preset and apply during play. Higher resolution, longer distances and extra effects can reduce speed. Fullscreen and panel opacity are in the gear menu."
+            text="Individual choices override the base preset. Settings marked restart apply on the next client launch; other settings apply during play. Higher resolution, longer distances and extra effects can reduce speed. Fullscreen and panel opacity are in the gear menu."
         })
         column.addView(TextView(activity).apply {
             text="Occlusion culling is disabled for this renderer to prevent nearby objects being incorrectly hidden. Distance settings still apply."
         })
+        Button(activity).apply {
+            text="Compatibility and unavailable options"; column.addView(this)
+            setOnClickListener { AlertDialog.Builder(activity).setTitle("Renderer compatibility")
+                .setMessage("Occlusion queries remain disabled to prevent object pop-in. Desktop multisample anti-aliasing and VSync are not connected to this offscreen viewer; use FXAA and Frame target.\n\nTile decoration density, sky detail, distant terrain, texture compression and fog-coordinate source are marked unready by this client.\n\nRenderer selection, low-level GL switches, desktop gamma/brightness and clock/thread-priority workarounds stay managed by the compatibility runtime. Supersampling and effects can increase rendering cost substantially. Texture filtering is capped by the renderer's capabilities.")
+                .setPositiveButton("Close",null).show() }
+        }
         val reset=Button(activity).apply { text="Use preset values for all options"; column.addView(this) }
         val controls=GraphicsOptions.options.map { option ->
             val value=prefs.getInt("graphics-option-${option.field}",-1).takeIf(option::valid) ?: -1
-            choice(option.label,listOf("Use base preset")+option.choices,if (value == -1) 0 else value-option.minimum+1)
+            choice(option.label + if (option.restart) " (restart client)" else "",listOf("Use base preset")+option.choices,if (value == -1) 0 else value-option.minimum+1)
         }
         reset.setOnClickListener { controls.forEach { it.setSelection(0) } }
         return AlertDialog.Builder(activity).setTitle("Graphics settings").setView(ScrollView(activity).apply { addView(column) })
@@ -49,7 +55,7 @@ object GraphicsSettingsDialog {
                 GraphicsOptions.options.forEachIndexed { i, option -> edit.putInt("graphics-option-${option.field}",values[i]) }
                 edit.apply()
                 val requested=live && ClientSession.inputReady() && ClientSession.send("VISUAL ${GraphicsOptions.command(name,values)}") && ClientSession.send("FPS $rate")
-                Toast.makeText(activity,if (requested) "Graphics change requested. Resolution applies after restarting the client."
+                Toast.makeText(activity,if (requested) "Live graphics change requested. Resolution and settings marked restart apply after restarting the client."
                     else "Graphics saved for the next client start.",Toast.LENGTH_LONG).show()
             }.show()
     }

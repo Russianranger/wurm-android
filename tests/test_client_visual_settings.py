@@ -54,6 +54,30 @@ public class Options {
   shadowLevel=new Multi(3,"Disabled","Simple Objects","Objects","Objects & Structures","Everything"),
   shadowMapSize=new Multi(2,"Small","Medium","Large","Huge"),lod=new Multi(1,"Short","Normal","Far"),maxDynamicLights=new Multi(8);
  public static Bool useBloom=new Bool(),useVignette=new Bool(),useFXAA=new Bool(),limitDynamicLights=new Bool();
+ public static Multi anisotropicFilteringLevel=new Multi(0,"1","2","4","8","16");
+ public static Multi terrainDetail=new Multi(0,"Low","Medium","High");
+ public static Bool normalMapping=new Bool();
+ public static Multi enableFontSmoothing=new Multi(0,"Off","Dynamic","On");
+ public static Multi modelLoaderThreadCount=new Multi(0,"1","2","3","4","8");
+ public static Multi maxTextureSize=new Multi(0,"Low","Medium","High","Very High");
+ public static Multi playerTextureSize=new Multi(0,"256","512","1024","2048");
+ public static Multi reflectionTextureSize=new Multi(0,"Low","Medium","High");
+ public static Multi offscreenTextureSize=new Multi(0,"Low","Medium","High","Very High");
+ public static Multi megaTextureSize=new Multi(0,"256","512","1024","2048","4096","8192","No Limit");
+ public static Multi textureScalingHint=new Multi(0,"Nearest Neighbour (Fastest)","Bilinear","Bicubic (Nicest)");
+ public static Multi selfAnimationplayback=new Multi(0,"All","Walking Only","None");
+ public static Multi colladaAnimations=new Multi(0,"None","Low","Medium","High","Extreme");
+ public static Bool enableContributionCulling=new Bool();
+ public static Multi contributionCullingStatic=new Multi(200);
+ public static Bool enableLod=new Bool();
+ public static Bool tileTransitions=new Bool();
+ public static Bool useNonAlphaParticles=new Bool();
+ public static Bool useAlphaParticles=new Bool();
+ public static Multi fovHorizontal=new Multi(80);
+ public static Bool highResBinoculars=new Bool();
+ public static Bool gpuSkinning=new Bool();
+ public static Multi maxShaderLights=new Multi(8);
+ public static Multi resolutionScale=new Multi(0,"100%","125%","150%","175%","200%");
  public static String extra() {return caveDetail.v+","+shadowLevel.v+","+shadowMapSize.v+","+lod.v+","+useBloom.v+","+useVignette.v+","+useFXAA.v+","+limitDynamicLights.v+","+maxDynamicLights.v;}
  public static String state() {return waterDetail.v+","+reflections.v+","+treeRenderingDistance.v+","+structureRenderingDistance.v+","+itemCreatureRenderingDistance.v+","+prettyTrees.v+","+prettyWeather.v+","+renderSunGlare.v;}
 }''',
@@ -79,6 +103,32 @@ public class SettingsCheck {
    return;
   }
   String baseline=Options.state(), extra=Options.extra();
+  if(args[0].equals("expanded")) {
+   String[] values=new String[41]; java.util.Arrays.fill(values,"-1");
+   values[17]="4"; values[18]="2"; values[31]="200"; values[36]="110"; values[39]="2";
+   String custom="imported:"+String.join(",",values);
+   ClientVisualOptions.apply(custom);
+   check(Options.anisotropicFilteringLevel.v==0 && Options.terrainDetail.v==0 && Options.fovHorizontal.v==80);
+   check(Options.contributionCullingStatic.v==200);
+   ClientVisualOptions.applyStartup(custom);
+   check(Options.anisotropicFilteringLevel.v==4 && Options.terrainDetail.v==2 && Options.fovHorizontal.v==110 && Options.maxShaderLights.v==2);
+   ClientVisualOptions.apply("imported"); // live reset preserves active startup-only settings
+   check(Options.terrainDetail.v==2 && Options.fovHorizontal.v==110);
+   values[31]="201";
+   try {ClientVisualOptions.applyStartup("imported:"+String.join(",",values));throw new AssertionError();}catch(IllegalArgumentException expected) {}
+   check(Options.contributionCullingStatic.v==200);
+   ClientVisualOptions.applyStartup("imported");
+   check(Options.anisotropicFilteringLevel.v==0 && Options.terrainDetail.v==0 && Options.fovHorizontal.v==80 && Options.maxShaderLights.v==8);
+   return;
+  }
+  if(args[0].equals("startup-rollback")) {
+   String[] values=new String[41]; java.util.Arrays.fill(values,"-1");
+   values[18]="2"; values[39]="2"; Options.maxShaderLights.fail=true;
+   try {ClientVisualOptions.applyStartup("performance:"+String.join(",",values));throw new AssertionError();}
+   catch(java.lang.reflect.InvocationTargetException expected) {}
+   check(baseline.equals(Options.state()) && Options.terrainDetail.v==0 && Options.maxShaderLights.v==8);
+   return;
+  }
   if(args[0].equals("custom")) {
    ClientVisualOptions.apply("performance:2,1,-1,2,0,1,-1,0,0,0,1,0,0,0,0,1,4");
    check(Options.state().equals("2,1,1,2,0,true,false,false"));
@@ -144,6 +194,8 @@ public class SettingsCheck {
     def test_desktop_open_and_close_callbacks_work_repeatedly_without_javafx(self):
         self.assertEqual(self.run_case('bridge').count('[client-ui] OPEN_GRAPHICS_SETTINGS'),2)
 
+    def test_expanded_values_validate_ranges_and_defer_restart_settings(self): self.run_case('expanded')
+    def test_startup_failure_rolls_back_both_live_and_restart_settings(self): self.run_case('startup-rollback')
     def test_custom_values_inherit_base_and_restore_full_imported_profile(self): self.run_case('custom')
     def test_invalid_commands_are_rejected_before_any_option_changes(self): self.run_case('invalid')
     def test_new_option_abi_is_checked_before_changing_legacy_options(self): self.run_case('late-abi')

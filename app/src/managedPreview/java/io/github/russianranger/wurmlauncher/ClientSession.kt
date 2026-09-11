@@ -19,6 +19,7 @@ object ClientSession {
     @Volatile private var cancelled = false
     @Volatile private var child: Process? = null
     @Volatile private var inputReady = false
+    @Volatile private var activeMode = ""
     @Volatile var frameEpoch = 0L
         private set
     @Volatile var settingsRequests = 0L
@@ -31,6 +32,7 @@ object ClientSession {
     private val lines = ArrayDeque<String>()
     private var worker: Thread? = null
     fun snapshot() = state
+    fun gameActive() = state.busy && activeMode in listOf("start","local")
     fun inputReady() = inputReady && child?.isAlive == true
     fun store(context: Context) = ClientStore(File(context.filesDir, "managed-client"))
     fun profileFile(context: Context) = File(context.filesDir, "controller.properties")
@@ -53,9 +55,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.32\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.33\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.31 completed approximately 36 minutes of client play with client/server exit zero and about 29.9 FPS after startup. Early recoverable graphics errors and intermittent client GC pauses remain. This visual release adds the dark app theme and white pointer; graphics, heap, collector and observation policies are retained. Confirm appearance and world persistence on device.\n\n" +
+            "Gate status: Thor 0.10.32 completed repeated login, logout and app reentry with normal client/server exits; user confirms object pop-in resolved. This build adds three launcher tabs, 41 graphics options and preferred 24-bit depth for the reported beam flicker. Depth precision, expanded controls and navigation still need physical-device confirmation. Heap, collectors and native memory checking are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -74,7 +76,7 @@ object ClientSession {
     }
     @Synchronized fun start(context: Context, mode: String, uri: Uri?, done: () -> Unit): Boolean {
         if (state.busy) return false
-        initialize(context); cancelled = false; queue.clear()
+        initialize(context); activeMode=mode; cancelled = false; queue.clear()
         nativeDrawTrace(context).delete()
         status("Preparing", "Client operation: $mode")
         worker = Thread({

@@ -5,7 +5,8 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Typeface
+import android.view.View
+import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,13 +20,19 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 
-/** Minimal no-root server UI; existing client document/settings scaffold is reused. */
+/** Three persistent pages; navigation never changes client/server service ownership. */
 class ManagedActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("managed-settings", MODE_PRIVATE) }
     private lateinit var page: LinearLayout
     private lateinit var status: TextView
-    private lateinit var logs: TextView
+    private lateinit var clientPage: ClientPage
+    private lateinit var diagnosticsPage: DiagnosticsPage
+    private val pages = mutableListOf<ScrollView>()
+    private val tabs = mutableListOf<Button>()
+    private var selectedTab = SERVER
+    private val scrollOffsets = IntArray(3)
+    private var pageShown = false
     private lateinit var worlds: Spinner
     private lateinit var start: Button
     private lateinit var stop: Button
@@ -35,17 +42,38 @@ class ManagedActivity : Activity() {
     private var generation: String? = null
     private var knownWorlds = emptyList<String>()
     private val refresh = object : Runnable {
-        override fun run() { render(); main.postDelayed(this, 500) }
+        override fun run() { renderSelected(); main.postDelayed(this, 1000) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(20, 12, 20, 12) }
-        setContentView(ScrollView(this).apply { addView(page) })
-        label("Wurm Server", 25f)
-        label("0.10.32 · Dark theme · no root or Termux required", 13f)
-        button("Client tab") { startActivity(Intent(this, ClientActivity::class.java)) }
-        label("Each Start saves a before-start checkpoint and records world paths and ports. File persistence and short background operation passed on the Thor; gameplay saves still need verification.")
+        ClientSession.initialize(this)
+        val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        root.addView(TextView(this).apply { text="Wurm · 0.10.33"; textSize=22f; setPadding(20,12,20,8) })
+        val navigation=LinearLayout(this)
+        root.addView(navigation)
+        val content=android.widget.FrameLayout(this)
+        root.addView(content,LinearLayout.LayoutParams(-1,0,1f))
+        setContentView(root)
+        page = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(20,12,20,12) }
+        fun addPage(view: View) {
+            val scroll=ScrollView(this).apply { isFillViewport=true; addView(view); visibility=View.GONE }
+            pages.add(scroll); content.addView(scroll)
+        }
+        addPage(page)
+        clientPage=ClientPage(this) { document(Intent.ACTION_OPEN_DOCUMENT,"*/*","",IMPORT_CLIENT) }
+        addPage(clientPage.view)
+        diagnosticsPage=DiagnosticsPage(this, { audit(it) }, { request, name ->
+            document(Intent.ACTION_CREATE_DOCUMENT,"text/plain",name,request)
+        }, { worldReport() })
+        addPage(diagnosticsPage.view)
+        listOf("Server","Client","Diagnostics").forEachIndexed { index, title ->
+            tabs += Button(this).apply {
+                text=title; isAllCaps=false
+                setOnClickListener { if (selectedTab!=index) selectTab(index) }
+                navigation.addView(this,LinearLayout.LayoutParams(0,-2,1f))
+            }
+        }
         idleButtons += button("Import Server ZIP") {
             AlertDialog.Builder(this).setTitle("Import prepared runtime")
                 .setMessage("Choose the working runtime ZIP exported while stopped from your previous Wurm Server app, or your prepared Termux POC ZIP. Include its existing SQLite fixes. This preview keeps one original import plus a separate working copy. Allow at least 4 GiB free space for your current runtime and recovery files.")
@@ -73,38 +101,39 @@ class ManagedActivity : Activity() {
         idleButtons += button("Export before-start checkpoint ZIP") { document(Intent.ACTION_CREATE_DOCUMENT, "application/zip", "wurm-before-start.zip", EXPORT_CHECKPOINT) }
         idleButtons += button("Restore before-start checkpoint") { restore(false) }
         idleButtons += button("Restore original import") { restore(true) }
-        label("World and configuration", 20f)
-        label("Start captures the selected GameFolder, observed database/map paths and port evidence. View or export the saved report while running or stopped. Imported settings are read-only.")
-        button("View world/configuration report") {
-            val text = TextView(this).apply {
-                setTextIsSelectable(true); setPadding(20, 12, 20, 12)
-                text = worldReport()
-            }
-            AlertDialog.Builder(this).setTitle("World/configuration report").setView(ScrollView(this).apply { addView(text) })
-                .setPositiveButton("Close", null).show()
-        }
-        button("Export world/configuration report") { document(Intent.ACTION_CREATE_DOCUMENT, "text/plain", "wurm-world-report.txt", EXPORT_WORLD_REPORT) }
-        label("Storage verification", 20f)
-        label("Capture a baseline while stopped, run and stop the server, then check what changed. Database checks use disposable copies. These checks do not prove a particular gameplay change was saved.")
-        idleButtons += button("Capture storage baseline") {
-            AlertDialog.Builder(this).setTitle("Capture storage baseline?")
-                .setMessage("This replaces the previous comparison baseline for this working copy and world. Export the current storage report first if you need it.")
-                .setPositiveButton("Capture") { _, _ -> audit(ManagedServerService.BASELINE) }.setNegativeButton("Cancel", null).show()
-        }
-        idleButtons += button("Check stored data") { audit(ManagedServerService.CHECK) }
-        button("View storage report") {
-            val text = TextView(this).apply {
-                setTextIsSelectable(true); setPadding(20, 12, 20, 12)
-                text = ManagedSession.workspace(this@ManagedActivity).storageReport()
-            }
-            AlertDialog.Builder(this).setTitle("Storage report").setView(ScrollView(this).apply { addView(text) })
-                .setPositiveButton("Close", null).show()
-        }
-        button("Export storage report") { document(Intent.ACTION_CREATE_DOCUMENT, "text/plain", "wurm-storage-report.txt", EXPORT_STORAGE_REPORT) }
-        button("Export session report") { document(Intent.ACTION_CREATE_DOCUMENT, "text/plain", "wurm-server-report.txt", EXPORT_REPORT) }
-        label("Live output (last 500 lines)")
-        logs = label("", 12f).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(true) }
         render()
+        val initial=savedInstanceState?.getInt("tab") ?: intent.getIntExtra("tab",SERVER)
+        savedInstanceState?.let { state -> scrollOffsets.indices.forEach { index ->
+            scrollOffsets[index]=state.getInt("scroll-$index")
+        } }
+        selectTab(initial)
+    }
+
+    private fun selectTab(tab: Int) {
+        saveWorld()
+        if (pageShown) scrollOffsets[selectedTab]=pages[selectedTab].scrollY
+        selectedTab=tab.takeIf { it in SERVER..DIAGNOSTICS } ?: SERVER
+        pages.forEachIndexed { index, view -> view.visibility=if (index==selectedTab) View.VISIBLE else View.GONE }
+        tabs.forEachIndexed { index, button ->
+            button.isSelected=index==selectedTab
+            button.setTextColor(getColor(if (index==selectedTab) R.color.wurm_accent else R.color.wurm_text_primary))
+            button.setTypeface(null,if (index==selectedTab) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+            button.contentDescription=button.text.toString()+if (index==selectedTab) ", selected tab" else ", tab"
+        }
+        renderSelected()
+        val shown=selectedTab
+        pages[shown].post { if (selectedTab==shown) pages[shown].scrollTo(0,scrollOffsets[shown]) }
+        pageShown=true
+    }
+    private fun renderSelected() {
+        when(selectedTab) { SERVER -> render(); CLIENT -> clientPage.render(); DIAGNOSTICS -> diagnosticsPage.render() }
+    }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); selectTab(intent.getIntExtra("tab",SERVER)) }
+    override fun onSaveInstanceState(out: Bundle) {
+        out.putInt("tab",selectedTab)
+        scrollOffsets[selectedTab]=pages[selectedTab].scrollY
+        scrollOffsets.indices.forEach { index -> out.putInt("scroll-$index",scrollOffsets[index]) }
+        super.onSaveInstanceState(out)
     }
 
     private fun audit(action: String) {
@@ -121,11 +150,11 @@ class ManagedActivity : Activity() {
     }
 
     private fun render() {
-        val state = ManagedSession.snapshot()
+        val state = ManagedSession.snapshot(includeLog=false)
         val recovery = ManagedSession.workspace(this).recoveryRequired.exists()
-        status.text = "${state.phase} · ${state.detail}" + if (!state.busy && recovery)
+        val text = state.phase + (if (state.phase=="Error") ": ${state.detail}" else "") + if (!state.busy && recovery)
             "\nRecovery needed: export current files/logs, then restore the checkpoint or original before another Start." else ""
-        if (logs.text.toString() != state.log) logs.text = state.log
+        if (status.text.toString()!=text) status.text=text
         val installed = runCatching { ManagedSession.workspace(this).imports.current() }.getOrNull()
         if (installed?.generation != generation) {
             saveWorld()
@@ -190,12 +219,18 @@ class ManagedActivity : Activity() {
         if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         val app = applicationContext
-        if (requestCode == EXPORT_REPORT || requestCode == EXPORT_STORAGE_REPORT || requestCode == EXPORT_WORLD_REPORT) {
+        if (requestCode == IMPORT_CLIENT) {
+            runCatching { contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            startForegroundService(Intent(this,ClientService::class.java).setAction("import").setData(uri))
+            return
+        }
+        if (requestCode == EXPORT_CLIENT || requestCode == EXPORT_REPORT || requestCode == EXPORT_STORAGE_REPORT || requestCode == EXPORT_WORLD_REPORT) {
             val selectedWorld = worlds.selectedItem as? String ?: prefs.getString("world", "Adventure")
             Thread({
                 val result = runCatching { app.contentResolver.openOutputStream(uri, "wt")!!.bufferedWriter().use {
                     val workspace = ManagedSession.workspace(app)
                     it.write(when (requestCode) {
+                        EXPORT_CLIENT -> ClientSession.report(app)
                         EXPORT_REPORT -> ManagedSession.report(app)
                         EXPORT_WORLD_REPORT -> ManagedWorldReport.read(workspace.worldReport, workspace.working(), selectedWorld)
                         else -> workspace.storageReport()
@@ -205,6 +240,7 @@ class ManagedActivity : Activity() {
             }, "wurm-export-report").start()
             return
         }
+        if (requestCode !in listOf(IMPORT,EXPORT_WORKING,EXPORT_CHECKPOINT)) return
         val accepted = ManagedSession.mutate(app, if (requestCode == IMPORT) "Importing" else "Exporting") { workspace ->
             when (requestCode) {
                 IMPORT -> {
@@ -239,11 +275,18 @@ class ManagedActivity : Activity() {
     override fun onResume() { super.onResume(); main.post(refresh) }
     override fun onPause() { saveWorld(); main.removeCallbacks(refresh); super.onPause() }
     companion object {
+        const val SERVER=0
+        const val CLIENT=1
+        const val DIAGNOSTICS=2
+        private const val IMPORT_CLIENT=10
+        const val EXPORT_CLIENT=11
+        fun tabIntent(context: Context,tab: Int)=Intent(context,ManagedActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP).putExtra("tab",tab)
         private const val IMPORT = 50
         private const val EXPORT_WORKING = 51
         private const val EXPORT_CHECKPOINT = 52
-        private const val EXPORT_REPORT = 53
-        private const val EXPORT_STORAGE_REPORT = 54
-        private const val EXPORT_WORLD_REPORT = 55
+        const val EXPORT_REPORT = 53
+        const val EXPORT_STORAGE_REPORT = 54
+        const val EXPORT_WORLD_REPORT = 55
     }
 }

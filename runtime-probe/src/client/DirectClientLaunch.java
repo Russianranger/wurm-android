@@ -93,7 +93,7 @@ public final class DirectClientLaunch {
         type("com.wurmonline.client.options.Options").getMethod("checkOptionsVersion").invoke(null);
         prepareDisplay();
         if (System.getProperty("wurm.client.graphicsPreset") != null)
-            ClientVisualOptions.apply(System.getProperty("wurm.client.graphicsPreset"));
+            ClientVisualOptions.applyStartup(System.getProperty("wurm.client.graphicsPreset"));
         if (System.getProperty("wurm.client.offscreenOverlay") != null) ClientBuffers.preflight();
         Object playerProfile = call(profile, "launchProfile");
         log("PROFILE_READY type=" + playerProfile.getClass().getName());

@@ -21,7 +21,7 @@ public final class WindowBackend {
 
     public static long open(int w, int h) {
         if (owner != null) throw new IllegalStateException("Only one EGL window is supported");
-        System.out.println("[window] WINDOW_CREATE requested=" + w + "x" + h + " backend=Pojav-Java-GLFW/EGL-pbuffer RGBA8 depth16; no desktop window manager");
+        System.out.println("[window] WINDOW_CREATE requested=" + w + "x" + h + " backend=Pojav-Java-GLFW/EGL-pbuffer RGBA8 prefer-depth24; no desktop window manager");
         NativeEgl.open(System.getProperty("wurm.graphics.library"), w, h);
         owner = Thread.currentThread(); width = w; height = h;
         GL.create(System.getProperty("wurm.graphics.library"));
@@ -35,7 +35,7 @@ public final class WindowBackend {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (line.equals("STOP")) break;
-                    if (line.length() > 160) { System.out.println("[window] INPUT_REJECTED oversized"); continue; }
+                    if (line.length() > 520) { System.out.println("[window] INPUT_REJECTED oversized"); continue; }
                     synchronized(events) {
                         if (!events.offer(line)) { events.clear(); events.offer("RESET"); System.out.println("[window] INPUT_QUEUE_RESET overflow"); }
                     }

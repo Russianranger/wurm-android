@@ -2,7 +2,7 @@ package io.github.russianranger.wurmlauncher
 
 /** Stable, bounded settings protocol; order is checked against the JVM adapter. */
 object GraphicsOptions {
-    data class Option(val field: String, val label: String, val choices: List<String>, val minimum: Int = 0) {
+    data class Option(val field: String, val label: String, val choices: List<String>, val minimum: Int = 0, val restart: Boolean = false) {
         fun valid(value: Int) = value == -1 || value in minimum until minimum + choices.size
     }
     private val quality = listOf("Low", "Medium", "High")
@@ -25,7 +25,31 @@ object GraphicsOptions {
         Option("useVignette", "Vignette", onOff),
         Option("useFXAA", "Anti-aliasing (FXAA)", onOff),
         Option("limitDynamicLights", "Limit dynamic lights", onOff),
-        Option("maxDynamicLights", "Maximum dynamic lights (when limited)", (1..16).map(Int::toString), 1)
+        Option("maxDynamicLights", "Maximum dynamic lights (when limited)", (1..16).map(Int::toString), 1),
+        Option("anisotropicFilteringLevel", "Texture filtering", listOf("1","2","4","8","16"), 0, true),
+        Option("terrainDetail", "Terrain detail", listOf("Low","Medium","High"), 0, true),
+        Option("normalMapping", "Normal maps", onOff, 0, true),
+        Option("enableFontSmoothing", "Game font smoothing", listOf("Off","Dynamic","On"), 0, true),
+        Option("modelLoaderThreadCount", "Model loading threads", listOf("1","2","3","4","8"), 0, true),
+        Option("maxTextureSize", "Maximum texture quality", listOf("Low","Medium","High","Very High"), 0, true),
+        Option("playerTextureSize", "Player texture size", listOf("256","512","1024","2048"), 0, true),
+        Option("reflectionTextureSize", "Reflection texture quality", listOf("Low","Medium","High"), 0, false),
+        Option("offscreenTextureSize", "Offscreen texture quality", listOf("Low","Medium","High","Very High"), 0, false),
+        Option("megaTextureSize", "Terrain texture size", listOf("256","512","1024","2048","4096","8192","No Limit"), 0, true),
+        Option("textureScalingHint", "Texture scaling filter", listOf("Nearest Neighbour (Fastest)","Bilinear","Bicubic (Nicest)"), 0, true),
+        Option("selfAnimationplayback", "Own character animations", listOf("All","Walking Only","None"), 0, false),
+        Option("colladaAnimations", "Model animation detail", listOf("None","Low","Medium","High","Extreme"), 0, true),
+        Option("enableContributionCulling", "Cull very small objects", onOff, 0, false),
+        Option("contributionCullingStatic", "Small-object culling threshold", (0..200).map(Int::toString), 0, false),
+        Option("enableLod", "Use model level of detail", onOff, 0, false),
+        Option("tileTransitions", "Tile transitions", onOff, 0, false),
+        Option("useNonAlphaParticles", "Opaque particles", onOff, 0, false),
+        Option("useAlphaParticles", "Transparent particles", onOff, 0, false),
+        Option("fovHorizontal", "Horizontal field of view", (60..110).map(Int::toString), 60, true),
+        Option("highResBinoculars", "High resolution binoculars", onOff, 0, false),
+        Option("gpuSkinning", "GPU character animation", onOff, 0, false),
+        Option("maxShaderLights", "Maximum shader lights", (2..8).map(Int::toString), 2, true),
+        Option("resolutionScale", "Supersampling", listOf("100%","125%","150%","175%","200%"), 0, false)
     )
     val resolutions = listOf("800x480", "960x540", "1280x720")
     fun command(preset: String, values: List<Int>): String {

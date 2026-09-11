@@ -204,3 +204,24 @@ def apply_program_cleanup(root: Path):
 }
 ''' + source[end:]
     target.write_text(source)
+
+
+def apply_depth_precision(root: Path):
+    """Preserve explicit formats; prefer supported 24-bit depth for unsized Wurm targets."""
+    gl = root / "src/gl"
+    pins = {'texture.c': '72b4bc006a4e6792b2662ed4b3784ed069ac8abe9db8984549cef9ee7d964295', 'framebuffers.c': '7e1900d7b85f4fc423661f03455b2bbdd55046c9f1ae05bc5223c1991ae22c69'}
+    for name, digest in pins.items():
+        if hashlib.sha256((gl/name).read_bytes()).hexdigest() != digest:
+            raise ValueError("Unexpected GL4ES depth source " + name)
+    texture = (gl/"texture.c").read_text()
+    old = "dest_type=(*format==GL_DEPTH_COMPONENT32 || *format==GL_DEPTH_COMPONENT24)?GL_UNSIGNED_INT:GL_UNSIGNED_SHORT;"
+    new = "dest_type=(*format==GL_DEPTH_COMPONENT32 || *format==GL_DEPTH_COMPONENT24 || (*format==GL_DEPTH_COMPONENT && hardext.depth24))?GL_UNSIGNED_INT:GL_UNSIGNED_SHORT;"
+    if texture.count(old) != 1: raise ValueError("Depth texture conversion changed")
+    texture = texture.replace(old, new)
+    framebuffer = (gl/"framebuffers.c").read_text()
+    old = "    GLenum format = internalformat;"
+    new = old + "\n    if (internalformat == GL_DEPTH_COMPONENT)\n        internalformat = hardext.depth24 ? GL_DEPTH_COMPONENT24 : GL_DEPTH_COMPONENT16;"
+    if framebuffer.count(old) != 1: raise ValueError("Depth renderbuffer conversion changed")
+    framebuffer = framebuffer.replace(old, new)
+    (gl/"texture.c").write_text(texture)
+    (gl/"framebuffers.c").write_text(framebuffer)

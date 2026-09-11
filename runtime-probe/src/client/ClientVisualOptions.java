@@ -7,7 +7,7 @@ import java.util.*;
 public final class ClientVisualOptions {
     private record Spec(String field, int low, String... labels) {}
     // Stable wire order shared with Android GraphicsOptions; -1 inherits the base preset.
-    // Empty labels: boolean (0/1); maxDynamicLights alone is an integer range (1..16).
+    // Empty labels denote boolean or an explicitly bounded integer range. Restart options are skipped live.
     private static final List<Spec> SPECS = List.of(
         new Spec("waterDetail", 0, "Low", "Medium", "High"),
         new Spec("reflections", 0, "Disabled", "Sky", "Sky & Terrain", "Sky, Terrain & Trees", "Almost Everything"),
@@ -20,15 +20,44 @@ public final class ClientVisualOptions {
         new Spec("shadowMapSize", -1, "Small", "Medium", "Large", "Huge"),
         new Spec("lod", -1, "Short", "Normal", "Far"),
         new Spec("useBloom", -1), new Spec("useVignette", -1), new Spec("useFXAA", -1),
-        new Spec("limitDynamicLights", -1), new Spec("maxDynamicLights", -1)
+        new Spec("limitDynamicLights", -1), new Spec("maxDynamicLights", -1),
+        new Spec("anisotropicFilteringLevel", -1, "1", "2", "4", "8", "16"),
+        new Spec("terrainDetail", -1, "Low", "Medium", "High"),
+        new Spec("normalMapping", -1),
+        new Spec("enableFontSmoothing", -1, "Off", "Dynamic", "On"),
+        new Spec("modelLoaderThreadCount", -1, "1", "2", "3", "4", "8"),
+        new Spec("maxTextureSize", -1, "Low", "Medium", "High", "Very High"),
+        new Spec("playerTextureSize", -1, "256", "512", "1024", "2048"),
+        new Spec("reflectionTextureSize", -1, "Low", "Medium", "High"),
+        new Spec("offscreenTextureSize", -1, "Low", "Medium", "High", "Very High"),
+        new Spec("megaTextureSize", -1, "256", "512", "1024", "2048", "4096", "8192", "No Limit"),
+        new Spec("textureScalingHint", -1, "Nearest Neighbour (Fastest)", "Bilinear", "Bicubic (Nicest)"),
+        new Spec("selfAnimationplayback", -1, "All", "Walking Only", "None"),
+        new Spec("colladaAnimations", -1, "None", "Low", "Medium", "High", "Extreme"),
+        new Spec("enableContributionCulling", -1),
+        new Spec("contributionCullingStatic", -1),
+        new Spec("enableLod", -1),
+        new Spec("tileTransitions", -1),
+        new Spec("useNonAlphaParticles", -1),
+        new Spec("useAlphaParticles", -1),
+        new Spec("fovHorizontal", -1),
+        new Spec("highResBinoculars", -1),
+        new Spec("gpuSkinning", -1),
+        new Spec("maxShaderLights", -1),
+        new Spec("resolutionScale", -1, "100%", "125%", "150%", "175%", "200%")
     );
+    private static final Set<String> RESTART = Set.of("anisotropicFilteringLevel", "terrainDetail", "normalMapping", "enableFontSmoothing", "modelLoaderThreadCount", "maxTextureSize", "playerTextureSize", "megaTextureSize", "textureScalingHint", "colladaAnimations", "fovHorizontal", "maxShaderLights");
+    private static final Map<String,int[]> RANGES = Map.of("maxDynamicLights",new int[]{1,16},
+        "contributionCullingStatic",new int[]{0,200}, "fovHorizontal",new int[]{60,110}, "maxShaderLights",new int[]{2,8});
     private record Setting(Object option, Method setter, Method getter, Object imported, Object low) {}
     private static List<Setting> settings;
-    private static boolean bool(Spec s) { return s.labels.length == 0 && !s.field.equals("maxDynamicLights"); }
+    private static boolean bool(Spec s) { return s.labels.length == 0 && !RANGES.containsKey(s.field); }
     private static Object value(Spec s, int n) { return bool(s) ? (Object)(n == 1) : n; }
 
-    public static void apply(String command) throws Exception {
-        if (command == null || command.length() > 150) throw new IllegalArgumentException("Invalid graphics command");
+    public static void apply(String command) throws Exception { apply(command,false); }
+    public static void applyStartup(String command) throws Exception { apply(command,true); }
+    private static void apply(String command, boolean startup) throws Exception {
+        if (command == null || command.length() > 512) throw new IllegalArgumentException("Invalid graphics command");
         String[] parts = command.split(":", -1);
         String preset = parts[0];
         if (parts.length > 2 || !List.of("performance", "imported").contains(preset))
@@ -36,13 +65,13 @@ public final class ClientVisualOptions {
         int[] overrides = new int[SPECS.size()]; Arrays.fill(overrides, -1);
         if (parts.length == 2) {
             String[] fields = parts[1].split(",", -1);
-            if (fields.length != SPECS.size()) throw new IllegalArgumentException("Invalid graphics option count");
+            if (fields.length != SPECS.size() && fields.length != 17) throw new IllegalArgumentException("Invalid graphics option count");
             for (int i=0; i<fields.length; i++) {
                 Spec s = SPECS.get(i);
-                if (!fields[i].matches("-1|[0-9]{1,2}")) throw new IllegalArgumentException("Invalid graphics value");
+                if (!fields[i].matches("-1|[0-9]{1,3}")) throw new IllegalArgumentException("Invalid graphics value");
                 int n = Integer.parseInt(fields[i]);
-                int min = s.field.equals("maxDynamicLights") ? 1 : 0;
-                int max = s.field.equals("maxDynamicLights") ? 16 : bool(s) ? 1 : s.labels.length-1;
+                int min = RANGES.containsKey(s.field) ? RANGES.get(s.field)[0] : 0;
+                int max = RANGES.containsKey(s.field) ? RANGES.get(s.field)[1] : bool(s) ? 1 : s.labels.length-1;
                 if (n != -1 && (n < min || n > max)) throw new IllegalArgumentException("Invalid graphics value: " + s.field);
                 overrides[i] = n;
             }
@@ -67,7 +96,8 @@ public final class ClientVisualOptions {
             for (int i=0; i<settings.size(); i++) {
                 Setting s = settings.get(i);
                 Object target = overrides[i] == -1 ? (preset.equals("performance") ? s.low : s.imported) : value(SPECS.get(i), overrides[i]);
-                s.setter.invoke(s.option, target);
+                if ((!RESTART.contains(SPECS.get(i).field) || startup) && !Objects.equals(before.get(i),target))
+                    s.setter.invoke(s.option, target);
             }
         } catch (ReflectiveOperationException failure) {
             for (int i=0; i<settings.size(); i++) {
@@ -76,7 +106,7 @@ public final class ClientVisualOptions {
             }
             throw failure;
         }
-        System.out.println("[client-ui] GRAPHICS_APPLIED preset=" + preset + " overrides=" + Arrays.toString(overrides) + " values=" +
+        System.out.println("[client-ui] GRAPHICS_APPLIED phase=" + (startup ? "startup" : "live") + " preset=" + preset + " overrides=" + Arrays.toString(overrides) + " values=" +
             settings.stream().map(s -> { try { return s.getter.invoke(s.option).toString(); } catch (Exception e) { return "unavailable"; } }).toList());
     }
 }

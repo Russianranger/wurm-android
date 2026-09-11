@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "wurm_heap_check.h"
+#include "wurm_depth_config.h"
 
 static EGLDisplay display = EGL_NO_DISPLAY;
 static EGLContext context = EGL_NO_CONTEXT;
@@ -61,15 +62,14 @@ JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_open(JNIEnv *env, jclass typ
        before creating ours, then explicitly make our context current. */
     printf("[graphics] GL4ES_INIT_BEGIN\n"); initialize(); printf("[graphics] GL4ES_INIT_RETURNED\n");
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    EGLint major, minor, count;
-    const EGLint attributes[] = { EGL_SURFACE_TYPE, EGL_PBUFFER_BIT, EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-        EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8, EGL_DEPTH_SIZE, 16, EGL_NONE };
+    EGLint major, minor, depth_bits;
     const EGLint context_attributes[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
     const EGLint surface_attributes[] = { EGL_WIDTH, w, EGL_HEIGHT, h, EGL_NONE };
     if (display == EGL_NO_DISPLAY || !eglInitialize(display, &major, &minor) ||
-        !eglBindAPI(EGL_OPENGL_ES_API) || !eglChooseConfig(display, attributes, &config, 1, &count) || count != 1) {
+        !eglBindAPI(EGL_OPENGL_ES_API) || !wurm_choose_depth_config(display, &config, &depth_bits)) {
         fail(env, "EGL display/config initialization failed"); cleanup(); return;
     }
+    printf("[graphics-depth] EGL_CONFIG preferred=24 selected=%d fallback16=%s\n", depth_bits, depth_bits < 24 ? "true" : "false");
     context = eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
     surface = eglCreatePbufferSurface(display, config, surface_attributes);
     if (context == EGL_NO_CONTEXT || surface == EGL_NO_SURFACE || !eglMakeCurrent(display, surface, surface, context)) {

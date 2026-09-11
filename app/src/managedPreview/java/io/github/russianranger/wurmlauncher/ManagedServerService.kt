@@ -25,7 +25,7 @@ class ManagedServerService : Service() {
         if (owns) return START_NOT_STICKY
         getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL, "Managed Wurm server", NotificationManager.IMPORTANCE_LOW))
-        val open = PendingIntent.getActivity(this, 0, Intent(this, ManagedActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val open = PendingIntent.getActivity(this, 0, ManagedActivity.tabIntent(this,ManagedActivity.SERVER), PendingIntent.FLAG_IMMUTABLE)
         val stop = PendingIntent.getService(this, 1, Intent(this, ManagedServerService::class.java).setAction(STOP), PendingIntent.FLAG_IMMUTABLE)
         startForeground(3725, Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_server)
             .setContentTitle("Wurm Server").setContentText("Server session active · tap for status and logs")

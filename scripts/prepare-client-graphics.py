@@ -74,6 +74,7 @@ def main():
     gl4es_patch.apply_draw(gl4es, ROOT/'graphics-compat/native/wurm_draw_trace.h')
     gl4es_patch.apply_array_addresses(gl4es)
     gl4es_patch.apply_program_cleanup(gl4es)
+    gl4es_patch.apply_depth_precision(gl4es)
     gl4es_patch.apply_error_origin(gl4es, ROOT/'graphics-compat/native')
     spec = importlib.util.spec_from_file_location('lwjgl_builder', ROOT/'scripts/build-lwjgl-api.py')
     api = importlib.util.module_from_spec(spec); spec.loader.exec_module(api)
