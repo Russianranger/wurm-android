@@ -93,7 +93,7 @@ The game gear retains gameplay controls and links to Client and Diagnostics. Inl
 
 ## Validation and next device test
 
-Focused host tests cover live/startup separation, ranges, invalid commands, full rollback, enum ABI, old commands, config fallback and pinned depth conversions. The 41-option intermediate passed the full 154-test host suite and Android build/unit/lint gates; the final 47-option revision repeats the focused settings checks and all CI gates before release. See the maintained handoff for final release verification.
+Focused host tests cover live/startup separation, ranges, invalid commands, full rollback, enum ABI, old commands, config fallback and pinned depth conversions. The complete 154-test host suite passed (24 expected fixture/platform skips). The Android APK compiled, but its first unit run caught an obsolete 17-field expectation; the regression now checks the 47-field command, original positions, expanded ranges and the bounded input length. The final revision repeats all CI gates before release. See the maintained handoff for final release verification.
 
 1. Keep 0.10.32 and backups. Install the separate `.graphicstabs` APK, import the stopped working server export and client ZIP, and select the same world/player.
 2. Set 1280×720 and your previous distances. Start local play. Repeat the video’s approach/retreat at the same building. Keep other settings unchanged for this first comparison.
