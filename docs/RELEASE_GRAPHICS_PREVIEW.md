@@ -1,9 +1,42 @@
-# 0.10.26 — heap diagnostic thread startup fix
+# 0.10.27 — heap diagnostic entry and crash capture fix
 
-[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.26-heap-startup/Wurm-Server.apk).
+[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.27-heap-bti/Wurm-Server.apk).
 
 This is a slower diagnostic build, not a confirmed crash fix or a performance
 comparison. Run one short attempt to character creation, then export both reports.
+
+## Evidence from 0.10.26 and the additional correction
+
+Three client attempts exit 132 with SIGILL, code `ILL_ILLOPC`, before any native
+startup marker. No ASan allocation check, Java initialization or graphics trace
+is present. The server remained available, then saved and exited zero after the
+stop request. This is not evidence about character creation or the original
+in-game heap corruption.
+
+The exact released ASan binary advertises GNU BTI/PAC properties, but 283
+exported entry addresses begin with a plain assembly branch instead of a valid
+BTI landing instruction. Its `memset` trampoline is at `0xf7dd0`, consistent
+with the `0xdd0` page offset in all three crashes. A full stack and load address
+were unavailable, so that exact fault-site mapping remains an inference.
+
+LLVM fixed this defect in `1c792d24e0a228ad49cc004a1c26bbd7cd87f030` (#84061).
+This release backports that correction to both assembly and C++-declared
+interceptor trampolines. Branch protection remains enabled. The build now
+checks every distinct exported function entry (1,518 in the tested ARM64
+runtime), in addition to checking the prctl return sequence. This expanded gate
+rejects the actual 0.10.26 library and accepts the rebuilt one. The previous
+check was too narrow: it validated prctl but missed the assembly trampolines.
+
+Crash capture previously learned the child PID only from the native runner's
+stdout. These crashes happened before that output, causing
+`EXIT_INFO_UNAVAILABLE child PID was not observed`. The parent now records the
+PID from its own Android 13 `Process.toString()` immediately after `start()`,
+including an already-exited child. It uses no hidden API access and retains the
+native marker as a fallback. Exit-info collection briefly retries the same
+package/PID; UID and attempt-time checks still reject unrelated records.
+
+This addresses two identified diagnostic defects. Android device startup and
+the original in-game crash still require testing.
 
 ## Evidence from 0.10.25 and the startup correction
 
@@ -16,7 +49,7 @@ from its thread startup routine: the interceptor signs with the old key and
 tries to authenticate with the new one. This matches the upstream LLVM defect.
 The server saved and exited normally after the stop request.
 
-This release builds ASan from checksum-pinned LLVM 17.0.2 source with the
+The retained thread correction builds ASan from checksum-pinned LLVM 17.0.2 source with the
 per-function target-attribute correction from LLVM commit
 `6bbf0c30ca4449e325beb2d28db00d258d3a1a10`. Only the `prctl` interceptor omits
 return-address signing; its BTI entry and PAC in other functions are retained.
@@ -86,10 +119,10 @@ The changed allocator and timing can also change whether a crash reproduces.
 
 ## Test on the Thor
 
-1. Keep the working older apps and exports. Install the separate `heapcheck`
+1. Keep the working older apps and exports. Install the separate `heapbti`
    preview and import the same complete client and server runtime ZIPs.
    Stop the older server before starting this one.
-2. Use an unused player name such as **Thorcheck**. Client login identity still
+2. Use an unused player name such as **Thorprobe**. Client login identity still
    does not migrate between separate previews, including through a world export.
 3. Keep the same graphics settings for this attempt and start local play.
    Try to reach and complete gender/kingdom selection. No separate JVM memory
@@ -105,15 +138,20 @@ The changed allocator and timing can also change whether a crash reproduces.
 The host test executes the same native allocation and thread checks, then verifies that an
 instrumented one-byte overrun produces a heap-buffer-overflow report with the
 write and allocation details. Kotlin tests check preload order, stage isolation,
-missing-runtime rejection and sanitizer crash-summary priority.
+missing-runtime rejection and sanitizer crash-summary priority. Crash tests cover
+parent-observed PIDs for live and already-exited children, unsupported formats,
+overflow and conflicting later identity output.
 
 CI builds/tests/lints the Android variants, reruns existing native graphics,
 audio and input regressions, and checks ARM64 dependency closure. Packaging
 requires ASan instrumentation in each client native library, the allocation and thread startup markers,
-the diagnostic runtimes, exact asset hashes and the unchanged server POC.
+all public BTI entry points, the diagnostic runtimes, exact asset hashes and the unchanged server POC.
 These checks do not replace testing the ASan/HotSpot combination on the Thor.
 
 ## Sources and reproduction
+
+- [LLVM interceptor BTI fix](https://github.com/llvm/llvm-project/commit/1c792d24e0a228ad49cc004a1c26bbd7cd87f030).
+- [Android 13 UNIXProcess](https://android.googlesource.com/platform/libcore/+/refs/tags/android-13.0.0_r1/ojluni/src/main/java/java/lang/UNIXProcess.java): public `toString()` formats for live/exited children.
 
 - [LLVM prctl/PAC fix](https://github.com/llvm/llvm-project/commit/6bbf0c30ca4449e325beb2d28db00d258d3a1a10).
 - [Android 13 thread startup](https://github.com/aosp-mirror/platform_bionic/blob/android-13.0.0_r1/libc/bionic/pthread_create.cpp): `__pthread_start` resets the key.

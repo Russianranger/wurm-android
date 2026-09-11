@@ -1,7 +1,8 @@
 # Pojav Java API compatibility candidate
 
-0.10.26 retains native ASan instrumentation and builds LLVM 17.0.2 ASan with
-the upstream prctl/PAC correction, keeping the NDK shared C++ runtime for
+0.10.27 retains native ASan instrumentation and builds LLVM 17.0.2 ASan with
+the upstream prctl/PAC and interceptor BTI corrections, verifying all exported
+function entries and keeping the NDK shared C++ runtime for
 client-only preload. This is a short, slower crash
 diagnostic, not a confirmed fix. See [test and limits](../docs/CLIENT_NATIVE_HEAP_TRACE.md).
 

@@ -52,8 +52,16 @@ object ClientCrashCapture {
         try {
             if (evidence.pid == 0) { emit("EXIT_INFO_UNAVAILABLE child PID was not observed"); return }
             val manager = context.getSystemService(ActivityManager::class.java)
-            val record = manager.getHistoricalProcessExitReasons(context.packageName, evidence.pid, 8)
+            // A pre-main failure can exit before Android finishes its tombstone.
+            // Briefly retry only this package/PID and the same UID/time scope.
+            fun matchingRecord() = manager.getHistoricalProcessExitReasons(context.packageName, evidence.pid, 8)
                 .firstOrNull { it.pid == evidence.pid && it.realUid == evidence.uid && it.timestamp >= evidence.startedAt }
+            var record = matchingRecord()
+            var attempts = 0
+            while (record == null && attempts++ < 5) {
+                Thread.sleep(200)
+                record = matchingRecord()
+            }
             if (record == null) { emit("EXIT_INFO_UNAVAILABLE no matching exec-child record; Android may not track this child"); return }
             emit("EXIT_INFO pid=${record.pid} reason=${record.reason} status=${record.status} timestamp=${record.timestamp} description=${record.description?.take(1000)}")
             if (record.reason != ApplicationExitInfo.REASON_CRASH_NATIVE) { emit("TOMBSTONE_UNAVAILABLE reason is not native crash"); return }

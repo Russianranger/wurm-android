@@ -4,6 +4,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ClientCrashTest {
+    @Test fun capturesOwnProcessBeforeNativeOutputIncludingAlreadyExitedChild() {
+        for (description in listOf("Process[pid=19923, hasExited=false]",
+                "Process[pid=19923 ,hasExited=true, exitcode=132]")) {
+            val evidence = ClientCrashEvidence(10001, 500)
+            evidence.observeProcess(description)
+            assertEquals(19923, evidence.pid)
+            evidence.observe("[native] uid=10001 euid=10001 pid=99; unexpected identity")
+            evidence.observeProcess("Process[pid=99, hasExited=false]")
+            assertEquals(19923, evidence.pid)
+        }
+        for (description in listOf("java.lang.Process@123", "Process[pid=0, hasExited=false]",
+                "Process[pid=9999999999999999999, hasExited=false]", "untrusted pid=123")) {
+            val evidence = ClientCrashEvidence(10001, 500)
+            evidence.observeProcess(description)
+            assertEquals(0, evidence.pid)
+            evidence.observe("[native] uid=10001 euid=10001 pid=123; starting")
+            assertEquals(123, evidence.pid)
+        }
+    }
     private fun integer(number: Long): ByteArray {
         var remaining = number
         val out = arrayListOf<Byte>()

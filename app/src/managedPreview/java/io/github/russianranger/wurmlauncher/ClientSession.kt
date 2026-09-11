@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.26\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.27\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.25 initialized ASan allocation checks but twice failed during thread startup at the prctl PAC return check, before Java or game initialization. This build applies the upstream LLVM correction and qualifies a thread before Java. The original 0.10.24 native heap corruption remains unidentified; character creation, pop-in and stability still need device testing.\n\n" +
+            "Gate status: Thor 0.10.26 had three SIGILL/ILL_ILLOPC failures before the first native marker. Its ASan runtime advertised BTI but had invalid assembly entry points. This build applies the upstream BTI correction, retains the prctl PAC correction and captures the child PID from the parent for early tombstones. The original in-game heap corruption remains unidentified; device startup and stability are unverified.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -244,6 +244,8 @@ object ClientSession {
                         log("[graphics] SHADER_CACHE disabled LIBGL_NOPSA=1; compile shaders per attempt to avoid cached-program failures")
                     }
                 }.start().also { child = it }
+                evidence.observeProcess(process.toString())
+                log("[client] CHILD_PROCESS stage=$stage pid=${evidence.pid}; parent observed before reading child output")
                 val graphicsPassed = java.util.concurrent.atomic.AtomicBoolean(false)
                 val memoryPassed = java.util.concurrent.atomic.AtomicBoolean(false)
                 val reader = Thread({

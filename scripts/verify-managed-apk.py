@@ -48,8 +48,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     graphics = json.loads(apk.read("assets/client-graphics.json"))
     assert graphics["sources"] == json.loads((ROOT/"graphics-compat/native-sources.json").read_text())
     assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so", "libwurm_openal.so", "libclang_rt.asan-aarch64-android.so", "libc++_shared.so"}
-    assert graphics["asanPatches"] == ["6bbf0c30ca4449e325beb2d28db00d258d3a1a10"]
-    assert graphics["nativeHeapDiagnostic"] == "ASan / client graphics stages only / LLVM 17.0.2 with prctl PAC fix"
+    assert graphics["asanPatches"] == ["6bbf0c30ca4449e325beb2d28db00d258d3a1a10", "1c792d24e0a228ad49cc004a1c26bbd7cd87f030"]
+    assert graphics["nativeHeapDiagnostic"] == "ASan / client graphics stages only / LLVM 17.0.2 with prctl PAC and trampoline BTI fixes"
     assert b"ASAN_READY" in apk.read("lib/arm64-v8a/libwurm_graphics.so")
     assert graphics["audioBackend"] == "OpenAL Soft 1.23.1 / Android OpenSL ES"
     assert "vao-buffer-offset-addresses" in graphics["gl4esPatches"]

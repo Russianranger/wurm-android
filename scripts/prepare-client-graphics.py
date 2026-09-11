@@ -171,8 +171,8 @@ def main():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
                     ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses', 'vao-buffer-offset-addresses'],
-                    nativeHeapDiagnostic='ASan / client graphics stages only / LLVM 17.0.2 with prctl PAC fix',
-                    asanPatches=[asan_builder.PATCH],
+                    nativeHeapDiagnostic='ASan / client graphics stages only / LLVM 17.0.2 with prctl PAC and trampoline BTI fixes',
+                    asanPatches=[asan_builder.PATCH, asan_builder.BTI_PATCH],
                     audioBackend='OpenAL Soft 1.23.1 / Android OpenSL ES',
                     lwjglPatches=['legacy-openal-context-lifecycle'],
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},

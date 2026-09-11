@@ -1,15 +1,22 @@
 # From the working POC to Wurm Server
 
-**Current test: 0.10.26 — heap diagnostic thread startup fix.** The 0.10.25
-reports show two SIGILL failures in ASan's `prctl` interceptor before Java starts.
-The exact APK fails at `autiasp` after Android resets a thread's PAC key. This
-build backports LLVM's per-function correction into a source-built LLVM 17.0.2
-ASan runtime and checks a thread before Java. The original game heap corruption
-remains unidentified; this is still a short, slower diagnostic.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.26-heap-startup).
+**Current test: 0.10.27 — heap diagnostic entry and crash capture fix.** The
+0.10.26 reports contain three SIGILL/ILL_ILLOPC failures before the first native
+marker. The checker advertised BTI protection but its assembly trampolines
+lacked valid landing instructions. This build adds LLVM's BTI correction and
+checks all exported entry points, retaining the prior prctl/PAC fix. It also
+captures the child PID from the parent so early crashes can supply tombstones.
+The original in-game heap corruption remains unidentified; this is a short,
+slower diagnostic and device startup is unverified.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.27-heap-bti).
 [Run one short attempt and export both reports](CLIENT_NATIVE_HEAP_TRACE.md).
 Keep older apps/backups and use an unused name; client login identity does not
 currently migrate between separate previews.
+
+**Previous test: 0.10.26 — heap diagnostic thread startup fix.** Backported
+LLVM's prctl/PAC correction. The next device report exposed missing BTI landing
+instructions in the source-built runtime's assembly entry points. No game or
+ASan allocation/thread startup was reached in those attempts.
 
 **Previous test: 0.10.25 — native client heap diagnostic.** Allocation redzones
 initialized, but the bundled NDK ASan runtime crashed during thread startup on
