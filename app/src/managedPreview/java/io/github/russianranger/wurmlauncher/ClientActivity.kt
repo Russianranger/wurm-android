@@ -34,8 +34,8 @@ class ClientActivity : Activity() {
         fun button(text: String, operation: Boolean = false, action: () -> Unit) = Button(this).apply {
             this.text = text; setOnClickListener { action() }; column.addView(this); if (operation) actions.add(this)
         }
-        label("Wurm Client · 0.10.29").textSize = 24f
-        label("Run Native Memory Startup Test and export the client report. No imports or running server are needed for this test.")
+        label("Wurm Client · 0.10.30").textSize = 24f
+        label("Import your client and server ZIPs, then use Start Local Game. The startup check already passed on Thor; no repeat is needed for this test.")
         button("Server tab") { finish() }
         imported = label(""); status = label("")
         button("Native Memory Startup Test", true) { startForegroundService(Intent(this, ClientService::class.java).setAction("native-heap")) }

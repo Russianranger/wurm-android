@@ -1,11 +1,13 @@
 # Pojav Java API compatibility candidate
 
-0.10.29 corrects the ASan build target/API detection and explicitly uses native
-ELF TLS. The 0.10.28 report showed emulated TLS recursively calling ASan malloc
-until its startup stack overflowed. Binary checks now require a direct,
-allocation-free LSan counter lookup and reject the failed runtime. The PAC/BTI
-fixes, early recorder, isolated startup test and client graphics instrumentation
-are retained. See [evidence and test](../docs/CLIENT_NATIVE_HEAP_TRACE.md).
+0.10.30 corrects GL4ES shader-cache cleanup after the Thor's first actionable
+ASan graphics report. Both splash-screen attempts read past the same 32-byte
+uniform-map flags allocation during shader relinking. Cleanup now frees all
+values before clearing each map, without using location keys as bucket indices.
+The host ASan regression reproduces the old failure and passes with the patch.
+The 0.10.29 native TLS correction passed the Thor startup test and is retained,
+along with the PAC/BTI fixes and graphics instrumentation. See
+[evidence and test](../docs/CLIENT_NATIVE_HEAP_TRACE.md).
 
 0.10.24 disables Wurm's occlusion-query capability and option for GL4ES's
 placeholder sample results. Distance and frustum culling still apply. See the

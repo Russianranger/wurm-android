@@ -1,17 +1,20 @@
 # Client integration architecture and qualification
 
-**Current test: 0.10.29 — native heap startup recursion fix.** The
-0.10.28 recorder captured a repeating allocator → thread-local lookup → allocator
-cycle that exhausts the stack before `main`. The source-built ASan was missing
-LLVM's Android API detection flag and used allocating emulated TLS. This build
-supplies the explicit API-33 target and `-fno-emulated-tls`, verifies native ELF
-TLS and an allocation-free lookup, and retains the PAC/BTI fixes and early
-recorder. The check rejects the actual failed binary and accepts the rebuilt
-ARM64 runtime. Run **Native Memory Startup Test** first; no imports or server
-are needed for that test. Device startup and the original in-game crash still
-need testing.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.29-native-tls).
+**Current test: 0.10.30 — shader cache cleanup fix.** The Thor passed
+0.10.29's native startup test. ASan then stopped both splash-screen attempts at
+the same GL4ES shader-relink cache overread. Cleanup treated uniform location
+keys as hash-table bucket indices. This build frees cached values and clears
+the maps correctly. A host test reproduces the old 32-byte allocation overread
+and passes repeated cleanup/reuse with the correction. Retry local play; the
+standalone startup check does not need repeating. Other heap faults and
+sustained gameplay remain unverified.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.30-program-cache).
 [Test instructions and limits](CLIENT_NATIVE_HEAP_TRACE.md). Keep older apps and saved data.
+
+**Previous test: 0.10.29 — native heap startup recursion fix.** Native ELF
+TLS corrected ASan's allocator recursion. The Thor report confirms allocation
+redzones, thread creation/join, and standalone exit zero. The checker also ran
+inside the actual client and produced an actionable GL4ES memory-error report.
 
 **Previous test: 0.10.28 — isolated native startup test.** Its preinit recorder
 worked on the Thor and obtained registers, maps, and a 183-frame stack trace.

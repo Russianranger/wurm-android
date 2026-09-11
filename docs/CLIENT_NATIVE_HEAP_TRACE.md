@@ -1,11 +1,58 @@
-# 0.10.29 — native heap startup recursion fix
+# 0.10.30 — shader cache cleanup fix
 
-[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.29-native-tls/Wurm-Server.apk).
+[Download Wurm-Server.apk](https://github.com/Russianranger/wurm-android/releases/download/v0.10.30-program-cache/Wurm-Server.apk).
 
-Run **Native Memory Startup Test** in the Client tab first. No runtime imports,
-server, player name or character creation are required for that test. This
-release corrects the demonstrated checker startup recursion. Device startup
-and the original in-game corruption still need verification.
+The native startup check passed on the Thor. Import the same complete client
+and stopped-server runtime ZIPs into this separate preview and retry local
+play. No repeat of the standalone startup test is needed for this release.
+
+## Evidence from 0.10.29 and the correction
+
+The 2026-09-11 11:14:40 client report confirms `HEAP_ASAN_READY`,
+`HEAP_ASAN_THREADS_READY`, `STARTUP_PROBE_PASS`, and standalone exit zero.
+The corrected native TLS runtime also entered Java in both actual client
+attempts. This validates the preceding startup correction on the Thor.
+
+Both client attempts (PIDs 14397 and 14600) then stopped at shader program 22's
+relink, graphics trace sequence 702, before world entry. ASan reports a 4-byte
+read immediately after a 32-byte heap allocation in GL4ES. The matching released
+library has build ID `d791f5a1d111977753a37d3599f3d6f550fafb2b`:
+
+| ELF offset | Matched code |
+| --- | --- |
+| `0x28d2c0` | `kh_del_uniformlist`, inlined into `clear_program` |
+| `0x290230` | `gl4es_glLinkProgram`, call to `clear_program`, program.c:736 |
+| `0x2830c4` | `kh_resize_uniformlist`, allocation of the hash-table flags |
+| `0x28385c` | `kh_put_uniformlist` |
+| `0x28d858` | `fill_program`, uniform insertion at program.c:563 |
+| `0x290874` | previous successful link's `fill_program`, program.c:795 |
+
+`kh_foreach` supplies keys, while `kh_del` requires a bucket index. The old
+`clear_program` passes uniform locations directly to `kh_del`. A location can
+exceed the number of buckets; the flags lookup then reads outside its allocation.
+It can also mark the wrong bucket or leave freed values in the table. Attribute
+cache cleanup makes the same key/index mistake.
+
+The checked downstream patch replaces mutation during key iteration with
+`kh_foreach_value` to free each cached value, followed by the appropriate
+`kh_clear` call. It resets the uniform count and cache size, retains reusable
+capacity, and preserves the existing name/glname alias ownership. The khash
+implementation, shader contents, rendering settings, ASan policy, JVM and server
+POC are unchanged. The graphics manifest records `program-cache-cleanup` and
+APK verification requires it.
+
+The regression compiles the actual production program.c cleanup and hash-table
+implementation under host ASan. A sparse location of 129 in a 128-bucket map
+reproduces the exact `kh_del_uniformlist` 4-byte overread after its 32-byte flags
+allocation. The fixed source passes that case and 20 cycles of sparse and
+colliding uniform locations, attribute entries, empty cleanup and cache reuse.
+Address checks are enabled; LeakSanitizer is disabled for the restricted host
+process environment. No Wurm assets or mocked hash-table implementation are used.
+
+The server report records the requested shutdown, world-saving steps and
+`SERVER_EXIT=0`. No server crash is shown. This is a concrete graphics defect,
+but the new ASan report does not prove that it caused every earlier Scudo
+corruption report; further client faults may remain.
 
 ## Evidence from 0.10.28 and the correction
 
@@ -120,8 +167,9 @@ including an already-exited child. It uses no hidden API access and retains the
 native marker as a fallback. Exit-info collection briefly retries the same
 package/PID; UID and attempt-time checks still reject unrelated records.
 
-This addresses two identified diagnostic defects. Android device startup and
-the original in-game crash still require testing.
+These corrections address two diagnostic defects. The later 0.10.29 report
+confirms startup after the additional native TLS correction. The original
+in-game crash still requires testing.
 
 ## Evidence from 0.10.25 and the startup correction
 
@@ -149,7 +197,8 @@ provenance are included with the release. The NDK compiler and shared C++ runtim
 stay pinned to 26.1.10909125; the bundled prebuilt ASan is replaced by this build.
 
 This fixes an identified defect in the diagnostic. It does not establish the
-cause of the earlier in-game allocator crashes, and device startup is unverified.
+cause of the earlier in-game allocator crashes. Device startup subsequently
+passed in 0.10.29 with all three diagnostic corrections.
 
 ## Evidence from 0.10.24
 
@@ -205,26 +254,27 @@ The changed allocator and timing can also change whether a crash reproduces.
 
 ## Test on the Thor
 
-1. Keep older apps and saved data. Install the separate `nativetls` preview.
-2. Open its Client tab and tap **Native Memory Startup Test** once. No imports,
-   player-name change or server startup are needed.
-3. If it fails, export and send the **Client Report**. Do not repeat game setup
-   for a failed standalone test.
-4. If it passes, import the same complete client and stopped-server runtime
-   ZIPs, stop any older server, and try local play with an unused name such as
-   **Thorprobe**. Complete gender/kingdom selection if it appears, then move
-   briefly and stop after about two minutes or the first crash.
-5. Export the client report after the standalone test and, if local play was
-   attempted, send both client and server reports. A passing startup test alone
-   does not establish game stability. The memory checker can reduce performance.
+1. Keep older apps and saved data. Install the separate `programcache` preview.
+2. Import the same complete client and stopped-server runtime ZIPs. Stop any
+   older server before starting this preview's local game.
+3. Use **Start Local Game**. No standalone startup-check repeat is required.
+   Complete character creation if it appears, then move and interact for about
+   two minutes, or stop at the first failure. Keep the same graphics settings.
+4. Export and send both **Client Report** and **Server Report**, including if
+   the test succeeds. The memory checker remains enabled and can reduce speed.
 
 ## Verification
+
+The production shader-cache cleanup regression must pass in CI after the pinned
+graphics archive is downloaded. Android builds, unit tests, lint and packaging
+checks remain required. The downloaded APK is verified against the manifest
+and checksum before delivery.
 
 The new NDK regression compiles the same LSan TLS declaration in three modes:
 initial-exec native TLS, forced emulated TLS, and a dynamic lookup. The gate
 accepts the direct native form and rejects the two resolver forms. A full
 ARM64 ASan rebuild passes the TLS, BTI and prctl/PAC machine-code gates; the
-actual preceding release fails the TLS gate. The manifest records the exact
+actual 0.10.28 release fails the TLS gate. The manifest records the exact
 runtime flags, and packaging requires this metadata. The released APK is
 checked again against these gates after download.
 
@@ -253,6 +303,11 @@ all public BTI entry points, the diagnostic runtimes, exact asset hashes and the
 These checks do not replace testing the ASan/HotSpot combination on the Thor.
 
 ## Sources and reproduction
+
+- [Pinned GL4ES program cleanup](https://github.com/ptitSeb/gl4es/blob/81547d986798e876de8b434193920b606a72363f/src/gl/program.c): `clear_program` and `fill_program`.
+- [Pinned khash API](https://github.com/ptitSeb/gl4es/blob/81547d986798e876de8b434193920b606a72363f/include/khash.h): `kh_foreach`, `kh_del`, and `kh_clear`.
+- Checked downstream correction: `scripts/patch-gl4es.py`, `apply_program_cleanup`.
+- Production-source ASan reproduction: `tests/test_gl4es_program_cleanup.py`.
 
 - [LLVM 17 build configuration](https://github.com/llvm/llvm-project/blob/llvmorg-17.0.2/compiler-rt/CMakeLists.txt): API detection and native TLS flag selection.
 - [LLVM 17 LSan counter](https://github.com/llvm/llvm-project/blob/llvmorg-17.0.2/compiler-rt/lib/lsan/lsan_common_linux.cpp): initial-exec thread-local declaration.

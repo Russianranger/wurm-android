@@ -56,6 +56,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert b"ASAN_READY" in apk.read("lib/arm64-v8a/libwurm_graphics.so")
     assert graphics["audioBackend"] == "OpenAL Soft 1.23.1 / Android OpenSL ES"
     assert "vao-buffer-offset-addresses" in graphics["gl4esPatches"]
+    assert "program-cache-cleanup" in graphics["gl4esPatches"]
     assert "legacy-openal-context-lifecycle" in graphics["lwjglPatches"]
     for name, digest in graphics["nativeSha256"].items():
         data = apk.read("lib/arm64-v8a/"+name)

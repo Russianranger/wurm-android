@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.29\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.30\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: The 0.10.28 standalone report captured allocator -> LSan TLS lookup -> emulated TLS -> malloc recursion, exhausting the startup stack before main. This build fixes the omitted Android target flag and explicitly builds ASan with native ELF TLS; machine-code checks reject the old allocating lookup and verify the corrected one. Run Native Memory Startup Test first. Device startup is unverified, and the original in-game heap corruption remains unidentified.\n\n" +
+            "Gate status: Thor 0.10.29 passed the native allocator/thread test, then ASan stopped two splash-screen attempts at the same GL4ES shader-cache overflow. clear_program passed uniform location keys to kh_del as bucket indices. This build frees cached values and clears the maps correctly; a host ASan regression reproduces the exact 32-byte flags overread in the old source and passes after correction. Retry local play; no standalone startup-test repeat is required. Further corruption and sustained game stability remain unverified.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +

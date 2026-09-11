@@ -127,3 +127,39 @@ static inline const GLvoid *gl4es_pointer_address(const vertexattrib_t *p) {
     replace("texture_params.c", "ptr->pointer", "gl4es_pointer_address(ptr)", 1)
     for name, source in sources.items():
         (root / "src/gl" / name).write_text(source)
+
+
+def apply_program_cleanup(root: Path):
+    """Free shader-cache values, then clear their maps without treating keys as slots."""
+    target = root / "src/gl/program.c"
+    original = target.read_bytes()
+    if hashlib.sha256(original).hexdigest() != "7e0ea0a37737555ec3eb3cfeccd808f6a910fc52769c8ce64a8de73e14432f2b":
+        raise ValueError("Unexpected GL4ES program.c")
+    source = original.decode()
+    start = source.index("static void clear_program(program_t *glprogram)")
+    end = source.index("\nstatic void fill_program(", start)
+    source = source[:start] + '''static void clear_program(program_t *glprogram)
+{
+    // kh_foreach returns keys, not bucket indices. Uniform locations may be
+    // larger than the table, so passing them to kh_del corrupts its flags.
+    // Free each value exactly once before clearing the table's own buckets.
+    if(glprogram->attribloc) {
+        attribloc_t *m;
+        // glname aliases name and must not be freed separately.
+        kh_foreach_value(glprogram->attribloc, m,
+            free(m->name); free(m);
+        )
+        kh_clear(attribloclist, glprogram->attribloc);
+    }
+    glprogram->num_uniform = 0;
+    if(glprogram->uniform) {
+        uniform_t *m;
+        kh_foreach_value(glprogram->uniform, m,
+            free(m->name); free(m);
+        )
+        kh_clear(uniformlist, glprogram->uniform);
+    }
+    glprogram->cache.size = 0;
+}
+''' + source[end:]
+    target.write_text(source)
