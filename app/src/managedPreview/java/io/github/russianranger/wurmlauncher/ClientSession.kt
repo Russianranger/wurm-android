@@ -50,9 +50,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.25\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.26\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.24 authenticated and initialized audio/visibility, then twice aborted in JVM Sweeper thread cleanup with a corrupted native heap header. This slower ASan diagnostic instruments client graphics/audio libraries to capture an earlier invalid access. It is not a confirmed crash fix. Character creation, pop-in and extended stability still need device confirmation.\n\n" +
+            "Gate status: Thor 0.10.25 initialized ASan allocation checks but twice failed during thread startup at the prctl PAC return check, before Java or game initialization. This build applies the upstream LLVM correction and qualifies a thread before Java. The original 0.10.24 native heap corruption remains unidentified; character creation, pop-in and stability still need device testing.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +

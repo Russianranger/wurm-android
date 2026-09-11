@@ -17,7 +17,7 @@ class NativeHeapCheckTest(unittest.TestCase):
             source.write_text('#include "heap_compat.h"\nint main() { return wurm_configure_heap("asan") == 0 ? 0 : 78; }\n')
             for instrumented in [False, True]:
                 binary = home/("checked" if instrumented else "plain")
-                subprocess.run(["gcc", "-O1", "-g", "-no-pie"] +
+                subprocess.run(["gcc", "-O1", "-g", "-no-pie", "-pthread"] +
                     (["-fsanitize=address", "-fno-omit-frame-pointer"] if instrumented else []) +
                     ["-I"+str(ROOT/"runtime-probe/native"), str(source),
                      str(ROOT/"runtime-probe/native/heap_compat.c"), "-ldl", "-o", str(binary)], check=True)
@@ -25,6 +25,8 @@ class NativeHeapCheckTest(unittest.TestCase):
                     env=dict(os.environ, ASAN_OPTIONS="detect_leaks=0"))
                 self.assertEqual(result.returncode, 0 if instrumented else 78, result.stdout+result.stderr)
                 self.assertIn("HEAP_ASAN_READY" if instrumented else "HEAP_ASAN_ERROR", result.stdout+result.stderr)
+                if instrumented:
+                    self.assertIn("HEAP_ASAN_THREADS_READY", result.stdout)
                 self.assertNotIn("HEAP_TAGGING_OFF", result.stdout+result.stderr)
 
     def test_sanitizer_startup_and_invalid_write_report(self):

@@ -27,5 +27,20 @@
     "url": "https://github.com/kcat/openal-soft/archive/refs/tags/1.23.1.tar.gz",
     "sha256": "dfddf3a1f61059853c625b7bb03de8433b455f2f79f89548cbcbd5edca3d4a4a",
     "root": "openal-soft-1.23.1"
+  },
+  "compiler-rt": {
+    "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/compiler-rt-17.0.2.src.tar.xz",
+    "sha256": "8053f53d3205f9758b03784c5d0cf8235ffe2f3fb7a946aea9c6aa5ff9b8d1a1",
+    "root": "compiler-rt-17.0.2.src"
+  },
+  "llvm-cmake": {
+    "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/cmake-17.0.2.src.tar.xz",
+    "sha256": "07093ef3b47bc30c24c8ab4996dea8c89eb6f3c8f55cd43158000c61c1fd5075",
+    "root": "cmake-17.0.2.src"
+  },
+  "llvm": {
+    "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/llvm-17.0.2.src.tar.xz",
+    "sha256": "61dd9eaa1f874a10a51dc397b84998eaebdd3c55a5a5fa6c24b2081a435b47c6",
+    "root": "llvm-17.0.2.src"
   }
 }

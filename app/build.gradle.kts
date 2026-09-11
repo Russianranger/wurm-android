@@ -97,6 +97,7 @@ val prepareManagedRuntime by tasks.registering(Exec::class) {
 
 val prepareClientGraphics by tasks.registering(Exec::class) {
     inputs.files(rootProject.file("scripts/prepare-client-graphics.py"), rootProject.file("scripts/build-lwjgl-api.py"),
+        rootProject.file("scripts/build-asan-runtime.py"),
         rootProject.file("scripts/ExportAuditPlatform.java"), rootProject.file("scripts/build-window-api.py"),
         rootProject.file("scripts/patch-gl4es.py"),
         rootProject.file("runtime-probe/src/client/DesktopInput.java"), rootProject.fileTree("graphics-compat"))
@@ -115,8 +116,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 39
-        versionName = "0.10.25"
+        versionCode = 40
+        versionName = "0.10.26"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -129,7 +130,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".heaptrace"
+            applicationIdSuffix = ".heapcheck"
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }

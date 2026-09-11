@@ -1,7 +1,8 @@
 # Pojav Java API compatibility candidate
 
-0.10.25 instruments the native client libraries with ASan and packages the NDK
-ASan/shared C++ runtimes for client-only preload. This is a short, slower crash
+0.10.26 retains native ASan instrumentation and builds LLVM 17.0.2 ASan with
+the upstream prctl/PAC correction, keeping the NDK shared C++ runtime for
+client-only preload. This is a short, slower crash
 diagnostic, not a confirmed fix. See [test and limits](../docs/CLIENT_NATIVE_HEAP_TRACE.md).
 
 0.10.24 disables Wurm's occlusion-query capability and option for GL4ES's

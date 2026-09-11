@@ -24,6 +24,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert runner[:6] == b"\x7fELF\x02\x01" and int.from_bytes(runner[18:20], "little") == 183
     assert b"HEAP_TAGGING_OFF" in runner and b"HEAP_TAGGING_ERROR" in runner
     assert b"HEAP_ASAN_READY" in runner and b"HEAP_ASAN_ERROR" in runner
+    assert b"HEAP_ASAN_THREADS_READY" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
         assert int.from_bytes(helper.read("client/ClientHudVisibility.class")[6:8], "big") == 61
@@ -47,7 +48,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     graphics = json.loads(apk.read("assets/client-graphics.json"))
     assert graphics["sources"] == json.loads((ROOT/"graphics-compat/native-sources.json").read_text())
     assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so", "libwurm_openal.so", "libclang_rt.asan-aarch64-android.so", "libc++_shared.so"}
-    assert graphics["nativeHeapDiagnostic"] == "ASan / client graphics stages only / NDK 26.1.10909125"
+    assert graphics["asanPatches"] == ["6bbf0c30ca4449e325beb2d28db00d258d3a1a10"]
+    assert graphics["nativeHeapDiagnostic"] == "ASan / client graphics stages only / LLVM 17.0.2 with prctl PAC fix"
     assert b"ASAN_READY" in apk.read("lib/arm64-v8a/libwurm_graphics.so")
     assert graphics["audioBackend"] == "OpenAL Soft 1.23.1 / Android OpenSL ES"
     assert "vao-buffer-offset-addresses" in graphics["gl4esPatches"]

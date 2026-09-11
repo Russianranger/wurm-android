@@ -1,14 +1,19 @@
 # Wurm Server for Android
 
-**Current test: 0.10.25 — native client heap diagnostic.** The Thor's 0.10.24
-report contains two allocator aborts in JVM cleanup shortly after login. Audio
-and the visibility correction initialized successfully. This slower diagnostic
-instruments native client graphics/audio code to capture an earlier invalid
-memory access; it is not a confirmed crash fix. The server runtime is retained.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.25-native-heap).
+**Current test: 0.10.26 — heap diagnostic thread startup fix.** The 0.10.25
+reports show two SIGILL failures in ASan's `prctl` interceptor before Java starts.
+The exact APK fails at `autiasp` after Android resets a thread's PAC key. This
+build backports LLVM's per-function correction into a source-built LLVM 17.0.2
+ASan runtime and checks a thread before Java. The original game heap corruption
+remains unidentified; this is still a short, slower diagnostic.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.26-heap-startup).
 [Run one short attempt and export both reports](docs/CLIENT_NATIVE_HEAP_TRACE.md).
 Keep older apps/backups and use an unused name; client login identity does not
 currently migrate between separate previews.
+
+**Previous test: 0.10.25 — native client heap diagnostic.** Allocation redzones
+initialized, but the bundled NDK ASan runtime crashed during thread startup on
+the Thor. Neither reported attempt reached Java initialization or game rendering.
 
 **Previous test: 0.10.24 — nearby object visibility.** Disabled unsupported
 GL4ES occlusion queries while retaining distance/frustum culling. The next report

@@ -56,13 +56,17 @@ def main():
     work = output/'work'; work.mkdir()
     asan = list((cc.parent.parent/'lib/clang').glob('*/lib/linux/libclang_rt.asan-aarch64-android.so'))
     if len(asan) != 1: raise ValueError('Expected one NDK ARM64 ASan runtime')
-    shutil.copyfile(asan[0], native/asan[0].name)
     shutil.copyfile(cc.parent.parent/'sysroot/usr/lib/aarch64-linux-android/libc++_shared.so', native/'libc++_shared.so')
     sources = {}
-    for name in ('lwjgl', 'gl4es', 'libffi', 'pojav', 'openal'):
+    for name in ('lwjgl', 'gl4es', 'libffi', 'pojav', 'openal', 'compiler-rt', 'llvm-cmake', 'llvm'):
         with tarfile.open(archives[name]) as archive:
-            archive.extractall(work, filter='data')
+            members = (m for m in archive if '/cmake/' in m.name or m.name.endswith('/LICENSE.TXT')) if name == 'llvm' else None
+            archive.extractall(work, members=members, filter='data')
         sources[name] = work/pins[name]['root']
+    spec = importlib.util.spec_from_file_location('asan_builder', ROOT/'scripts/build-asan-runtime.py')
+    asan_builder = importlib.util.module_from_spec(spec); spec.loader.exec_module(asan_builder)
+    checked_asan = asan_builder.build(ndk, sources['compiler-rt'], sources['llvm-cmake'], sources['llvm'], work, run)
+    shutil.copyfile(checked_asan, native/asan[0].name)
     lwjgl, gl4es, ffi = (sources[n] for n in ('lwjgl', 'gl4es', 'libffi'))
     spec = importlib.util.spec_from_file_location('gl4es_patch', ROOT/'scripts/patch-gl4es.py')
     gl4es_patch = importlib.util.module_from_spec(spec); spec.loader.exec_module(gl4es_patch)
@@ -144,7 +148,8 @@ def main():
                ('Android utility Apache-2.0 notice', sources['pojav']/'jre_lwjgl3glfw/src/main/java/android/util/ArrayMap.java'),
                ('GPLv3 incorporated by LGPLv3', ROOT/'graphics-compat/licenses/GPL-3.0.txt'),
                ('Apache-2.0 license', ROOT/'graphics-compat/licenses/Apache-2.0.txt'), ('JSR305 annotation notice (build only)', None)]
-    # Include notices for the packaged NDK ASan and shared C++ runtimes.
+    # Include notices for source-built ASan and the packaged NDK C++ runtime.
+    notices.append(('LLVM compiler-rt Apache-2.0 with LLVM exceptions; prctl PAC correction', sources['compiler-rt']/'LICENSE.TXT'))
     ndk_notices = sorted(ndk.glob("NOTICE*"))
     if not ndk_notices: raise ValueError("Android NDK runtime notices missing")
     notices.extend(("Android NDK runtime notice: "+p.name, p) for p in ndk_notices if p.is_file())
@@ -166,7 +171,8 @@ def main():
                 raise ValueError(f'Missing native dependency {dependency}: {path.name}')
     manifest = dict(id='wurm-graphics-2', backend='LWJGL/Pojav Java GLFW + GL4ES, owned EGL window/readback diagnostic',
                     ndk='26.1.10909125', abi='arm64-v8a', sources=pins, gl4esPatches=['custom-fragment-global-scope', 'bounded-native-draw-breadcrumb', 'internal-client-pointer-addresses', 'vao-buffer-offset-addresses'],
-                    nativeHeapDiagnostic='ASan / client graphics stages only / NDK 26.1.10909125',
+                    nativeHeapDiagnostic='ASan / client graphics stages only / LLVM 17.0.2 with prctl PAC fix',
+                    asanPatches=[asan_builder.PATCH],
                     audioBackend='OpenAL Soft 1.23.1 / Android OpenSL ES',
                     lwjglPatches=['legacy-openal-context-lifecycle'],
                     nativeSha256={p.name: sha(p) for p in sorted(native.glob('*.so'))},

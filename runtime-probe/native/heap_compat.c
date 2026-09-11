@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #if defined(__ANDROID__)
 #include <malloc.h>
 #endif
@@ -55,6 +56,16 @@ static int allocation_tag(void) {
     return tag;
 }
 
+static void *asan_thread_check(void *arg) {
+    int (*poisoned)(void const volatile *) = (int (*)(void const volatile *))arg;
+    char *p = malloc(32);
+    if (p == NULL) return NULL;
+    memset(p, 0, 32);
+    int valid = !poisoned(p) && poisoned((void *)((uintptr_t)p - 1)) && poisoned(p + 32);
+    free(p);
+    return valid ? arg : NULL;
+}
+
 int wurm_configure_heap(const char *policy) {
     if (policy != NULL && strcmp(policy, "asan") == 0) {
         /* ASan's mallopt interceptor returns 0 on Android. Qualify its actual
@@ -74,6 +85,17 @@ int wurm_configure_heap(const char *policy) {
             return -1;
         }
         printf("[native] HEAP_ASAN_READY: allocation redzones verified; Bionic mallopt not called\n");
+        fflush(stdout);
+        /* Android resets the PAC key during pthread startup. Qualify that path
+         * with the preloaded runtime before asking HotSpot to start threads. */
+        pthread_t thread;
+        void *result = NULL;
+        if (pthread_create(&thread, NULL, asan_thread_check, (void *)poisoned) != 0 ||
+            pthread_join(thread, &result) != 0 || result != (void *)poisoned) {
+            fprintf(stderr, "[native] HEAP_ASAN_ERROR: thread allocation check failed; Java not loaded\n");
+            return -1;
+        }
+        printf("[native] HEAP_ASAN_THREADS_READY: thread create/join and redzones verified\n");
         return 0;
     }
     return wurm_heap_compat_apply(policy, disable_native_tagging, allocation_tag);
