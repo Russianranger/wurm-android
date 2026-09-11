@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Wurm" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/wurm_background</item>
+        <item name="android:colorBackground">@color/wurm_background</item>
+        <item name="android:colorBackgroundFloating">@color/wurm_surface</item>
+        <item name="android:colorButtonNormal">@color/wurm_surface</item>
+        <item name="android:textColorPrimary">@color/wurm_primary_text</item>
+        <item name="android:textColorSecondary">@color/wurm_secondary_text</item>
+        <item name="android:colorAccent">@color/wurm_accent</item>
+        <item name="android:statusBarColor">@color/wurm_background</item>
+        <item name="android:navigationBarColor">@color/wurm_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

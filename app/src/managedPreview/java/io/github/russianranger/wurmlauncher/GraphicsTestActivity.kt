@@ -168,14 +168,14 @@ class GraphicsTestActivity : Activity() {
         root.addView(sessionLabel,FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM or Gravity.START))
         val column=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL; setPadding(dp(12),dp(8),dp(12),dp(12))
-            setBackgroundColor(0xff202124.toInt()); isClickable=true
+            setBackgroundColor(getColor(R.color.wurm_surface)); isClickable=true
         }
         panel=ScrollView(this).apply { addView(column); isClickable=true; elevation=dp(8).toFloat() }
         root.addView(panel,FrameLayout.LayoutParams(dp(360),-2,Gravity.TOP or Gravity.END))
         fun label(value: String, size: Float = 14f) = TextView(this).apply {
             text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
         }
-        label(if (mode == "render") "JVM Graphics Test · 0.10.31" else "Game controls · 0.10.31",20f)
+        label(if (mode == "render") "JVM Graphics Test · 0.10.32" else "Game controls · 0.10.32",20f)
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
         }

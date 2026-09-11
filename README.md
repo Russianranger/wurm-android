@@ -1,6 +1,14 @@
 # Wurm Server for Android
 
-**Current test: 0.10.31 — runtime observations.** The Thor completed about ten
+**Current test: 0.10.32 — dark app theme and white pointer.** The Thor completed
+approximately 36 minutes on 0.10.31 with normal client/server exits and about
+29.9 FPS after startup. This release makes the app dark by default and changes
+the pointer to white with a black outline. GC stalls remain the highest-priority
+performance follow-up; existing runtime and graphics settings are retained.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.32-dark-theme).
+[Report findings and test instructions](docs/DARK_THEME_AND_RUNTIME_REVIEW.md).
+
+**Previous test: 0.10.31 — runtime observations.** The Thor completed about ten
 minutes on 0.10.30 with normal client/server exits. This build reduces ready-state
 TCP checks from twice per second to once every 15 seconds, records bounded GL
 error origins, and samples client/server/Android memory every 30 seconds. It

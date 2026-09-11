@@ -53,9 +53,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.31\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.32\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.30 completed about ten minutes with client/server exit zero; five recoverable pending GL errors remain unexplained. This build throttles ready-state TCP probes and adds bounded graphics-error attribution plus 30-second client/server/Android memory observations. Graphics, heaps, collectors and ASan settings are retained. Extended stability and save persistence still need device confirmation.\n\n" +
+            "Gate status: Thor 0.10.31 completed approximately 36 minutes of client play with client/server exit zero and about 29.9 FPS after startup. Early recoverable graphics errors and intermittent client GC pauses remain. This visual release adds the dark app theme and white pointer; graphics, heap, collector and observation policies are retained. Confirm appearance and world persistence on device.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +

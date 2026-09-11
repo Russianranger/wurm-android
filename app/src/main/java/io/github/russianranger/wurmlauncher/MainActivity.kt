@@ -81,7 +81,7 @@ class MainActivity : Activity() {
             textSize = 11f
             setTextIsSelectable(true)
             setPadding(dp(8), dp(8), dp(8), dp(8))
-            setBackgroundColor(0xFFF0F2F0.toInt())
+            setBackgroundColor(getColor(R.color.wurm_surface))
         }
         logScroll = ScrollView(this).apply { addView(logs) }
         root.addView(logScroll, LinearLayout.LayoutParams(-1, 0, 1f))

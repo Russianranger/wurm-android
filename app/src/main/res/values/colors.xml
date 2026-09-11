@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="wurm_background">#121416</color>
+    <color name="wurm_surface">#202124</color>
+    <color name="wurm_text_primary">#F1F3F4</color>
+    <color name="wurm_text_secondary">#BDC1C6</color>
+    <color name="wurm_text_disabled">#61F1F3F4</color>
+    <color name="wurm_accent">#AECBFA</color>
+</resources>

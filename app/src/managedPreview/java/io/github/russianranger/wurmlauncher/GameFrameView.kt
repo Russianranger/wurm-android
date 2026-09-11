@@ -76,7 +76,7 @@ class GameFrameView(context: Context, private val interactive: Boolean) : ImageV
         val y = (height - frameHeight * scale) / 2 + p.y * scale
         val arm = 7 * resources.displayMetrics.density
         // Contrasting crosshair outside the center leaves small menu labels readable.
-        for ((color, stroke) in listOf(Color.BLACK to 3f, Color.CYAN to 1.5f)) {
+        for ((color, stroke) in listOf(Color.BLACK to 3f, Color.WHITE to 1.5f)) {
             pen.color = color; pen.strokeWidth = stroke * resources.displayMetrics.density
             canvas.drawCircle(x, y, arm * .45f, pen)
             canvas.drawLine(x-arm,y,x-arm*.6f,y,pen); canvas.drawLine(x+arm*.6f,y,x+arm,y,pen)

@@ -116,7 +116,8 @@ class ControllerTestActivity : Activity(), InputManager.InputDeviceListener {
             invalidate()
         }
         override fun onDraw(c: Canvas) {
-            paint.color = Color.CYAN; c.drawCircle(x,y,10f,paint)
+            paint.color = Color.BLACK; c.drawCircle(x,y,12f,paint)
+            paint.color = Color.WHITE; c.drawCircle(x,y,10f,paint)
             paint.color = Color.WHITE; paint.textSize = 22f; c.drawText(event, 12f, 28f, paint)
         }
     }
