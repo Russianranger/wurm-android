@@ -10,6 +10,19 @@ permissions:
   contents: read
 
 jobs:
+  cancel-superseded-heap-diagnostic:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Stop diagnostic superseded before publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          state=$(gh run view 34545774273 --json status --jq .status)
+          if [ "$state" != completed ]; then gh run cancel 34545774273; fi
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30

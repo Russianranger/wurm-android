@@ -1,5 +1,6 @@
 #include "heap_compat.h"
 #include <stdint.h>
+#include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,5 +56,25 @@ static int allocation_tag(void) {
 }
 
 int wurm_configure_heap(const char *policy) {
+    if (policy != NULL && strcmp(policy, "asan") == 0) {
+        /* ASan's mallopt interceptor returns 0 on Android. Qualify its actual
+         * allocator instead of calling Bionic's opt-out through that stub. */
+        int (*poisoned)(void const volatile *) =
+            (int (*)(void const volatile *))dlsym(RTLD_DEFAULT, "__asan_address_is_poisoned");
+        if (poisoned == NULL) {
+            fprintf(stderr, "[native] HEAP_ASAN_ERROR: runtime missing; Java not loaded\n");
+            return -1;
+        }
+        char *p = malloc(32);
+        if (p == NULL) return -1;
+        int valid = !poisoned(p) && poisoned((void *)((uintptr_t)p - 1)) && poisoned(p + 32);
+        free(p);
+        if (!valid) {
+            fprintf(stderr, "[native] HEAP_ASAN_ERROR: allocation redzones inactive; Java not loaded\n");
+            return -1;
+        }
+        printf("[native] HEAP_ASAN_READY: allocation redzones verified; Bionic mallopt not called\n");
+        return 0;
+    }
     return wurm_heap_compat_apply(policy, disable_native_tagging, allocation_tag);
 }

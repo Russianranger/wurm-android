@@ -229,8 +229,8 @@ object ClientSession {
                 val evidence = ClientCrashEvidence(android.os.Process.myUid(), System.currentTimeMillis())
                 val process = ProcessBuilder(args).directory(installed?.root ?: session).redirectErrorStream(true).apply {
                     environment().clear(); environment().putAll(ProbeEnvironment.create(home, native, tmp))
-                    environment().putAll(ClientNativeHeap.environment(stage, native))
                     environment()["WURM_HEAP_TAGGING"] = "off"
+                    environment().putAll(ClientNativeHeap.environment(stage, native))
                     environment()["WURM_WORLD_LOCK"] = File(store.home, "process.lock").absolutePath
                     if (stage == "render" || window) {
                         log("[native-heap] ASAN_REQUESTED stage=$stage; slower diagnostic; symbols resolved against this release; ${ClientNativeHeap.options}")

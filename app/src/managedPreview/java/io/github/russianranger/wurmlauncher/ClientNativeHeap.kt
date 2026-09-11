@@ -18,6 +18,6 @@ internal object ClientNativeHeap {
         val libraries = listOf(runtime, cxx).map { File(native, it) }
         check(libraries.all { it.isFile }) { "Native heap diagnostic libraries missing" }
         return mapOf("LD_PRELOAD" to libraries.joinToString(":") { it.absolutePath },
-            "ASAN_OPTIONS" to options)
+            "ASAN_OPTIONS" to options, "WURM_HEAP_TAGGING" to "asan")
     }
 }

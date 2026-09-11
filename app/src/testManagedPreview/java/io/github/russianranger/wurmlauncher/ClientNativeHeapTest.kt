@@ -21,6 +21,7 @@ class ClientNativeHeapTest {
                 val env = ClientNativeHeap.environment(stage, root)
                 assertEquals(File(root, ClientNativeHeap.runtime).absolutePath + ":" +
                     File(root, ClientNativeHeap.cxx).absolutePath, env["LD_PRELOAD"])
+                assertEquals("asan", env["WURM_HEAP_TAGGING"])
                 assertTrue(env.getValue("ASAN_OPTIONS").contains("abort_on_error=1"))
                 assertTrue(env.getValue("ASAN_OPTIONS").contains("log_to_syslog=false"))
             }

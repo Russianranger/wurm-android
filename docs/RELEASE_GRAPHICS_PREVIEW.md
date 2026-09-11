@@ -36,6 +36,9 @@ corruption, but the reports do not prove that.
 - Use the shared C++ runtime for this diagnostic's OpenAL build, consistent with
   Android's documented ASan exception-handling requirements. The audio source
   version and Android OpenSL ES backend are retained.
+- The native runner verifies ASan allocation redzones before Java. ASan intercepts
+  `mallopt` and returns zero, so this policy deliberately avoids calling the
+  Bionic opt-out through that stub. Missing ASan still fails before Java.
 - Before EGL initialization, check a real allocation and its two protected
   boundaries. Only log `ASAN_READY` if the allocation interceptor and both
   redzones work. A missing diagnostic runtime or failed check stops startup.
