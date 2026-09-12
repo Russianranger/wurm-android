@@ -33,13 +33,23 @@ public class ModLoader extends ModLoaderShared<WurmServerMod> {
  public String getGameVersion(){return "fixture";}
  public String getVersion(){return "0.47";}
 }''',
-            'org/gotti/wurmunlimited/modloader/server/ServerHook.java': '''package org.gotti.wurmunlimited.modloader.server;
+            'org/gotti/wurmunlimited/modloader/server/ServerHook.java': r'''package org.gotti.wurmunlimited.modloader.server;
 import java.util.List;
 public class ServerHook {
- public static ServerHook createServerHook(){return new ServerHook();}
+ public static ServerHook createServerHook(){
+  try {
+   org.gotti.wurmunlimited.modloader.classhooks.HookManager.getInstance().getClassPool()
+    .get("com.wurmonline.server.creatures.Communicator").getDeclaredMethod("message").insertAfter("$_ = $_ + \":hooked\";");
+  } catch(Exception e){throw new RuntimeException(e);}
+  return new ServerHook();
+ }
+ // Like Ago's real ServerHook, unrelated public methods mention game classes.
+ // Class.getMethod scans these signatures and loads/freezes Communicator before the factory runs.
+ public void fireOnMessage(com.wurmonline.server.creatures.Communicator communicator) {}
  public void addMods(List<?> mods){if(mods.size()!=2) throw new AssertionError("two mods expected");}
  public void addVersionHandler(String version,String game,List<?> mods){}
 }''',
+            'com/wurmonline/server/creatures/Communicator.java': 'package com.wurmonline.server.creatures; public class Communicator { public String message(){return "message";} }',
             'game/Target.java': '''package game;
 public class Target { public static String value(){return "overlay";} }''',
             'org/sqlite/FixtureDriver.java': 'package org.sqlite; public class FixtureDriver {}',
@@ -53,6 +63,7 @@ public class ManagedServerMain {
   if(org.sqlite.FixtureDriver.class.getClassLoader()!=ClassLoader.getSystemClassLoader()) throw new AssertionError("duplicate driver");
   if(ServerDiagnostics.class.getClassLoader()!=ClassLoader.getSystemClassLoader()) throw new AssertionError("duplicate diagnostics");
   if(!"overlay:first:second".equals(game.Target.value())) throw new AssertionError(game.Target.value());
+  if(!"message:hooked".equals(new com.wurmonline.server.creatures.Communicator().message())) throw new AssertionError("lifecycle hook missing");
   System.out.println("FIXTURE_MOD_BOOTSTRAP_PASS");
  }
 }''',
@@ -93,12 +104,15 @@ public class Second implements WurmServerMod, PreInitable {
     def launch(self, *args):
         return subprocess.run(['java','-Djava.io.tmpdir='+str(self.root),*args,'-cp',self.cp,'server.ServerModBootstrap','Adventure'],cwd=self.root,text=True,capture_output=True,timeout=20)
 
-    def test_two_mods_transform_same_class_in_dependency_order_before_game_load(self):
+    def test_game_types_in_unrelated_public_signatures_remain_modifiable_until_hooks_install(self):
         result=self.launch()
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         self.assertIn('SERVER_MOD_READY first',result.stdout)
         self.assertIn('SERVER_MOD_READY second',result.stdout)
         self.assertIn('SERVER_LOADER_READY count=2',result.stdout)
+        self.assertIn('SERVER_LOADER_STAGE hooks-install',result.stdout)
+        self.assertIn('SERVER_LOADER_STAGE callbacks-initialize',result.stdout)
+        self.assertNotIn('class is frozen',result.stdout+result.stderr)
         self.assertIn('FIXTURE_MOD_BOOTSTRAP_PASS',result.stdout)
         self.assertTrue((self.root/'mods/first/first.jar').is_file())
 

@@ -2,14 +2,15 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.36 — mod launcher framework.**
+**Current branch test: 0.10.37 — mod hook ordering fix.**
 
 This branch is `mod-launcher-test`; stable main/0.10.35 remain separate. Server,
 Client, Mods and Diagnostics tabs; manifest-based ZIP imports and stopped-runtime
 toggles; optional server loader startup. Client mods are staged for later testing.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.36-mod-launcher-test).
-[Loader/mod downloads and device checklist](docs/MOD_LAUNCHER_TEST.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.37-mod-hook-order).
+[Startup failure analysis and device retest](docs/MOD_HOOK_ORDER_FIX.md).
+[Loader/mod downloads and original checklist](docs/MOD_LAUNCHER_TEST.md).
 [Maintained handoff](docs/HANDOFF.md). Existing runtime reports stay in Diagnostics.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

@@ -1,3 +1,23 @@
+# 0.10.37 — mod hook ordering fix
+
+Fixes the 0.10.36 startup failure with Announcer: `Communicator class is frozen`.
+The Android loader bridge now resolves the exact hook methods without loading
+unrelated game classes before instrumentation finishes. The expanded regression
+reproduces the old failure and passes with this correction.
+
+Install the separate `.modhookfix` package alongside 0.10.36. Export the
+**before-start checkpoint ZIP** from 0.10.36 and import it as the server runtime
+in this version; it includes the loader, Announcer and mod manifest. Use the same
+client ZIP if testing login. Start with Announcer alone, then return the Server
+report from Diagnostics. No replacement loader/mod ZIPs are required.
+
+[Failure analysis and exact retest steps](MOD_HOOK_ORDER_FIX.md).
+[Maintained handoff](HANDOFF.md).
+
+---
+
+## Previous release
+
 # 0.10.36 — mod launcher test branch
 
 Isolated `.modtest` package from `mod-launcher-test`; stable main remains unchanged.

@@ -2,7 +2,19 @@
 
 Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current branch test — 0.10.36 mod launcher (2026-09-12)
+## Active fix — 0.10.37 mod hook ordering (2026-09-12)
+
+User's first 0.10.36 server test failed with Announcer enabled. Continue only on **mod-launcher-test**; main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- Report: `upload/wurm-server-report(20260912-183958).txt`; preflight passes, Announcer loads, then `ProxyServerHook.registerOnMessageHook` throws `Communicator class is frozen` at 18:38:53.314Z. Controlled server child exit 1 after 604 ms; no normal Android game-entry/readiness marker. The before-start checkpoint was retained.
+- Root cause reproduced locally: our `ServerHook.getMethod("createServerHook")` lookup resolves all its public method signatures, including unrelated event methods with Communicator/Player types. This defines/freezes game classes before the hook factory instruments them. Earlier fixture omitted those signatures and missed this failure.
+- Fix: exact `MethodHandles` lookup of the ServerHook factory and listener methods. No defrost workaround or skipped hooks. Four bounded stage markers identify mod initialization, hook installation, callback initialization and Android entry.
+- Expanded actual-Ago/Javassist regression reproduces the old frozen-class failure and passes with the fix, including the actual hook effect, two mod transformations/order, class identity, and failure/no-vanilla-fallback behavior. Fixture game/lifecycle code is authored; real Wurm/device startup remains unverified.
+- Preparing **0.10.37**, code **51**, `.modhookfix`, tag `v0.10.37-mod-hook-order`. Separate package preserves 0.10.36 data because CI debug signing keys vary between builds. Full branch CI/release verification pending at this checkpoint.
+- Retest: export **before-start checkpoint ZIP** from 0.10.36, install 0.10.37 alongside it, import checkpoint as server runtime (loader/Announcer/manifest included), check Mods, then start Announcer alone. Import normal client ZIP only for login test. Export Server report from Diagnostics, plus Client report if used. Do not add CropMod yet. [Detailed cause and steps](MOD_HOOK_ORDER_FIX.md).
+- Loader/Javassist pins, mod store/toggles, client staging, world data handling, SQLite/login patches, graphics/audio/native/GC policies remain unchanged. No additional proprietary files are committed.
+
+## Previous branch test — 0.10.36 mod launcher (2026-09-12)
 
 User confirms 0.10.35 functional/stable and authorizes a **separate mod test branch only**. Main remains at `2e41fb091ee75a76b9116e934abecff90bc735d9`. Branch `mod-launcher-test` was created from it. Do not merge to main without a later instruction.
 
@@ -17,7 +29,7 @@ User confirms 0.10.35 functional/stable and authorizes a **separate mod test bra
 - Client: import/manifest/toggle framework is implemented and explicitly labeled **staging only**. Client loader installation and execution are deferred until server physical tests pass. Existing client runtime ignores staged mods; report logs `CLIENT_LOADER_DEFERRED`.
 - Compatibility limits: standard descriptor + per-mod JAR layout/direct side interface; duplicate imports do not overwrite existing mods; native/desktop/shared-classloader/ScriptRunner/legacy packages deferred. Metadata merges JAR defaults, `.properties`, `.config`/template. Required/imported dependencies and conflicts checked locally; exact version/order handling remains upstream. Structural config edits are rejected before launch. Mod config editor, update/removal and automatic downloading are not in this pass.
 - Local evidence: 13 ModStore cases + 4 ManagedLaunch cases pass, including interrupted import/toggle recovery, config/data retention, dependency/conflict rejection and export/restore. Two Java tests use the actual pinned Ago discovery/resolver/classloader and Javassist with authored game/lifecycle fixtures; two mods transform one class in dependency order before game loading, and initialization failure cannot fall back. Five existing server diagnostics tests pass. Android API compilation passes with one pre-existing resize deprecation warning. Real upstream loader/Announcer/CropMod ZIP import, both-on validation, and both-off file removal pass. Stable APK's exact Java runtime already includes `jdk.zipfs`.
-- Limits of evidence: authored game hooks in the host test do **not** demonstrate real Wurm lifecycle hooks, native Android behavior or mod gameplay. No physical mod test has been performed. Native/graphics/audio/GC/default-resolution policies are unchanged.
+- Limits of evidence: authored game hooks in the host test do **not** demonstrate real Wurm lifecycle hooks, native Android behavior or mod gameplay. The initial physical Announcer test subsequently failed during hook installation; see the 0.10.37 correction above. Native/graphics/audio/GC/default-resolution policies are unchanged.
 - Next device steps: import normally stopped working export into this separate app; baseline start/stop; install loader; Announcer alone and toggle off/on; then Announcer + CropMod; verify clean STOP/restart and return both reports from Diagnostics. Keep a separate pre-mod export: disabling mods cannot undo persistent world/database changes. [Downloads, storage design and detailed checklist](MOD_LAUNCHER_TEST.md).
 - Private server JAR recovered for metadata/reference outside git (`../wurm-mod-inputs`); it was not used to claim a complete running-server test. Upstream source/ZIP/compiler scratch in `../wurm-mod-research`. No proprietary runtime files are committed. Scratch may vanish; implementation and this handoff are repository-backed.
 
