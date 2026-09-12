@@ -2,13 +2,15 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current test: 0.10.35 — world settings and in-game bindings.**
-The user reports 0.10.34 stable. Server now exposes 16 gameplay controls with
-bounds and protected saves. The in-game gear menu adds Wurm keybindings and
-controller mappings that reload on return. Default resolution is 1280 × 720.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.35-world-controls).
-[Settings details and device checklist](docs/WORLD_SETTINGS_AND_BINDINGS.md).
-[Previous graphics audit](docs/GRAPHICS_AND_TABS.md).
+**Current branch test: 0.10.36 — mod launcher framework.**
+
+This branch is `mod-launcher-test`; stable main/0.10.35 remain separate. Server,
+Client, Mods and Diagnostics tabs; manifest-based ZIP imports and stopped-runtime
+toggles; optional server loader startup. Client mods are staged for later testing.
+
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.36-mod-launcher-test).
+[Loader/mod downloads and device checklist](docs/MOD_LAUNCHER_TEST.md).
+[Maintained handoff](docs/HANDOFF.md). Existing runtime reports stay in Diagnostics.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed
 approximately 36 minutes on 0.10.31 with normal client/server exits and about

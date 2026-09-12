@@ -106,6 +106,16 @@ val prepareClientGraphics by tasks.registering(Exec::class) {
     commandLine("python3", rootProject.file("scripts/prepare-client-graphics.py").absolutePath)
 }
 
+// Pure Java dependency for the optional mod child JVM, not an Android classpath dependency.
+val modBytecode by configurations.creating
+val modAssets = layout.buildDirectory.dir("generated/modAssets")
+val packageModBytecode by tasks.registering(Copy::class) {
+    from(modBytecode) { rename { "mod-javassist.jar" } }
+    from(rootProject.file("docs/MOD_DEPENDENCY_NOTICES.txt"))
+    from(rootProject.file("docs/JAVASSIST_LICENSE.html"))
+    into(modAssets)
+}
+
 android {
     namespace = "io.github.russianranger.wurmlauncher"
     compileSdk = 34
@@ -116,8 +126,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 49
-        versionName = "0.10.35"
+        versionCode = 50
+        versionName = "0.10.36"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -130,7 +140,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".worldcontrols"
+            applicationIdSuffix = ".modtest"
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }
@@ -152,6 +162,7 @@ android {
         java.srcDir("src/jvmProbe/java")
         assets.srcDir(probeAssets)
         assets.srcDir(clientCompatAssets)
+        assets.srcDir(modAssets)
         assets.srcDir(layout.buildDirectory.dir("generated/managedRuntime/assets"))
         jniLibs.srcDir(layout.buildDirectory.dir("generated/managedRuntime/jniLibs"))
         assets.srcDir(layout.buildDirectory.dir("generated/clientGraphics/assets"))
@@ -167,9 +178,10 @@ android {
 
 tasks.named("preBuild").configure { dependsOn(packagePoc) }
 tasks.matching { it.name == "preJvmProbeBuild" }.configureEach { dependsOn(prepareJvmProbe, packageProbe) }
-tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe, packageClientCompat, prepareClientGraphics) }
+tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe, packageClientCompat, prepareClientGraphics, packageModBytecode) }
 
 dependencies {
+    add(modBytecode.name, "org.javassist:javassist:3.30.2-GA")
     testImplementation("junit:junit:4.13.2")
     add("testManagedPreviewImplementation", "org.xerial:sqlite-jdbc:3.53.2.1")
 }

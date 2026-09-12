@@ -56,9 +56,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.35\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.36\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: user reports 0.10.34 stable on Thor. This build adds stopped-server world settings, native game keybindings and controller mappings in the gear menu, and a 1280x720 default. New controls still need physical-device confirmation. Graphics/audio compatibility, heap, collectors and native memory checking are retained.\n\n" +
+            "Gate status: user reports 0.10.35 stable. This isolated mod test adds server loader integration and server/client mod staging. Client mod execution is deferred. Native graphics, audio, heap and collector policies are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -69,11 +69,36 @@ object ClientSession {
                 val frame = GraphicsFrame.read(it)
                 "sequence=${frame.sequence} size=${frame.width}x${frame.height} pointer=${frame.pointer} sha256=${ProbeInputs.sha256(it)}; retained frame, not a new run\n"
             } ?: "No frame\n" }.getOrElse { "Frame invalid: ${it.message}\n" } +
+            "\nClient mod manifest:\n" + runCatching { installed?.let { ModStore(it.root,"client").report() } ?: "No runtime" }.getOrElse { "Unavailable: ${it.message}" } +
             "\nRuntime observations (history; entries may also appear in console; compare timestamps/PIDs):\n" +
             runCatching { observations?.read().orEmpty() }.getOrDefault("Unavailable\n") + "\nSession history:\n" +
             (file?.takeIf { it.isFile }?.readText() ?: recent()) +
             "\n\nServer Session Report from this app only (history; compare timestamps):\n" +
             ManagedSession.report(context)
+    }
+    /** File-only client mod operations share the same ownership and native-child guard as import. */
+    @Synchronized fun mutateMods(context: Context, action: (ModStore) -> String): Boolean {
+        if(state.busy) return false
+        val app=context.applicationContext
+        initialize(app); activeMode="mods"; status("Mods", "Updating client mod files")
+        worker=Thread({
+            try {
+                val store=store(app); store.home.mkdirs()
+                RandomAccessFile(store.lock,"rw").channel.use { channel ->
+                    (channel.tryLock() ?: error("Another client owns the client files")).use {
+                        RandomAccessFile(File(store.home,"process.lock"),"rw").channel.use { native ->
+                            (native.tryLock() ?: error("Previous client is still exiting")).use {
+                                val root=requireNotNull(store.current()) { "Import the client runtime first" }.root
+                                val message=action(ModStore(root,"client"))
+                                status("Stopped",message); log("[mods] $message")
+                            }
+                        }
+                    }
+                }
+            } catch(failure: Exception) { status("Error",failure.message ?: "Client mod operation failed"); log("[mods] CLIENT_MOD_FAILED $failure") }
+            finally { synchronized(this) { worker=null; state=state.copy(busy=false) } }
+        },"wurm-client-mods").apply { start() }
+        return true
     }
     @Synchronized fun start(context: Context, mode: String, uri: Uri?, done: () -> Unit): Boolean {
         if (state.busy) return false
@@ -168,6 +193,10 @@ object ClientSession {
     private fun run(context: Context, store: ClientStore, mode: String) {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
+        if(installed!=null && mode in listOf("start","local")) {
+            val staged=ModStore(installed.root,"client").validate().filter { it.enabled }
+            if(staged.isNotEmpty()) log("[mods] CLIENT_LOADER_DEFERRED staged=${staged.joinToString { it.name }}; baseline client startup")
+        }
         if (mode !in listOf("input", "memory")) {
             graphicsNotice = ""
             graphicsFrame(context).delete()

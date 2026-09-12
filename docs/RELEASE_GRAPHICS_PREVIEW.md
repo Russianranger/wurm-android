@@ -1,3 +1,24 @@
+# 0.10.36 — mod launcher test branch
+
+Isolated `.modtest` package from `mod-launcher-test`; stable main remains unchanged.
+
+- Server, Client, **Mods**, Diagnostics tabs. Existing reports stay in Diagnostics.
+- ZIP import, per-mod manifests and on/off switches with recoverable file moves.
+- Optional Ago 0.47 server loader integration; Announcer first, then CropMod together.
+- Client mod import/staging framework; client mod execution is deferred.
+- Stable graphics/audio/native memory policies, 1280x720 and controls retained.
+
+Import a normally stopped working server export and your existing client ZIP.
+Then follow [the loader downloads and staged device checklist](MOD_LAUNCHER_TEST.md).
+No mods are enabled automatically. Keep your pre-mod export: disabling a mod does
+not reverse world/database changes. Return Server and Client reports from Diagnostics.
+
+[Maintained project handoff](HANDOFF.md).
+
+---
+
+## Previous release
+
 # 0.10.35 — world settings and in-game bindings
 
 The user reports 0.10.34 stable. This build adds:

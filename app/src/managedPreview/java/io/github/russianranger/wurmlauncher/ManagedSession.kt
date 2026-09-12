@@ -92,6 +92,7 @@ object ManagedSession {
             "Retained first errors (separate from rotating console):\n$evidence\n\n" +
             "Runtime observations (history; entries may also appear in console; compare timestamps/PIDs):\n" +
             runCatching { (observations ?: RuntimeObservationLog(File(context.filesDir, "server-runtime-observations.txt"))).read() }.getOrDefault("Unavailable\n") +
+            "\nServer mod manifest:\n" + runCatching { workspace(context).working()?.let { ModStore(it,"server").report() } ?: "No runtime" }.getOrElse { "Unavailable: ${it.message}" } +
             "\nRecent session console:\n" +
             (if (saved.isFile) saved.readText() else state.log)
     }

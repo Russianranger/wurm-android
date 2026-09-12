@@ -1,0 +1,14 @@
+Javassist 3.30.2-GA (unmodified)
+Copyright (C) 1999-2024 by Shigeru Chiba. All rights reserved.
+https://github.com/jboss-javassist/javassist/tree/rel_3_30_2_ga
+https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/
+
+The Javassist distribution offers MPL 1.1, LGPL 2.1-or-later, or Apache 2.0.
+This app distributes the unmodified dependency under MPL 1.1.
+The corresponding source JAR retains the upstream source copyright notices.
+The release includes the original corresponding source JAR and full license text.
+Javassist executes only within the optional mod child JVM.
+
+Ago WurmServerModLauncher 0.47 is not redistributed in this APK.
+It is supplied separately by the user from the upstream release.
+https://github.com/ago1024/WurmServerModLauncher/releases/tag/v0.47

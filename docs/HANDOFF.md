@@ -2,7 +2,18 @@
 
 Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.35, awaiting device test
+## Active work — mod-launcher-test branch (2026-09-12)
+
+User confirms 0.10.35 functional/stable and authorizes a separate mod test branch only. Main remains at `2e41fb091ee75a76b9116e934abecff90bc735d9`. Branch `mod-launcher-test` was created from it. Work in progress; no mod APK released yet.
+
+- Requested tab order: Server, Client, Mods, Diagnostics. Mod tooling/initial diagnostics belong in Mods. Existing reports remain in Diagnostics.
+- Use ZIP import plus file manifest, initially disabled. Toggle moves entire owned mod folder, descriptor and config between `mods/` and `android-mods/disabled/<name>/`; journal finishes interrupted moves. Changes require the affected runtime stopped and its existing locks.
+- Server bootstrap: imported Ago server loader 0.47 + pinned Javassist 3.30.2-GA before Wurm resolves, then existing Android POC/STOP flow. Import only core loader from full ZIP; do not automatically activate bundled optional mods or use desktop binaries.
+- Client has import/manifest/toggle framework; execution explicitly deferred until server tests pass. Preserve existing native/graphics/audio/GC policies.
+- Next: finish UI/storage validation, test real upstream classloader and import recovery, build isolated 0.10.36 `.modtest` APK through branch CI, update this handoff with evidence. Do not merge to main.
+- Private server JAR recovered for compatibility checks outside git (`../wurm-mod-inputs`). Upstream source/ZIP/compiler scratch in `../wurm-mod-research`. Never commit proprietary runtime files.
+
+## Latest stable release — 0.10.35
 
 - **0.10.35**, versionCode **49**, package `io.github.russianranger.wurmlauncher.worldcontrols`.
 - Release tag `v0.10.35-world-controls`; implementation commit `25ad1233365001032eccda680340a7c9a418a845`, tree `c10f58dfaebdda0a7b3dc0f5e3aa63a1bfc5eccf`.

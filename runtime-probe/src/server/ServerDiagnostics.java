@@ -14,12 +14,14 @@ import java.util.logging.Logger;
 
 /** Supported JUL configuration plus observational snapshots. Does not intercept System.exit. */
 public final class ServerDiagnostics {
+    private static final AtomicBoolean installed = new AtomicBoolean();
     private static final AtomicBoolean requestedStop = new AtomicBoolean();
     private static final String CONFIG = "handlers=server.ServerLogHandler\n.level=INFO\n" +
         "com.wurmonline.server.LoginHandler.level=FINE\n";
     private ServerDiagnostics() { }
 
     public static void install() throws Exception {
+        if (!installed.compareAndSet(false, true)) return;
         ServerLogHandler.initializeEvidence();
         // Installed before any Wurm class initialization. Suppresses its file-only fallback.
         Path config = Path.of(System.getProperty("java.io.tmpdir"), "wurm-server-logging.properties");

@@ -31,6 +31,17 @@ class ManagedLaunchTest {
         assertTrue(args.contains("-Dwurm.server.firstErrors=/app/files/managed-first-errors.txt"))
         assertEquals(listOf("server.ManagedServerMain", "Adventure"), args.takeLast(2))
     }
+    @Test fun optionalLoaderKeepsOverlayOrderAndBaselinePreflight() {
+        val mods=listOf("/runtime/android-mods/loader/modlauncher.jar","/session/mod-javassist.jar")
+        val args=config.arguments(native,home,tmp,runtime,helper,false,mods)
+        val cp=args[args.indexOf("-cp")+1].split(':')
+        assertEquals(mods,cp.take(2))
+        assertTrue(cp.indexOf("${tmp.parent}/server-sqlite.jar") < cp.indexOf("server.jar"))
+        assertEquals(listOf("server.ServerModBootstrap","Adventure"),args.takeLast(2))
+        val preflight=config.arguments(native,home,tmp,runtime,helper,true,mods)
+        assertEquals(listOf("server.ServerPreflight",tmp.parent,runtime.path),preflight.takeLast(3))
+        assertFalse(preflight[preflight.indexOf("-cp")+1].contains("modlauncher"))
+    }
     @Test fun storageAuditStillInvokesOnlyReadOnlyAudit() {
         val args = config.auditArguments(native, home, tmp, runtime, helper, File("/audit"), false)
         assertEquals(listOf("persistence.StorageAudit", runtime.path, "/audit", "Adventure", "check"), args.takeLast(5))

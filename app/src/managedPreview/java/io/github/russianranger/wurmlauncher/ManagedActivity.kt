@@ -20,18 +20,19 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 
-/** Three persistent pages; navigation never changes client/server service ownership. */
+/** Four persistent pages; navigation never changes client/server service ownership. */
 class ManagedActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("managed-settings", MODE_PRIVATE) }
     private lateinit var page: LinearLayout
     private lateinit var status: TextView
     private lateinit var clientPage: ClientPage
+    private lateinit var modsPage: ModsPage
     private lateinit var diagnosticsPage: DiagnosticsPage
     private val pages = mutableListOf<ScrollView>()
     private val tabs = mutableListOf<Button>()
     private var selectedTab = SERVER
-    private val scrollOffsets = IntArray(3)
+    private val scrollOffsets = IntArray(4)
     private var pageShown = false
     private lateinit var worlds: Spinner
     private lateinit var start: Button
@@ -49,7 +50,7 @@ class ManagedActivity : Activity() {
         super.onCreate(savedInstanceState)
         ClientSession.initialize(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        root.addView(TextView(this).apply { text="Wurm · 0.10.35"; textSize=22f; setPadding(20,12,20,8) })
+        root.addView(TextView(this).apply { text="Wurm · 0.10.36"; textSize=22f; setPadding(20,12,20,8) })
         val navigation=LinearLayout(this)
         root.addView(navigation)
         val content=android.widget.FrameLayout(this)
@@ -63,11 +64,15 @@ class ManagedActivity : Activity() {
         addPage(page)
         clientPage=ClientPage(this) { document(Intent.ACTION_OPEN_DOCUMENT,"*/*","",IMPORT_CLIENT) }
         addPage(clientPage.view)
+        modsPage=ModsPage(this) { side ->
+            document(Intent.ACTION_OPEN_DOCUMENT,"*/*","",if(side=="server") IMPORT_SERVER_MOD else IMPORT_CLIENT_MOD)
+        }
+        addPage(modsPage.view)
         diagnosticsPage=DiagnosticsPage(this, { audit(it) }, { request, name ->
             document(Intent.ACTION_CREATE_DOCUMENT,"text/plain",name,request)
         }, { worldReport() })
         addPage(diagnosticsPage.view)
-        listOf("Server","Client","Diagnostics").forEachIndexed { index, title ->
+        listOf("Server","Client","Mods","Diagnostics").forEachIndexed { index, title ->
             tabs += Button(this).apply {
                 text=title; isAllCaps=false
                 setOnClickListener { if (selectedTab!=index) selectTab(index) }
@@ -130,7 +135,7 @@ class ManagedActivity : Activity() {
         pageShown=true
     }
     private fun renderSelected() {
-        when(selectedTab) { SERVER -> render(); CLIENT -> clientPage.render(); DIAGNOSTICS -> diagnosticsPage.render() }
+        when(selectedTab) { SERVER -> render(); CLIENT -> clientPage.render(); MODS -> modsPage.render(); DIAGNOSTICS -> diagnosticsPage.render() }
     }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); selectTab(intent.getIntExtra("tab",SERVER)) }
     override fun onSaveInstanceState(out: Bundle) {
@@ -223,6 +228,10 @@ class ManagedActivity : Activity() {
         if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         val app = applicationContext
+        if(requestCode==IMPORT_SERVER_MOD || requestCode==IMPORT_CLIENT_MOD) {
+            modsPage.importZip(if(requestCode==IMPORT_SERVER_MOD) "server" else "client",uri)
+            return
+        }
         if (requestCode == IMPORT_CLIENT) {
             runCatching { contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             startForegroundService(Intent(this,ClientService::class.java).setAction("import").setData(uri))
@@ -281,7 +290,10 @@ class ManagedActivity : Activity() {
     companion object {
         const val SERVER=0
         const val CLIENT=1
-        const val DIAGNOSTICS=2
+        const val MODS=2
+        const val DIAGNOSTICS=3
+        private const val IMPORT_SERVER_MOD=12
+        private const val IMPORT_CLIENT_MOD=13
         private const val IMPORT_CLIENT=10
         const val EXPORT_CLIENT=11
         fun tabIntent(context: Context,tab: Int)=Intent(context,ManagedActivity::class.java)

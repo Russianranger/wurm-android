@@ -10,9 +10,9 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
         require(port in 1..65535) { "Expected TCP port must be 1–65535." }
     }
 
-    fun arguments(native: File, home: File, tmp: File, runtime: File, helper: File, preflight: Boolean): List<String> {
+    fun arguments(native: File, home: File, tmp: File, runtime: File, helper: File, preflight: Boolean, modJars: List<String> = emptyList()): List<String> {
         val cp = if (preflight) listOf(helper.absolutePath) + ProbeInputs.BASELINE.keys.map { File(runtime, "poc-lib/$it").absolutePath }
-        else listOf("wurm-arm64-poc.jar") + ProbeInputs.BASELINE.keys.map { "poc-lib/$it" } +
+        else modJars + listOf("wurm-arm64-poc.jar") + ProbeInputs.BASELINE.keys.map { "poc-lib/$it" } +
             listOf(File(tmp.parentFile, "server-sqlite.jar").absolutePath,
                 File(tmp.parentFile, "server-login.jar").absolutePath, "server.jar", "common.jar", "lib/*", helper.absolutePath)
         return listOf(File(native, "libwurmjvm_runner.so").absolutePath,
@@ -26,7 +26,7 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
                 "-Dwurm.server.sqliteOverlay=${File(tmp.parentFile, "server-sqlite.jar").absolutePath}",
                 "-Dwurm.server.loginOverlay=${File(tmp.parentFile, "server-login.jar").absolutePath}",
                 "-Dwurm.server.firstErrors=${File(tmp.parentFile!!.parentFile, "managed-first-errors.txt").absolutePath}")) + listOf(
-            "-cp", cp.joinToString(":"), if (preflight) "server.ServerPreflight" else "server.ManagedServerMain",
+            "-cp", cp.joinToString(":"), if (preflight) "server.ServerPreflight" else if (modJars.isEmpty()) "server.ManagedServerMain" else "server.ServerModBootstrap",
             if (preflight) tmp.parentFile!!.absolutePath else world) + if (preflight) listOf(runtime.absolutePath) else emptyList()
     }
 

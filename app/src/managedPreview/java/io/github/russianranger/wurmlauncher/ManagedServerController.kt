@@ -191,13 +191,14 @@ class ManagedServerController(private val context: Context, private val config: 
             child = null
             cancelled()
             log("[app] PREFLIGHT_PASS")
+            val modJars = workspace.exclusive { ModRuntime.prepareServer(context, runtime, run) }
             check(!portOpen()) { "TCP ${config.port} is already occupied. Stop the Termux/other server first." }
             workspace.exclusive { workspace.saveCheckpoint { cancelled(); status("Preparing", it); log("[app] $it") } }
             cancelled()
             status("Starting", "Wurm process starting; waiting for POC initialization and TCP ${config.port}.")
             workspace.recoveryRequired.writeText("Wurm may have opened this working world. Clear only after requested normal exit or successful restore.\n")
             report { it.state("Starting; waiting for initialization and TCP") }
-            val server = launch(config.arguments(native, home, tmp, runtime, helper, false), runtime, home, native, tmp)
+            val server = launch(config.arguments(native, home, tmp, runtime, helper, false, modJars), runtime, home, native, tmp)
             val started = System.nanoTime()
             log("[app] ${java.time.Instant.now()} SERVER_CHILD_STARTED session=${run.name}; world=${config.world}")
             val serverReader = read(server) { line ->
