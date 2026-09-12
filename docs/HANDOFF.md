@@ -2,19 +2,33 @@
 
 Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Active work — 2026-09-12
+## Latest release — 0.10.35, awaiting device test
 
-User reports 0.10.34 working well, with both server and client stable. Current authorized request: expose bounded server gameplay settings; default new/unset game resolution to 1280x720; edit native Wurm keybindings from the gear menu; open controller mappings there and reload on return. Implementation complete; preparing 0.10.35/code49/`.worldcontrols`, tag `v0.10.35-world-controls`. Validation and release are in progress; no new APK confirmed yet. Preserve the stable graphics, memory and server startup policies.
+- **0.10.35**, versionCode **49**, package `io.github.russianranger.wurmlauncher.worldcontrols`.
+- Release tag `v0.10.35-world-controls`; implementation commit `25ad1233365001032eccda680340a7c9a418a845`, tree `c10f58dfaebdda0a7b3dc0f5e3aa63a1bfc5eccf`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.35-world-controls/Wurm-Server.apk), **52,915,761 bytes**.
+- APK SHA-256 **`685c0fef8d58e961038d53cddd7b791a2e4399703cd9e4557817409e0f09714f`**.
+- [CI run 34663722528](https://github.com/Russianranger/wurm-android/actions/runs/34663722528), build job **103471299895**: all four jobs succeeded. Host suite: **162 tests, 17 expected initial skips**; required subsequent native/actual-LWJGL regressions passed. All three Android variants built and passed unit/lint gates. APK v2 signing verified; certificate SHA-256 `f5ea58b940536a39fb087fc3eee4a19eb303ab684ed18e339e35f84ed3284699`.
+- Downloaded APK independently checked against release SHA256SUMS, manifest version/package, new menu/database/keybind classes and controller-reload marker. Host-test SQLite JDBC did not enter the APK. JRE archive members are byte-identical to 0.10.34, although ZIP packaging changes its outer hash. Server POC and 39 native files are byte-identical. GL4ES differs in exactly 25 bytes: GNU build ID and compile date/time banner; the remaining binary is identical. Existing graphics/audio/native-memory policies are preserved.
+- Handoff-only commits after the implementation commit do not change this APK.
+- **Next action:** install alongside 0.10.34, import the normally stopped **working** server export and existing client ZIP; test settings save/reopen, client keybind save/restart and controller remapping without restarting the game. Then export Client and Server reports from Diagnostics. [Detailed checklist](WORLD_SETTINGS_AND_BINDINGS.md).
 
-Private runtime JARs recovered from earlier uploads after scratch cleanup. Inspected server property-sheet bounds and SERVERS persistence, client PlayerKeybind/KeybindButtons catalogs and WurmConsole.executeKeybinds. Settings and keybind edits must preserve unrelated values and fail visibly on conflicts.
+## Completed request — 2026-09-12
 
-Implemented: 16 stopped-server gameplay settings, SQLite-managed backup before transactional changes, native dynamic keybind editor with response acknowledgments and game-thread reload, controller gear shortcut/resume reload, 720p fallback. See [settings implementation and test checklist](WORLD_SETTINGS_AND_BINDINGS.md).
+User reports 0.10.34 stable in both server and client. All four requested changes are implemented and released:
 
-Focused tests passed: 14 Kotlin/JUnit cases including real SQLite WAL backup and rollback, 15 headless keybind/storage cases, and 11 client startup cases after updating the viewport fixture to the new default. Initial full host run's four failures were old 960x540 fixture expectations, now corrected. Real imported client catalog check: 351 built-in actions, 93 nonempty base keys, no JavaFX initialization. Local Android API compilation passed (only an existing deprecation warning). Full CI/APK verification remains required.
+1. Server → World gameplay settings: 16 controls, including skill/action rates, five starting-skill values, breeding/field/tree settings, creature population and deed options. Displays verified bounds; three extra app minimums are labeled. Reads actual values, preserves untouched values, edits only while stopped under existing ownership/lock, captures a SQLite-managed WAL-inclusive backup, then updates changed columns in one transaction. Applies on next server start. Worlds sharing DB_HOST share settings; the actual database and local server ID are shown.
+2. Default resolution is 1280x720 when absent/invalid; explicit previous choices are retained. A resolution change still requires restarting the client.
+3. Gear → Game keybindings: dynamic native catalog, categories, key picker, modifiers and multiple keys; detects aliases/duplicate assignments, protects against stale/external edits, saves through existing atomic storage, and reloads the active game's bindings on its thread with an acknowledgment. Custom-console-command files remain read-only. A saved-but-failed live reload explicitly requests client restart.
+4. Gear → Controller mappings: existing mapping editor, held-input release, and saved-profile reload on viewer resume; no client restart needed.
 
-Key new source: `WorldSettings.kt`, `WorldSettingsStore.kt`, `WorldSettingsDatabase.kt`, `AndroidWorldSettingsDatabase.kt`, `WorldSettingsDialog.kt`; `GameKeybinds.kt`, `GameKeybindsActivity.kt`, `runtime-probe/src/client/ClientKeybindings.java`; editor extensions in the existing KeybindStore/WurmSettingsFX. SQLite JDBC is a host-test-only dependency, not an APK dependency.
+Key source: `WorldSettings.kt`, `WorldSettingsStore.kt`, `WorldSettingsDatabase.kt`, `AndroidWorldSettingsDatabase.kt`, `WorldSettingsDialog.kt`; `GameKeybinds.kt`, `GameKeybindsActivity.kt`, `runtime-probe/src/client/ClientKeybindings.java`; editor extensions in KeybindStore/WurmSettingsFX. SQLite JDBC is a host-test-only dependency.
 
-## Latest released build — device reports stable
+Focused validation: 14 Kotlin/JUnit cases including real SQLite WAL backup and rollback, 15 keybind/storage cases, and 11 client startup cases. Initial host run caught four old 960x540 viewport-fixture expectations; they were corrected before the successful release CI. Local Android API compilation passed with only an existing deprecation warning. Real imported metadata: 351 built-in actions and 93 nonempty base keys. Actual default binding file: 70 bound actions / 78 keys; the combined editor catalog has 365 actions. Catalog read and no-op save preserved the actual default file bytes. That private check used real metadata/file content with an authored engine/HUD fixture, not a running game.
+
+The earlier runtime JARs were recovered from persistent uploads after scratch cleanup. No proprietary JARs, disassembly or assets were committed. See [implementation details, bounds and device checks](WORLD_SETTINGS_AND_BINDINGS.md). Physical-device confirmation of the new controls is still pending.
+
+## Last device-confirmed stable release — 0.10.34
 
 - **0.10.34**, versionCode **48**, package `io.github.russianranger.wurmlauncher.graphicstabs`.
 - Release tag: `v0.10.34-graphics-tabs`; implementation commit `3c586f9ccc36b54ae49fa2cffd7046d34d0fc423`, tree `f64b127f4698ff81fc19b7b6a311e5ebbbfb10cc`.
@@ -23,18 +37,18 @@ Key new source: `WorldSettings.kt`, `WorldSettingsStore.kt`, `WorldSettingsDatab
 - [CI run 34619922092](https://github.com/Russianranger/wurm-android/actions/runs/34619922092): all four jobs succeeded. Build job 103331043313. Host suite: 154 tests with 17 expected initial fixture/platform skips; subsequent required native and actual LWJGL regressions passed, including both depth tests. Three Android variants built and passed unit/lint gates. APK v2 signature verified by CI.
 - Downloaded APK independently checked against release SHA256SUMS: correct package/version, new page classes, 47-option adapter including brightness, native depth preference and complete patch metadata, dark resources and runtime packaging. JVM, ASan runtime and server POC are byte-identical to 0.10.32.
 - Handoff-only commits after the implementation commit do not change this APK. Preserve this exact release/commit distinction.
-- **Next action:** user's Thor test. Compare the same building/distance/resolution first, then test tabs, Return to Game, live vs restart settings, and normal logout/reentry. Export both reports from Diagnostics. Do not claim the flicker is fixed on hardware until those results arrive.
+- **Device feedback, 2026-09-12:** user reports both server and client stable and asks for world settings and in-game bindings. No separate explicit confirmation of the beam flicker was provided. Next device checks are for 0.10.35 above.
 
-## Last device-confirmed stable baseline
+## Earlier measured baseline — 0.10.32
 
 - Repository: Russianranger/wurm-android, branch main.
-- Last device-confirmed baseline: **0.10.32**, tag `v0.10.32-dark-theme`, commit `4f66c65a1eb52d565af067db8697b8fd98ffc88b`, versionCode 46, application suffix `.darktheme`.
+- Earlier measured baseline: **0.10.32**, tag `v0.10.32-dark-theme`, commit `4f66c65a1eb52d565af067db8697b8fd98ffc88b`, versionCode 46, application suffix `.darktheme`.
 - [APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.32-dark-theme/Wurm-Server.apk), SHA-256 `fb706f5fea9f32f23f173078c18a6ada9484d8715011e99f81eaa0b768d3ee66`.
 - CI run 34605432654 passed all four jobs; host tests, actual native regression checks, three Android variant unit/lint/build gates and APK verification passed.
 - Physical device: AYN Thor Max, Android 13/API 33, Snapdragon 8 Gen 2/Adreno 740, 16 GB RAM.
 - User now confirms repeated logout/login, app quit/reentry, movement and interaction work. Audio works. Object pop-in is resolved. Latest remaining visual issue: cross-beams flicker with viewing distance.
 
-## Completed request and next step
+## Previous completed request — 0.10.34
 
 The user authorizes changes and continued device-test releases. Requested on 2026-09-11:
 
@@ -43,13 +57,13 @@ The user authorizes changes and continued device-test releases. Requested on 202
 3. Audit the underlying client's graphics options; expose usable options and explain compatibility restrictions.
 4. Organize the launcher into Server, Client and Diagnostics tabs. Move tests, reports and diagnostic output into Diagnostics; preserve basic server/client controls and running sessions.
 
-Status: requested implementation, validation and release are complete for 0.10.34. Awaiting device results. The handoff was first persisted in commit `6c1a9980c3e1f7905818af408d86baf1230bcd8a`. Do not confuse that documentation checkpoint with the release commit.
+Status: implementation, validation and release completed for 0.10.34; user reports it stable on 2026-09-12. The handoff was first persisted in commit `6c1a9980c3e1f7905818af408d86baf1230bcd8a`. Do not confuse that documentation checkpoint with the release commit.
 
 An intermediate 0.10.33 build at `0505ca4f8749d8834a7d0c1bc720317ae0281861` started CI before the final audit found additional startup-only consumers and postprocess brightness. Its Android unit gate failed on the obsolete 17-field assertion; it was not released. 0.10.34 includes these extra controls and a complete depth-patch manifest marker.
 
 Changes: one launcher host with persistent Server/Client/Diagnostics pages; 47 graphics controls (17 existing + 30 new) with restart-only deferral; verified EGL depth24 preference/depth16 fallback; pinned GL4ES unsized texture/renderbuffer precision changes. Runtime collectors, native memory checking and occlusion-query restrictions are preserved. ClientPage/DiagnosticsPage are new view controllers, not Activities. Return to Game reopens the viewer without starting a new client.
 
-Validation is complete as recorded above. The initial Android run caught an obsolete 17-field test expectation; the corrected Kotlin/JUnit tests passed locally and all CI gates passed on the final implementation commit. See [the detailed audit and test plan](GRAPHICS_AND_TABS.md). Hardware visual/lifecycle confirmation remains pending.
+Validation is complete as recorded above. The initial Android run caught an obsolete 17-field test expectation; the corrected Kotlin/JUnit tests passed locally and all CI gates passed on the final implementation commit. See [the detailed audit and test plan](GRAPHICS_AND_TABS.md). Specific visual correction was not explicitly confirmed; general stability is now reported by the user.
 
 Current attachments in the active scratch workspace:
 
