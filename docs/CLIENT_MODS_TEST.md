@@ -117,3 +117,17 @@ disable/re-enable/copy, side-specific loader pins, ignoring bundled mods,
 switch prerequisites, and retained report markers. Existing server-loader
 regressions remain required. CI performs host tests, all Android variant
 build/unit/lint gates, required native/actual-LWJGL checks and APK verification.
+
+Released from commit `ed0267310d247a45e42459accd6674256857044b`.
+[CI run 34716051969](https://github.com/Russianranger/wurm-android/actions/runs/34716051969)
+passed build and publication: 168 host tests with 17 initial fixture/platform
+skips, all three Android variant gates, and subsequent required native/input
+regressions. Host EGL shader compilation was unavailable; it was explicitly
+skipped. The four actual-client-loader regressions passed.
+
+Downloaded APK: **53,770,689 bytes**, SHA-256
+`2c40f7041778a7be0993016108f5fefbe5c4660ffedd9b336fe1d14cfbdf0ded`.
+It matches the release checksum, version/package, expected client-mod classes
+and markers, and full managed-runtime verification. CI verified its APK v2
+signature. Device rendering and Live Map behavior still require the checklist
+above. Handoff-only commits after the implementation commit do not change it.
