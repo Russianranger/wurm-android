@@ -1,8 +1,20 @@
 # Wurm Android handoff
 
-Updated: 2026-09-11. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest released build — awaiting device confirmation
+## Active work — 2026-09-12
+
+User reports 0.10.34 working well, with both server and client stable. Current authorized request: expose bounded server gameplay settings; default new/unset game resolution to 1280x720; edit native Wurm keybindings from the gear menu; open controller mappings there and reload on return. Implementation complete; preparing 0.10.35/code49/`.worldcontrols`, tag `v0.10.35-world-controls`. Validation and release are in progress; no new APK confirmed yet. Preserve the stable graphics, memory and server startup policies.
+
+Private runtime JARs recovered from earlier uploads after scratch cleanup. Inspected server property-sheet bounds and SERVERS persistence, client PlayerKeybind/KeybindButtons catalogs and WurmConsole.executeKeybinds. Settings and keybind edits must preserve unrelated values and fail visibly on conflicts.
+
+Implemented: 16 stopped-server gameplay settings, SQLite-managed backup before transactional changes, native dynamic keybind editor with response acknowledgments and game-thread reload, controller gear shortcut/resume reload, 720p fallback. See [settings implementation and test checklist](WORLD_SETTINGS_AND_BINDINGS.md).
+
+Focused tests passed: 14 Kotlin/JUnit cases including real SQLite WAL backup and rollback, 15 headless keybind/storage cases, and 11 client startup cases after updating the viewport fixture to the new default. Initial full host run's four failures were old 960x540 fixture expectations, now corrected. Real imported client catalog check: 351 built-in actions, 93 nonempty base keys, no JavaFX initialization. Local Android API compilation passed (only an existing deprecation warning). Full CI/APK verification remains required.
+
+Key new source: `WorldSettings.kt`, `WorldSettingsStore.kt`, `WorldSettingsDatabase.kt`, `AndroidWorldSettingsDatabase.kt`, `WorldSettingsDialog.kt`; `GameKeybinds.kt`, `GameKeybindsActivity.kt`, `runtime-probe/src/client/ClientKeybindings.java`; editor extensions in the existing KeybindStore/WurmSettingsFX. SQLite JDBC is a host-test-only dependency, not an APK dependency.
+
+## Latest released build — device reports stable
 
 - **0.10.34**, versionCode **48**, package `io.github.russianranger.wurmlauncher.graphicstabs`.
 - Release tag: `v0.10.34-graphics-tabs`; implementation commit `3c586f9ccc36b54ae49fa2cffd7046d34d0fc423`, tree `f64b127f4698ff81fc19b7b6a311e5ebbbfb10cc`.
@@ -45,7 +57,7 @@ Current attachments in the active scratch workspace:
 - `upload/wurm-server-report(20260911-152659).txt`
 - `upload/Wurm Server_2026-09-11 10_20_44.mp4`
 
-The latest client header is 0.10.32 and reports a normal entry exit code 0, with game-loop observation true. Detailed review is in GRAPHICS_AND_TABS.md: three client entry exits 0, two requested server exits 0, median recorded presented FPS 29.8; recoverable startup GL errors remain, and samples are too short for long-term memory conclusions. Read uploaded files from scratch; do not fetch them through Library. Scratch may disappear between sessions: request missing reports or owned runtime JARs again when necessary.
+The latest client header is 0.10.32 and reports a normal entry exit code 0, with game-loop observation true. Detailed review is in GRAPHICS_AND_TABS.md: three client entry exits 0, two requested server exits 0, median recorded presented FPS 29.8; recoverable startup GL errors remain, and samples are too short for long-term memory conclusions. Read uploaded files from scratch; do not fetch them through Library. Scratch may disappear between sessions. Recover previous uploads from their persistent file records when available before asking for a reupload.
 
 ## Established architecture and constraints
 

@@ -12,6 +12,13 @@ public final class WurmSettingsFX {
     public boolean keybindsNeedUpdate, closeSettings;
     private WurmSettingsFX() {}
     public static String androidCompatibilityVersion() { return "headless-keybinds-v1"; }
+    public static java.util.Map<String,java.util.List<String>> androidBindings() { return bindings.snapshot(); }
+    public static String androidBindingRevision() throws IOException { return bindings.revision(); }
+    public static boolean androidBindingsEditable() { return bindings.editable(); }
+    public static File androidBindingFile() { return bindings.file(); }
+    public static void androidEditBinding(String action,java.util.List<String> keys,String revision) throws IOException {
+        bindings.edit(action,keys,revision);
+    }
     public static void loadAllKeybinds(File file) {
         try { bindings.load(file.toPath()); }
         catch (IOException | IllegalArgumentException failure) { throw new IllegalStateException("KEYBINDS_LOAD_FAILED "+file, failure); }

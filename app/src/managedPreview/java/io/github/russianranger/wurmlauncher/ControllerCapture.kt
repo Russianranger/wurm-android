@@ -14,13 +14,15 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
         set(value) { if (!value) reset(); field=value }
     private var previous = 0L
     private var moves = 0
-    private val mapper = ControllerMapping(runCatching { ControllerProfile.load(ClientSession.profileFile(activity)) }.getOrElse {
+    private fun loadProfile() = runCatching { ControllerProfile.load(ClientSession.profileFile(activity)) }.getOrElse {
         ClientSession.log("[controller] PROFILE_INVALID ${it.message}; using defaults"); ControllerProfile()
-    }) { event ->
+    }
+    private val emit: (String) -> Unit = { event ->
         val queued = ClientSession.send(event)
         if (!event.startsWith("MOVE ") || ++moves % 30 == 0)
             ClientSession.log("[controller] TRANSLATE $event queued=$queued sink=lwjgl2-queues")
     }
+    private var mapper = ControllerMapping(loadProfile(), emit)
     private val ticker = object : Runnable {
         override fun run() {
             val now = System.nanoTime()
@@ -29,6 +31,13 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
         }
     }
     fun resume() {
+        reset()
+        val profile = loadProfile()
+        if (profile != mapper.profile) {
+            mapper = ControllerMapping(profile, emit)
+            ClientSession.log("[controller] PROFILE_RELOADED on viewer resume")
+        }
+        handler.removeCallbacks(ticker)
         manager.registerInputDeviceListener(this,handler); previous=0; handler.post(ticker); detect()
     }
     fun pause() { reset(); handler.removeCallbacks(ticker); manager.unregisterInputDeviceListener(this) }

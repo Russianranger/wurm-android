@@ -21,7 +21,7 @@ class ControllerSettingsActivity : Activity() {
         }
         label("Controller Settings · editable handheld profile")
         label("Detected: " + controllerNames())
-        label("Changes apply when reopening the input test. Android may reserve the Home/Mode button.")
+        label("Changes apply when you return to the game or input test. Android may reserve the Home/Mode button.")
         val dead = field("Dead zone (0.05–0.8)", profile.deadZone)
         val threshold = field("Left-stick movement threshold (0.1–0.95; lower is more sensitive)", profile.moveThreshold)
         val speed = field("Right-stick mouse speed (50–2000 pixels/second)", profile.mouseSpeed)

@@ -13,6 +13,7 @@
         </activity>
         <activity android:name=".ClientActivity" android:exported="false" />
         <activity android:name=".ControllerSettingsActivity" android:exported="false" />
+        <activity android:name=".GameKeybindsActivity" android:exported="false" />
         <activity android:name=".ControllerTestActivity" android:exported="false" />
         <activity android:name=".GraphicsTestActivity" android:exported="false" />
         <service android:name=".ClientService" android:exported="false" android:stopWithTask="false" />

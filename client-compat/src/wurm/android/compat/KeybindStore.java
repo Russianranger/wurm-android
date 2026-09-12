@@ -69,6 +69,49 @@ public final class KeybindStore {
         System.out.println("[client] KEYBINDS_LOADED actions="+bindings.size()+" keys="+keyCount()+" file="+next+" executor=none javafx=false");
     }
     public synchronized int keyCount() { return bindings.values().stream().mapToInt(List::size).sum(); }
+    public synchronized Map<String,List<String>> snapshot() {
+        Map<String,List<String>> result=new LinkedHashMap<>();
+        bindings.forEach((action,keys) -> result.put(action,List.copyOf(keys)));
+        return result;
+    }
+    public synchronized String revision() throws IOException {
+        if (source == null) throw new IOException("Keybindings are not loaded yet");
+        if (dirty || !Arrays.equals(snapshot,read(source))) throw new IOException("Bindings changed; reload the selected profile before editing");
+        try { return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(snapshot)); }
+        catch (java.security.NoSuchAlgorithmException impossible) { throw new AssertionError(impossible); }
+    }
+    public synchronized boolean editable() { return source != null && !otherCommands && !dirty; }
+    public synchronized File file() { return source == null ? null : source.toFile(); }
+    public static String editorKey(String value) {
+        String[] parts=key(value.trim()).split("[-+]",-1);
+        Set<String> mods=new HashSet<>();
+        for (int i=0;i<parts.length-1;i++)
+            if (!Set.of("CTRL","ALT","SHIFT").contains(parts[i]) || !mods.add(parts[i]))
+                throw new IllegalArgumentException("Use CTRL, ALT or SHIFT once before a key");
+        String base=parts[parts.length-1];
+        if (base.isEmpty()) throw new IllegalArgumentException("Choose a key after the modifier");
+        StringBuilder result=new StringBuilder();
+        for (String mod:List.of("ALT","CTRL","SHIFT")) if (mods.contains(mod)) result.append(mod).append('+');
+        return result.append(base).toString();
+    }
+    /** Save one complete action atomically. Conflicts never silently steal another action's key. */
+    public synchronized void edit(String action,List<String> keys,String expected) throws IOException {
+        if (!revision().equals(expected)) throw new IOException("Keybindings changed; refresh the editor");
+        if (!editable()) throw new IOException("This file contains custom console commands; its contents are preserved");
+        String name=command(action);
+        LinkedHashSet<String> wanted=new LinkedHashSet<>();
+        for (String value:keys) if (!wanted.add(editorKey(value))) throw new IllegalArgumentException("Duplicate key in this action");
+        for (var entry:bindings.entrySet()) if (!entry.getKey().equals(name)) for (String value:entry.getValue())
+            if (wanted.contains(editorKey(value))) throw new IllegalArgumentException(value+" is already assigned to "+entry.getKey()+"; clear that binding first");
+        if (List.copyOf(wanted).equals(bindings.getOrDefault(name,List.of()))) return;
+        Map<String,List<String>> before=snapshot();
+        bindings.put(name,new ArrayList<>(wanted)); dirty=true;
+        try { save(source); }
+        catch (IOException | RuntimeException failure) {
+            bindings.clear(); before.forEach((a,k) -> bindings.put(a,new ArrayList<>(k))); dirty=false;
+            throw failure;
+        }
+    }
     public synchronized String get(String action, int index) {
         List<String> values=bindings.get(command(action));
         return values == null || index<0 || index>=values.size() ? null : values.get(index);

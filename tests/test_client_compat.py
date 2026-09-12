@@ -97,7 +97,7 @@ public class WurmClientBase {
   if(!ticket.equals("WURM_ANDROID_LOCAL_V1:"+password)) throw new AssertionError("ticket identity mismatch");
   System.out.println("FIXTURE_LOCAL_LOGIN_CREDENTIAL_PASS");
   var screen=com.wurmonline.client.options.Options.screenSettings;
-  if(windowDirty || screen.maximized || screen.fullscreen || screen.resizable || screen.width!=Integer.getInteger("fixture.width",960) || screen.height!=Integer.getInteger("fixture.height",540) || screen.hz!=-1) throw new AssertionError("headless viewport");
+  if(windowDirty || screen.maximized || screen.fullscreen || screen.resizable || screen.width!=Integer.getInteger("fixture.width",1280) || screen.height!=Integer.getInteger("fixture.height",720) || screen.hz!=-1) throw new AssertionError("headless viewport");
   if(!com.wurmonline.client.launcherfx.WurmMain.getServerIp().equals("127.0.0.1") || com.wurmonline.client.launcherfx.WurmMain.getServerPort()!=3724) throw new AssertionError("target");
   String[] icons=com.wurmonline.client.launcherfx.WurmStage.getIconNames();
   if(icons.length!=4 || !icons[0].equals("/icon2_128.png") || !icons[3].equals("/icon2_16.png")) throw new AssertionError("icons");
@@ -195,7 +195,7 @@ class ClientCompatibilityTest(unittest.TestCase):
         self.assertIn('WINDOW_HELPER headless-icons-v1', result.stdout)
         self.assertIn('WINDOW_HELPER headless-errors-v1', result.stdout)
         self.assertIn('ICON_RESOURCES source=imported-client javafx=false', result.stdout)
-        self.assertIn('WINDOW_OPTIONS_ANDROID width=960 height=540 maximized=false', result.stdout)
+        self.assertIn('WINDOW_OPTIONS_ANDROID width=1280 height=720 maximized=false', result.stdout)
         self.assertIn('SETTINGS_ADAPTER headless-keybinds-v1', result.stdout)
         self.assertIn('KEYBINDS_LOADED actions=1 keys=2', result.stdout)
         self.assertIn('KEYBINDS_PRESERVED unchanged=true', result.stdout)

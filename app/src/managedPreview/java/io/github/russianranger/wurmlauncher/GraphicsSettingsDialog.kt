@@ -22,7 +22,7 @@ object GraphicsSettingsDialog {
             if (prefs.getString("graphics-preset","performance") == "imported") 1 else 0)
         val resolution=choice("Render resolution (after client restart)",
             listOf("800 × 480 — faster", "960 × 540", "1280 × 720 — HD"),
-            GraphicsOptions.resolutions.indexOf(prefs.getString("resolution","800x480")).coerceAtLeast(0))
+            GraphicsOptions.resolutions.indexOf(GraphicsOptions.resolution(prefs.getString("resolution",null))))
         val fps=choice("Frame target",listOf("30 FPS — smoother", "15 FPS — lower load"),
             if (prefs.getInt("frame-fps",30) == 15) 1 else 0)
         column.addView(TextView(activity).apply {

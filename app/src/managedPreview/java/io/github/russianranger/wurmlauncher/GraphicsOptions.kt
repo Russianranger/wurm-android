@@ -57,6 +57,8 @@ object GraphicsOptions {
         Option("useCompressedTexture", "Texture compression (if supported)", onOff, 0, true),
         Option("useCompressedTextureS3TC", "S3TC compression (if supported)", onOff, 0, true)
     )
+    const val DEFAULT_RESOLUTION = "1280x720"
+    fun resolution(saved: String?) = saved?.takeIf { it in resolutions } ?: DEFAULT_RESOLUTION
     val resolutions = listOf("800x480", "960x540", "1280x720")
     fun command(preset: String, values: List<Int>): String {
         require(preset in listOf("performance", "imported") && values.size == options.size)

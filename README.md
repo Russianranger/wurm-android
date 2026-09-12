@@ -2,13 +2,13 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current test: 0.10.34 — three tabs, expanded graphics and depth precision.**
-The Thor passed repeated login/logout and app reentry on 0.10.32; object pop-in
-is resolved. This build separates Server, Client and Diagnostics, expands the
-menu to 47 graphics controls, and prefers supported 24-bit depth for the reported
-cross-beam flicker. The visual correction still needs device confirmation.
-[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.34-graphics-tabs).
-[Graphics audit, report findings and device checks](docs/GRAPHICS_AND_TABS.md).
+**Current test: 0.10.35 — world settings and in-game bindings.**
+The user reports 0.10.34 stable. Server now exposes 16 gameplay controls with
+bounds and protected saves. The in-game gear menu adds Wurm keybindings and
+controller mappings that reload on return. Default resolution is 1280 × 720.
+[Download the APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.35-world-controls).
+[Settings details and device checklist](docs/WORLD_SETTINGS_AND_BINDINGS.md).
+[Previous graphics audit](docs/GRAPHICS_AND_TABS.md).
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed
 approximately 36 minutes on 0.10.31 with normal client/server exits and about

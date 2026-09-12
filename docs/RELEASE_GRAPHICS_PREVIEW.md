@@ -1,4 +1,28 @@
-# 0.10.34 — three tabs and graphics controls
+# 0.10.35 — world settings and in-game bindings
+
+The user reports 0.10.34 stable. This build adds:
+
+- Server → World gameplay settings: 16 controls, including skill gain, action speed,
+  new-character starting skills, breeding, field/tree growth, creature population,
+  upkeep and deed costs. Displays verified bounds, reads actual values, saves while
+  stopped with a consistent database backup, and applies at next server start.
+- Gear → Game keybindings: Wurm's native action/category catalog, key picker,
+  modifier keys, conflict checks, atomic persistence and live reload.
+- Gear → Controller mappings: changes reload when you return to the running game.
+- 1280 × 720 as the unset/default resolution; explicit previous choices are retained.
+
+Install the separate `.worldcontrols` package alongside the stable app. Import
+its normally stopped **working** server export and your existing client ZIP.
+The graphics/audio fixes, dark theme, white pointer and memory policies are retained.
+
+Test settings save/reopen, keybinding save and client restart, then controller
+remapping without restarting the game. Export both reports from Diagnostics.
+[Details and device checklist](WORLD_SETTINGS_AND_BINDINGS.md).
+[Maintained project handoff](HANDOFF.md).
+
+---
+
+## Previous: 0.10.34 — three tabs and graphics controls
 
 The 0.10.32 device tests passed repeated logout/login and app reentry with normal
 client/server exits. Nearby object pop-in is resolved. This release:

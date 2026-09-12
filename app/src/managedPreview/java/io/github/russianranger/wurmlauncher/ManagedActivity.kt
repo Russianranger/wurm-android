@@ -49,7 +49,7 @@ class ManagedActivity : Activity() {
         super.onCreate(savedInstanceState)
         ClientSession.initialize(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        root.addView(TextView(this).apply { text="Wurm · 0.10.34"; textSize=22f; setPadding(20,12,20,8) })
+        root.addView(TextView(this).apply { text="Wurm · 0.10.35"; textSize=22f; setPadding(20,12,20,8) })
         val navigation=LinearLayout(this)
         root.addView(navigation)
         val content=android.widget.FrameLayout(this)
@@ -84,6 +84,10 @@ class ManagedActivity : Activity() {
         label("World")
         worlds = Spinner(this).also { page.addView(it) }
         idleButtons += button("Server Settings") { settings() }
+        idleButtons += button("World gameplay settings") {
+            if (saveWorld()) WorldSettingsDialog.show(this, worlds.selectedItem as String)
+            else toast("Import a runtime and select a world first.")
+        }
         start = button("Start Server") {
             if (!saveWorld()) return@button
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)

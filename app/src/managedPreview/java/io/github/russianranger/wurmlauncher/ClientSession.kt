@@ -38,6 +38,7 @@ object ClientSession {
     fun profileFile(context: Context) = File(context.filesDir, "controller.properties")
     fun nativeDrawTrace(context: Context) = File(context.filesDir, "client-native-draw.bin")
     fun graphicsFrame(context: Context) = File(context.filesDir, "client-graphics-frame.bin")
+    fun keybindReport(context: Context) = File(context.filesDir, "client-keybindings.properties")
     @Synchronized fun log(message: String) {
         val line = message.take(4000); lines.addLast(line)
         while (lines.size > 1500) lines.removeFirst()
@@ -55,9 +56,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.34\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.35\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: Thor 0.10.32 completed repeated login, logout and app reentry with normal client/server exits; user confirms object pop-in resolved. This build adds three launcher tabs, 47 graphics options and preferred 24-bit depth for the reported beam flicker. Depth precision, expanded controls and navigation still need physical-device confirmation. Heap, collectors and native memory checking are retained.\n\n" +
+            "Gate status: user reports 0.10.34 stable on Thor. This build adds stopped-server world settings, native game keybindings and controller mappings in the gear menu, and a 1280x720 default. New controls still need physical-device confirmation. Graphics/audio compatibility, heap, collectors and native memory checking are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -225,7 +226,7 @@ object ClientSession {
             val graphicsCommand = GraphicsOptions.command(preset, GraphicsOptions.options.map { option ->
                 visual.getInt("graphics-option-${option.field}",-1).takeIf(option::valid) ?: -1
             })
-            val resolution = visual.getString("resolution", "800x480")?.takeIf { it in GraphicsOptions.resolutions } ?: "800x480"
+            val resolution = GraphicsOptions.resolution(visual.getString("resolution", null))
             val frameFps = visual.getInt("frame-fps", 30).takeIf { it in listOf(15,30) } ?: 30
             require(mode == "memory" || player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
@@ -256,6 +257,7 @@ object ClientSession {
                         "-Dwurm.client.offscreenOverlay=$overlay"
                     ) else emptyList()) + (if (stage == "entry") listOf(
                         "-Dwurm.client.graphicsPreset=$graphicsCommand", "-Dwurm.client.resolution=$resolution",
+                        "-Dwurm.client.keybindReport=${keybindReport(context)}",
                         "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
                         "--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED",
                         "-Dwurm.client.fontDir=/system/fonts", "-Dwurm.client.fontConfig=$session/fontconfig.properties"

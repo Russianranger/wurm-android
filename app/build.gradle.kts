@@ -116,8 +116,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 48
-        versionName = "0.10.34"
+        versionCode = 49
+        versionName = "0.10.35"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -130,7 +130,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".graphicstabs"
+            applicationIdSuffix = ".worldcontrols"
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }
@@ -171,4 +171,5 @@ tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    add("testManagedPreviewImplementation", "org.xerial:sqlite-jdbc:3.53.2.1")
 }

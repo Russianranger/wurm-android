@@ -84,6 +84,9 @@ public final class WindowBackend {
                         String preset=line.substring(7);
                         try { Class.forName("client.ClientVisualOptions").getMethod("apply", String.class).invoke(null,preset); }
                         catch (ReflectiveOperationException failure) { System.out.println("[client-ui] GRAPHICS_FAILED " + failure); }
+                    } else if (line.startsWith("BINDS ")) {
+                        try { Class.forName("client.ClientKeybindings").getMethod("command",String.class).invoke(null,line.substring(6)); }
+                        catch (ReflectiveOperationException failure) { System.out.println("[client-ui] KEYBINDS_FAILED "+failure); }
                     } else pointer.apply(line);
                 }
                 catch (IllegalArgumentException failure) { System.out.println("[window] INPUT_REJECTED " + failure.getMessage()); }

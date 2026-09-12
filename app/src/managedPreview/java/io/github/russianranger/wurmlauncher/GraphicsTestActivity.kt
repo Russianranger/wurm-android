@@ -170,11 +170,19 @@ class GraphicsTestActivity : Activity() {
         fun label(value: String, size: Float = 14f) = TextView(this).apply {
             text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
         }
-        label(if (mode == "render") "JVM Graphics Test · 0.10.34" else "Game controls · 0.10.34",20f)
+        label(if (mode == "render") "JVM Graphics Test · 0.10.35" else "Game controls · 0.10.35",20f)
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
         }
         if (mode in listOf("start","local")) button("Graphics settings · resolution") { showGraphicsSettings() }
+        if (mode in listOf("start","local")) button("Game keybindings") {
+            frame.cancelTouch(); capture?.reset()
+            startActivity(Intent(this,GameKeybindsActivity::class.java))
+        }
+        if (mode != "render") button("Controller mappings") {
+            frame.cancelTouch(); capture?.reset()
+            startActivity(Intent(this,ControllerSettingsActivity::class.java))
+        }
         column.addView(CheckBox(this).apply {
             text="Fullscreen game"; setTextColor(Color.WHITE); isChecked=fullscreen
             setOnCheckedChangeListener { _, value ->
