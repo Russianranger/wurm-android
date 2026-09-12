@@ -2,19 +2,30 @@
 
 Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current branch test — 0.10.37 mod hook ordering, awaiting device test
+## Latest physical result — 0.10.37 Announcer on/off passed
+
+User supplied `wurm-client-report(20260912-191104).txt` and `wurm-server-report(20260912-191104).txt`, enabling Announcer for the first session and disabling it for the second. Continue only on **mod-launcher-test**; main is unchanged.
+
+- First server, 19:05:07–19:08:22Z: actual `SERVER_MOD_READY announcer`, `SERVER_LOADER_READY count=1`, Android entry and client game loop. Hooked shutdown saved normally and returned 0. The earlier frozen-class failure did not recur.
+- Second server, 19:08:52–19:09:56Z: `SERVER_SELECTION none; baseline startup`, existing Thor character loaded, normal save and exit 0. Both client entry processes also returned 0. Final manifest has Announcer disabled, its generated config retained, and no pending transaction.
+- Loading, hook installation/execution and the disable path have device evidence. In-game announcement text is not captured in these reports; visible Announcer behavior and re-enable/config readback remain to check. Client mod execution remains deferred.
+- Rendering settles near 29–30 FPS. Recoverable startup graphics/content warnings remain; no new crash, OOM or demonstrated mod-caused regression. Server FD/heap growth appears in both short sessions without intervening GC; earlier baseline counts fell around collections. Do not infer a leak or change GC from this short test.
+- Next: use the same APK, re-enable Announcer without reimport, check its visible announcement and run 15–20 minutes; normal stop/restart and return both reports. After that passes, proceed to Announcer + CropMod. No new runtime changes in this review.
+- [Detailed two-session review, warning attribution, metrics and test checklist](MOD_DEVICE_REVIEW_20260912.md). Source/release identity remains below.
+
+## Current branch release — 0.10.37 mod hook ordering
 
 User's first 0.10.36 server test failed with Announcer enabled. Continue only on **mod-launcher-test**; main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
 
 - Report: `upload/wurm-server-report(20260912-183958).txt`; preflight passes, Announcer loads, then `ProxyServerHook.registerOnMessageHook` throws `Communicator class is frozen` at 18:38:53.314Z. Controlled server child exit 1 after 604 ms; no normal Android game-entry/readiness marker. The before-start checkpoint was retained.
 - Root cause reproduced locally: our `ServerHook.getMethod("createServerHook")` lookup resolves all its public method signatures, including unrelated event methods with Communicator/Player types. This defines/freezes game classes before the hook factory instruments them. Earlier fixture omitted those signatures and missed this failure.
 - Fix: exact `MethodHandles` lookup of the ServerHook factory and listener methods. No defrost workaround or skipped hooks. Four bounded stage markers identify mod initialization, hook installation, callback initialization and Android entry.
-- Expanded actual-Ago/Javassist regression reproduces the old frozen-class failure and passes with the fix, including the actual hook effect, two mod transformations/order, class identity, and failure/no-vanilla-fallback behavior. Fixture game/lifecycle code is authored; real Wurm/device startup remains unverified.
+- Expanded actual-Ago/Javassist regression reproduces the old frozen-class failure and passes with the fix, including the actual hook effect, two mod transformations/order, class identity, and failure/no-vanilla-fallback behavior. Fixture game/lifecycle code is authored; actual device startup was subsequently confirmed in the on/off review above.
 - Released **0.10.37**, code **51**, package `io.github.russianranger.wurmlauncher.modhookfix`, tag `v0.10.37-mod-hook-order`. Implementation commit **`e7ee1eb03fb9911c863e56651540db25b98ed0ac`**, tree `eaaaf6b17ba69549c7ba4fc7ed845baf470e1add`. Separate package preserves 0.10.36 data because CI debug signing keys vary between builds.
 - [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.37-mod-hook-order/Wurm-Server.apk), **53,760,901 bytes**, SHA-256 **`8c6f02d5644fd8bca9406f3ad363b793a0eabe19812dea612b5bfebefb4810a0`**.
 - [CI run 34712199899](https://github.com/Russianranger/wurm-android/actions/runs/34712199899): build job `103602858718` and mod release job `103604204935` succeeded. Older import/JVM preview publishers were intentionally skipped. Host suite: **164 tests, 17 expected initial skips**; required subsequent native/actual-LWJGL regressions passed. All three Android variants built and passed unit/lint gates. The expanded frozen-class regression passed in CI. APK v2 signature verified; certificate SHA-256 `52bad60512cfa5ecf6b687e6a0fd115f58b218670f9f02d1e37d1268b4de2879`.
 - Independently downloaded APK matches release SHA256SUMS, manifest version/code/package, corrected MethodHandles launcher and stage markers; full `verify-managed-apk.py` passed locally. Relative to 0.10.36, JRE members, server POC and 39 native libraries are byte-identical. GL4ES differs only in 24 bytes covering the GNU build ID and compile-time banner; remaining bytes identical. Handoff-only commits after the implementation commit do not change the immutable APK.
-- Retest: export **before-start checkpoint ZIP** from 0.10.36, install 0.10.37 alongside it, import checkpoint as server runtime (loader/Announcer/manifest included), check Mods, then start Announcer alone. Import normal client ZIP only for login test. Export Server report from Diagnostics, plus Client report if used. Do not add CropMod yet. [Detailed cause and steps](MOD_HOOK_ORDER_FIX.md).
+- Original retest (completed; see current next steps above): export **before-start checkpoint ZIP** from 0.10.36, install 0.10.37 alongside it, import checkpoint as server runtime (loader/Announcer/manifest included), check Mods, then start Announcer alone. Import normal client ZIP only for login test. [Detailed cause and original steps](MOD_HOOK_ORDER_FIX.md).
 - Loader/Javassist pins, mod store/toggles, client staging, world data handling, SQLite/login patches, graphics/audio/native/GC policies remain unchanged. No additional proprietary files are committed.
 
 ## Previous branch test — 0.10.36 mod launcher (2026-09-12)
