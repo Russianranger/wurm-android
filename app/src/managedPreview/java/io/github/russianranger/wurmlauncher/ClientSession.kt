@@ -56,9 +56,9 @@ object ClientSession {
     fun report(context: Context): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.37\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.38\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: user reports 0.10.35 stable. This mod test corrects premature class loading during server hook installation and retains server/client mod staging. Client mod execution is deferred. Native graphics, audio, heap and collector policies are retained.\n\n" +
+            "Gate status: user reports 0.10.35 stable. Server mod loading is device-confirmed. This test adds client loader 0.15 and shared client mods, starting with Live Map 1.8; client mod gameplay requires device confirmation. Native graphics, audio, heap and collector policies are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -194,8 +194,7 @@ object ClientSession {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
         if(installed!=null && mode in listOf("start","local")) {
-            val staged=ModStore(installed.root,"client").validate().filter { it.enabled }
-            if(staged.isNotEmpty()) log("[mods] CLIENT_LOADER_DEFERRED staged=${staged.joinToString { it.name }}; baseline client startup")
+            ModStore(installed.root,"client").validate()
         }
         if (mode !in listOf("input", "memory")) {
             graphicsNotice = ""
@@ -243,6 +242,7 @@ object ClientSession {
         var appMemory: AppMemoryMeasurements? = null
         context.assets.open("client-compat.jar").use { input -> compat.outputStream().use { input.copyTo(it) } }
         try {
+            val modClasspath = installed?.let { ModRuntime.prepareClient(context,it.root,session) }.orEmpty()
             val graphics = if (mode !in listOf("input", "memory")) GraphicsRuntime.prepare(context, session, ::log).map { it.absolutePath } else emptyList()
             val cp = listOf(helper.absolutePath) + installed?.jars.orEmpty().map { File(installed!!.root, it).absolutePath }
             log("[client] Runtime root=${installed?.root}; no server JARs, server Steam shim or JavaFX launcher added")
@@ -269,7 +269,8 @@ object ClientSession {
                 if (stage == "entry") appMemory = AppMemoryMeasurements(::log)
                 val stageCp = when {
                     window -> listOf(graphics.last()) + graphics.dropLast(1) + listOf(compat.absolutePath) +
-                        (if (stage == "entry") listOf(overlay.absolutePath) else emptyList()) + cp
+                        (if (stage == "entry") listOf(overlay.absolutePath) else emptyList()) + cp +
+                        (if (stage == "entry") modClasspath else emptyList())
                     stage == "render" -> graphics.dropLast(1)
                     stage == "compat" -> listOf(compat.absolutePath) + cp
                     else -> cp
@@ -301,6 +302,7 @@ object ClientSession {
                     ) + when(stage) {
                         "render" -> listOf("wurm.graphics.GraphicsProbe", File(native,"libgl4es.so").absolutePath, graphicsFrame(context).absolutePath)
                         "window" -> listOf("wurm.graphics.WindowProbe")
+                        "entry" -> listOf(if(modClasspath.isEmpty()) "client.ClientBootstrap" else "client.ClientModBootstrap", stage)
                         else -> listOf("client.ClientBootstrap", stage)
                     } else listOf("client.ClientBootstrap", stage)
                 val evidence = ClientCrashEvidence(android.os.Process.myUid(), System.currentTimeMillis())

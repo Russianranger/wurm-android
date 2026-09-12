@@ -16,6 +16,7 @@ class RuntimeObservationLogTest {
             repeat(400) { log.observe("[runtime-memory] sample=$it " + "x".repeat(4000)) }
             log.observe("[graphics-error] origin=fixture")
             log.observe("[app] time TCP_PROBE_SUMMARY checks=40")
+            log.observe("[mods] time CLIENT_MOD_READY livemap")
             assertTrue(file.length() <= 512 * 1024 + 4001)
             val saved = RuntimeObservationLog(file).read()
             assertFalse(saved.contains("frame="))
@@ -23,6 +24,7 @@ class RuntimeObservationLogTest {
             assertTrue(saved.contains("sample=399"))
             assertTrue(saved.contains("origin=fixture"))
             assertTrue(saved.contains("checks=40"))
+            assertTrue(saved.contains("CLIENT_MOD_READY livemap"))
         } finally { home.deleteRecursively() }
     }
 }

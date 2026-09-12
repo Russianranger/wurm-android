@@ -17,10 +17,19 @@ class ModStore(val runtime: File, val side: String, private val moved: (Int) -> 
     private val manifest = File(home,"manifest.properties")
     private val journal = File(home,"transaction.properties")
     val loader = File(home,"loader/modlauncher.jar")
+    private val clientLoaderSettings = File(home,"client-loader.properties")
+    val loaderVersion get() = if(side=="server") "0.47" else "0.15"
     init { require(side in listOf("server","client")) }
 
     fun entries(): List<Entry> = decode(readProperties(manifest))
-    fun loaderInstalled() = loader.isFile && sha(loader)==SERVER_LOADER_SHA
+    fun loaderInstalled() = loader.isFile && sha(loader)==if(side=="server") SERVER_LOADER_SHA else CLIENT_LOADER_SHA
+    fun clientLoaderEnabled() = side=="client" && readProperties(clientLoaderSettings).getProperty("enabled",loader.isFile.toString()).toBoolean()
+    fun setClientLoaderEnabled(enabled: Boolean) {
+        require(side=="client"); recover()
+        if(enabled) check(loaderInstalled()) { "Import Ago's client loader 0.15 ZIP first." }
+        else check(entries().none { it.enabled }) { "Turn off the client mods before turning off their loader." }
+        atomic(clientLoaderSettings,encodeProperties(Properties().apply { setProperty("enabled",enabled.toString()) }))
+    }
     fun recover() {
         if (!journal.isFile) return
         val p=readProperties(journal)
@@ -53,12 +62,12 @@ class ModStore(val runtime: File, val side: String, private val moved: (Int) -> 
                 }
             }
             if (File(root,"modlauncher.jar").isFile) {
-                require(side=="server") { "Client loader installation is deferred until server testing passes." }
                 val jar=File(root,"modlauncher.jar")
-                require(sha(jar)==SERVER_LOADER_SHA) { "Use Ago's server-modlauncher-0.47.zip for this test." }
+                require(sha(jar)==if(side=="server") SERVER_LOADER_SHA else CLIENT_LOADER_SHA) { "Use Ago's $side-modlauncher-$loaderVersion.zip for this side." }
                 loader.parentFile!!.mkdirs()
                 atomic(loader,jar.readBytes())
-                return "Server loader 0.47 installed. Optional bundled mods were not activated. Import individual mod ZIPs next."
+                if(side=="client") setClientLoaderEnabled(true)
+                return "${side.replaceFirstChar { it.uppercase() }} loader $loaderVersion installed. Optional bundled mods were not activated. Import individual mod ZIPs next."
             }
             val before=entries()
             val descriptors=root.listFiles().orEmpty().filter { it.isFile && it.name.endsWith(".properties") }
@@ -86,7 +95,7 @@ class ModStore(val runtime: File, val side: String, private val moved: (Int) -> 
                 val opposite=if(side=="server") "WurmClientMod" else "WurmServerMod"
                 require(!text.contains(opposite)) { "$name belongs to the other side. Use its ${if(side=="server") "Client" else "Server"} import button." }
                 require(text.contains(if(side=="server") "WurmServerMod" else "WurmClientMod")) { "$name uses an unrecognized/legacy mod interface; needs compatibility review." }
-                require(!props.getProperty("sharedClassLoader","false").toBoolean()) { "$name requires a shared classloader; deferred for this initial test." }
+                require(side=="client" || !props.getProperty("sharedClassLoader","false").toBoolean()) { "$name requires a shared server classloader; deferred for this test." }
                 val paths=units(name).map { File(root,it) }.filter { it.exists() }
                 val files=inventory(root,paths)
                 require(files.keys.none { it.endsWith(".dll",true)||it.endsWith(".so",true)||it.endsWith(".exe",true) }) { "$name includes desktop/native code; needs an Android compatibility review." }
@@ -123,13 +132,14 @@ class ModStore(val runtime: File, val side: String, private val moved: (Int) -> 
         val unknown=File(runtime,"mods").listFiles().orEmpty().filter { it.name !in owned && (it.isFile || it.walkTopDown().any { f->f.isFile }) }
         check(unknown.isEmpty()) { "Unmanaged active mod files: ${unknown.joinToString { it.name }}. Import through Mods before launching." }
         validateDependencies(all)
-        if(side=="server" && all.any { it.enabled }) check(loaderInstalled()) { "Import Ago's server loader 0.47 ZIP in Mods first." }
+        if(all.any { it.enabled } || clientLoaderEnabled()) check(loaderInstalled()) { "Import Ago's $side loader $loaderVersion ZIP in Mods first." }
+        if(side=="client" && all.any { it.enabled }) check(clientLoaderEnabled()) { "Enable the client loader in Mods before starting enabled client mods." }
         return all
     }
 
     fun report(): String = buildString {
         appendLine("MOD_MANIFEST side=$side runtime=$runtime")
-        appendLine("Server loader installed=${side=="server" && loaderInstalled()}; client execution deferred=${side=="client"}")
+        appendLine("${side.replaceFirstChar { it.uppercase() }} loader installed=${loaderInstalled()} version=$loaderVersion${if(side=="client") "; enabled=${clientLoaderEnabled()}" else ""}")
         appendLine("Pending transaction=${journal.exists()}")
         entries().forEach { e ->
             appendLine("${e.name} version=${e.version} enabled=${e.enabled} destination=${if(e.enabled) "mods" else "android-mods/disabled/${e.name}"}")
@@ -257,6 +267,7 @@ class ModStore(val runtime: File, val side: String, private val moved: (Int) -> 
     }
     companion object {
         const val SERVER_LOADER_SHA="44f7c9adc2dfbe2de45d7bc22a6ef8448549cde3f1f164b5c59a094948e6bacf"
+        const val CLIENT_LOADER_SHA="c82b57c119f7b73b57310b3a9ee1114d7eed6ea0b60b5978e35e2749f76d8a72"
         private fun units(name: String)=listOf("$name.properties","$name.config",name)
         private fun documentation(name: String)=name.startsWith("README",true)||name.startsWith("LICENSE",true)||name.startsWith("CHANGELOG",true)||name.startsWith("NOTICE",true)
         private fun validName(name: String) { require(name.matches(Regex("[A-Za-z0-9][A-Za-z0-9_-]{0,79}"))) { "Unsupported mod name: $name" } }

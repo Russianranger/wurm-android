@@ -10,6 +10,9 @@ import java.util.zip.*
 class ModStoreTest {
     private fun <T> runtime(action: (File)->T): T {
         val root=Files.createTempDirectory("mod-store-test").toFile()
+        // Exact public client loader fixture; test file movements with the same pin used by the app.
+        val loader=File(requireNotNull(System.getenv("WURM_CLIENT_MOD_LOADER_JAR")))
+        File(root,"android-mods/loader/modlauncher.jar").apply { parentFile.mkdirs(); loader.copyTo(this) }
         return try { action(root) } finally { root.deleteRecursively() }
     }
     private fun zip(files: Map<String,ByteArray>): ByteArray = ByteArrayOutputStream().also { out ->
@@ -109,7 +112,7 @@ class ModStoreTest {
         store.toggle("one",true); assertTrue(fails { store.validate() }.contains("loader 0.47"))
     }
     @Test fun exportedRuntimeCopyRetainsManifestAndToggleState() = runtime { root ->
-        val original=File(root,"original").apply { mkdir() }; val copy=File(root,"copy")
+        val original=File(root,"original").apply { mkdir(); File(root,"android-mods").copyRecursively(File(this,"android-mods")) }; val copy=File(root,"copy")
         val store=ModStore(original,"client"); store.importZip(zip(mod("one","client")+mod("two","client")).inputStream()); store.toggle("one",true)
         original.copyRecursively(copy); val restored=ModStore(copy,"client")
         assertEquals(listOf(true,false),restored.validate().map { it.enabled }); restored.toggle("one",false)
@@ -120,5 +123,43 @@ class ModStoreTest {
         assertTrue(fails { store.importZip(zip(mod("one")+mapOf("mods/one/native.dll" to byteArrayOf(1))).inputStream()) }.contains("desktop/native"))
         assertTrue(fails { store.importZip(zip(mod("one")+mapOf("mods/server.jar" to byteArrayOf(1))).inputStream()) }.contains("outside"))
         assertTrue(store.entries().isEmpty())
+    }
+    @Test fun actualLiveMapPackageImportsSharedAndRetainsSettingsAcrossDisableAndCopy() = runtime { root ->
+        val store=ModStore(root,"client")
+        File(requireNotNull(System.getenv("WURM_LIVEMAP_ZIP"))).inputStream().use { store.importZip(it) }
+        assertEquals("true",store.entries().single().properties["sharedClassLoader"])
+        store.toggle("livemap",true); assertEquals(1,store.validate().size)
+        File(root,"mods/livemap.config").writeText("hiResMap=false\nshowHiddenOre=false\n")
+        assertTrue(fails { store.setClientLoaderEnabled(false) }.contains("Turn off"))
+        store.toggle("livemap",false);store.setClientLoaderEnabled(false)
+        assertFalse(store.clientLoaderEnabled());assertEquals(1,store.validate().size)
+        store.setClientLoaderEnabled(true);store.toggle("livemap",true)
+        assertTrue(File(root,"mods/livemap.config").readText().contains("hiResMap=false"))
+        val copy=File(root.parentFile,root.name+"-restored")
+        try {
+            root.copyRecursively(copy)
+            val restored=ModStore(copy,"client")
+            assertTrue(restored.clientLoaderEnabled());assertTrue(restored.loaderInstalled())
+            assertTrue(restored.validate().single().enabled)
+        } finally { copy.deleteRecursively() }
+    }
+    @Test fun loaderImportPinIsSideSpecificAndDoesNotInstallBundledMods() = runtime { root ->
+        val bytes=File(requireNotNull(System.getenv("WURM_CLIENT_MOD_LOADER_JAR"))).readBytes()
+        val archive=zip(mapOf("modlauncher.jar" to bytes,"patcher.jar" to byteArrayOf(1),"mods/unselected/unselected.jar" to byteArrayOf(2)))
+        val store=ModStore(root,"client");store.loader.delete()
+        assertTrue(store.importZip(archive.inputStream()).contains("Client loader 0.15 installed"))
+        assertTrue(store.loaderInstalled());assertTrue(store.clientLoaderEnabled());assertTrue(store.validate().isEmpty())
+        assertFalse(File(root,"patcher.jar").exists());assertFalse(File(root,"mods/unselected").exists())
+        assertTrue(fails { ModStore(root,"server").importZip(archive.inputStream()) }.contains("server-modlauncher-0.47"))
+        assertTrue(store.loaderInstalled())
+        store.loader.appendText("changed")
+        assertTrue(fails { store.validate() }.contains("client loader 0.15"))
+    }
+    @Test fun serverSharedLoadingRemainsDeferredAndClientNeedsEnabledLoader() = runtime { root ->
+        assertTrue(fails { ModStore(root,"server").importZip(zip(mod("shared",extra="sharedClassLoader=true")).inputStream()) }.contains("shared server"))
+        val store=ModStore(root,"client");store.setClientLoaderEnabled(false)
+        store.importZip(zip(mod("one","client")).inputStream());store.toggle("one",true)
+        assertTrue(fails { store.validate() }.contains("Enable the client loader"))
+        store.setClientLoaderEnabled(true);assertEquals(1,store.validate().size)
     }
 }

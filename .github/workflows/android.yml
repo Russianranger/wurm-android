@@ -51,6 +51,13 @@ jobs:
           curl -fLsS --retry 3 --max-time 120 https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar -o "$RUNNER_TEMP/mod-javassist.jar"
           echo "WURM_MOD_LOADER_JAR=$RUNNER_TEMP/server-modlauncher.jar" >> "$GITHUB_ENV"
           echo "WURM_MOD_JAVASSIST_JAR=$RUNNER_TEMP/mod-javassist.jar" >> "$GITHUB_ENV"
+          curl -fLsS --retry 3 --max-time 120 https://github.com/ago1024/WurmClientModLauncher/releases/download/v0.15/client-modlauncher-0.15.zip -o "$RUNNER_TEMP/client-modlauncher.zip"
+          unzip -p "$RUNNER_TEMP/client-modlauncher.zip" modlauncher.jar > "$RUNNER_TEMP/client-modlauncher.jar"
+          echo "c82b57c119f7b73b57310b3a9ee1114d7eed6ea0b60b5978e35e2749f76d8a72  $RUNNER_TEMP/client-modlauncher.jar" | sha256sum -c -
+          echo "WURM_CLIENT_MOD_LOADER_JAR=$RUNNER_TEMP/client-modlauncher.jar" >> "$GITHUB_ENV"
+          curl -fLsS --retry 3 --max-time 120 https://github.com/ago1024/LiveHudMap/releases/download/v1.8/livemap-1.8.zip -o "$RUNNER_TEMP/livemap.zip"
+          echo "fc3f964e26c173f88b9edc0c5714f0e46061431ed17a560f9223b37436c3ee19  $RUNNER_TEMP/livemap.zip" | sha256sum -c -
+          echo "WURM_LIVEMAP_ZIP=$RUNNER_TEMP/livemap.zip" >> "$GITHUB_ENV"
       - name: Test supervisor, native helpers and storage audit
         run: |
           test -r /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
@@ -140,7 +147,7 @@ jobs:
           mkdir -p managed-dist/runtime-sources
           cp app/build/outputs/apk/managedPreview/app-managedPreview.apk managed-dist/Wurm-Server.apk
           cp docs/RELEASE_GRAPHICS_PREVIEW.md managed-dist/release-notes.md
-          cp docs/WORLD_SETTINGS_AND_BINDINGS.md docs/MOD_LAUNCHER_TEST.md docs/MOD_HOOK_ORDER_FIX.md docs/MOD_DEPENDENCY_NOTICES.txt docs/JAVASSIST_LICENSE.html managed-dist/
+          cp docs/WORLD_SETTINGS_AND_BINDINGS.md docs/MOD_LAUNCHER_TEST.md docs/MOD_HOOK_ORDER_FIX.md docs/CLIENT_MODS_TEST.md docs/MOD_DEPENDENCY_NOTICES.txt docs/JAVASSIST_LICENSE.html managed-dist/
           curl -fLsS --retry 3 --max-time 120 https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA-sources.jar -o managed-dist/Javassist-corresponding-source.jar
           cp docs/GRAPHICS_THOR_TEST.md managed-dist/GRAPHICS_THOR_TEST.md
           cp app/build/generated/clientGraphics/assets/client-graphics.json managed-dist/client-graphics.json
@@ -211,7 +218,7 @@ jobs:
           tar -czf managed-dist/Runtime-corresponding-source.tar.gz -C managed-dist runtime-sources
           rm -r managed-dist/runtime-sources
           cd managed-dist
-          sha256sum Wurm-Server.apk MOD_HOOK_ORDER_FIX.md MOD_LAUNCHER_TEST.md MOD_DEPENDENCY_NOTICES.txt JAVASSIST_LICENSE.html Javassist-corresponding-source.jar WORLD_SETTINGS_AND_BINDINGS.md DARK_THEME_AND_RUNTIME_REVIEW.md RUNTIME_OBSERVATIONS_TEST.md CLIENT_NATIVE_HEAP_TRACE.md CLIENT_VISIBILITY_FIX.md CLIENT_AUDIO_BUFFER_FIX.md CLIENT_FULLSCREEN_SETTINGS.md CLIENT_FRAME_SEQUENCE_FIX.md CLIENT_GRAPHICS_SETTINGS_FIX.md CLIENT_VERTEX_POINTER_FIX.md CLIENT_SHADER_PERFORMANCE_FIX.md CLIENT_TOUCH_INPUT_FIX.md SERVER_IMPORT_UPGRADE_FIX.md SERVER_PERSONAL_MODE_FIX.md CLIENT_LOGIN_IDENTITY_FIX.md SERVER_LOGIN_BASE64_FIX.md CLIENT_GC_TEST.md SERVER_POSITION_SQLITE_FIX.md CLIENT_LOGIN_TEST.md CLIENT_CONNECTION_TEST.md CLIENT_CRASH_DIAGNOSTIC.md CLIENT_CAPABILITIES_FIX.md CLIENT_MATERIALS_FIX.md CLIENT_BUFFERS_FIX.md CLIENT_OFFSCREEN_FIX.md CLIENT_WINDOW_START_FIX.md CLIENT_FONTS_FIX.md CLIENT_SETTINGS_FIX.md GRAPHICS_THOR_TEST.md client-graphics.json graphics-NOTICES.txt Graphics-corresponding-source.tar.gz CLIENT_THOR_TEST.md CLIENT_INTEGRATION.md MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md STORAGE_VERIFICATION.md WORLD_CONFIGURATION_TEST.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
+          sha256sum Wurm-Server.apk CLIENT_MODS_TEST.md MOD_HOOK_ORDER_FIX.md MOD_LAUNCHER_TEST.md MOD_DEPENDENCY_NOTICES.txt JAVASSIST_LICENSE.html Javassist-corresponding-source.jar WORLD_SETTINGS_AND_BINDINGS.md DARK_THEME_AND_RUNTIME_REVIEW.md RUNTIME_OBSERVATIONS_TEST.md CLIENT_NATIVE_HEAP_TRACE.md CLIENT_VISIBILITY_FIX.md CLIENT_AUDIO_BUFFER_FIX.md CLIENT_FULLSCREEN_SETTINGS.md CLIENT_FRAME_SEQUENCE_FIX.md CLIENT_GRAPHICS_SETTINGS_FIX.md CLIENT_VERTEX_POINTER_FIX.md CLIENT_SHADER_PERFORMANCE_FIX.md CLIENT_TOUCH_INPUT_FIX.md SERVER_IMPORT_UPGRADE_FIX.md SERVER_PERSONAL_MODE_FIX.md CLIENT_LOGIN_IDENTITY_FIX.md SERVER_LOGIN_BASE64_FIX.md CLIENT_GC_TEST.md SERVER_POSITION_SQLITE_FIX.md CLIENT_LOGIN_TEST.md CLIENT_CONNECTION_TEST.md CLIENT_CRASH_DIAGNOSTIC.md CLIENT_CAPABILITIES_FIX.md CLIENT_MATERIALS_FIX.md CLIENT_BUFFERS_FIX.md CLIENT_OFFSCREEN_FIX.md CLIENT_WINDOW_START_FIX.md CLIENT_FONTS_FIX.md CLIENT_SETTINGS_FIX.md GRAPHICS_THOR_TEST.md client-graphics.json graphics-NOTICES.txt Graphics-corresponding-source.tar.gz CLIENT_THOR_TEST.md CLIENT_INTEGRATION.md MANAGED_SERVER_TEST.md THOR_NATIVE_HEAP_FIX.md STORAGE_VERIFICATION.md WORLD_CONFIGURATION_TEST.md runtime.json Runtime-corresponding-source.tar.gz > SHA256SUMS
       - name: Upload managed server APK and matching runtime source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -295,14 +302,14 @@ jobs:
     steps:
       - name: Publish first passing managed server preview
         run: |
-          tag=v0.10.37-mod-hook-order
+          tag=v0.10.38-client-mods
           if gh release view "$tag" >/dev/null 2>&1; then
             echo 'Managed preview already published; keeping its APK and tag immutable.'
             exit 0
           fi
           gh run download "$GITHUB_RUN_ID" --name wurm-managed-server --dir dist
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease --latest=false \
-            --title 'Wurm Server 0.10.37 — mod hook ordering fix' --notes-file dist/release-notes.md \
-            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/MOD_HOOK_ORDER_FIX.md dist/MOD_LAUNCHER_TEST.md dist/MOD_DEPENDENCY_NOTICES.txt dist/JAVASSIST_LICENSE.html dist/Javassist-corresponding-source.jar dist/WORLD_SETTINGS_AND_BINDINGS.md dist/DARK_THEME_AND_RUNTIME_REVIEW.md dist/RUNTIME_OBSERVATIONS_TEST.md dist/CLIENT_NATIVE_HEAP_TRACE.md dist/CLIENT_VISIBILITY_FIX.md dist/CLIENT_AUDIO_BUFFER_FIX.md dist/CLIENT_FULLSCREEN_SETTINGS.md dist/CLIENT_FRAME_SEQUENCE_FIX.md dist/CLIENT_GRAPHICS_SETTINGS_FIX.md dist/CLIENT_VERTEX_POINTER_FIX.md dist/CLIENT_SHADER_PERFORMANCE_FIX.md dist/CLIENT_TOUCH_INPUT_FIX.md dist/SERVER_IMPORT_UPGRADE_FIX.md dist/SERVER_PERSONAL_MODE_FIX.md dist/CLIENT_LOGIN_IDENTITY_FIX.md dist/SERVER_LOGIN_BASE64_FIX.md dist/CLIENT_GC_TEST.md dist/SERVER_POSITION_SQLITE_FIX.md dist/CLIENT_LOGIN_TEST.md dist/CLIENT_CONNECTION_TEST.md dist/CLIENT_CRASH_DIAGNOSTIC.md dist/CLIENT_CAPABILITIES_FIX.md dist/CLIENT_MATERIALS_FIX.md dist/CLIENT_BUFFERS_FIX.md dist/CLIENT_OFFSCREEN_FIX.md dist/CLIENT_WINDOW_START_FIX.md dist/CLIENT_FONTS_FIX.md dist/CLIENT_SETTINGS_FIX.md dist/CLIENT_THOR_TEST.md dist/CLIENT_INTEGRATION.md dist/MANAGED_SERVER_TEST.md \
+            --title 'Wurm Server 0.10.38 — client mods and Live Map' --notes-file dist/release-notes.md \
+            'dist/Wurm-Server.apk#Wurm Server APK' dist/SHA256SUMS dist/CLIENT_MODS_TEST.md dist/MOD_HOOK_ORDER_FIX.md dist/MOD_LAUNCHER_TEST.md dist/MOD_DEPENDENCY_NOTICES.txt dist/JAVASSIST_LICENSE.html dist/Javassist-corresponding-source.jar dist/WORLD_SETTINGS_AND_BINDINGS.md dist/DARK_THEME_AND_RUNTIME_REVIEW.md dist/RUNTIME_OBSERVATIONS_TEST.md dist/CLIENT_NATIVE_HEAP_TRACE.md dist/CLIENT_VISIBILITY_FIX.md dist/CLIENT_AUDIO_BUFFER_FIX.md dist/CLIENT_FULLSCREEN_SETTINGS.md dist/CLIENT_FRAME_SEQUENCE_FIX.md dist/CLIENT_GRAPHICS_SETTINGS_FIX.md dist/CLIENT_VERTEX_POINTER_FIX.md dist/CLIENT_SHADER_PERFORMANCE_FIX.md dist/CLIENT_TOUCH_INPUT_FIX.md dist/SERVER_IMPORT_UPGRADE_FIX.md dist/SERVER_PERSONAL_MODE_FIX.md dist/CLIENT_LOGIN_IDENTITY_FIX.md dist/SERVER_LOGIN_BASE64_FIX.md dist/CLIENT_GC_TEST.md dist/SERVER_POSITION_SQLITE_FIX.md dist/CLIENT_LOGIN_TEST.md dist/CLIENT_CONNECTION_TEST.md dist/CLIENT_CRASH_DIAGNOSTIC.md dist/CLIENT_CAPABILITIES_FIX.md dist/CLIENT_MATERIALS_FIX.md dist/CLIENT_BUFFERS_FIX.md dist/CLIENT_OFFSCREEN_FIX.md dist/CLIENT_WINDOW_START_FIX.md dist/CLIENT_FONTS_FIX.md dist/CLIENT_SETTINGS_FIX.md dist/CLIENT_THOR_TEST.md dist/CLIENT_INTEGRATION.md dist/MANAGED_SERVER_TEST.md \
             dist/GRAPHICS_THOR_TEST.md dist/client-graphics.json dist/graphics-NOTICES.txt dist/Graphics-corresponding-source.tar.gz \
             dist/THOR_NATIVE_HEAP_FIX.md dist/STORAGE_VERIFICATION.md dist/WORLD_CONFIGURATION_TEST.md dist/runtime.json dist/Runtime-corresponding-source.tar.gz

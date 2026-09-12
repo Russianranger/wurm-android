@@ -13,7 +13,7 @@ class ModsPage(private val activity: Activity, private val chooseZip: (String) -
     private val panels=listOf(Panel("server"),Panel("client"))
     init {
         view.addView(TextView(activity).apply {
-            text="Mod launcher test\nImport your runtime first, then mod ZIPs. Imported mods start off. Stop the affected runtime before changing its mods. Server testing comes first."
+            text="Mod launcher test\nImport your runtime first, then its loader and mod ZIPs. Imported mods start off. Stop the affected runtime before changing its mods."
             textSize=18f
         },0)
     }
@@ -25,17 +25,17 @@ class ModsPage(private val activity: Activity, private val chooseZip: (String) -
         var revision=""
         var loading=false
         init {
-            view.addView(TextView(activity).apply { text=if(side=="server") "Server mods" else "Client mods — staging only"; textSize=22f; setPadding(0,28,0,8) })
+            view.addView(TextView(activity).apply { text=if(side=="server") "Server mods" else "Client mods"; textSize=22f; setPadding(0,28,0,8) })
             view.addView(TextView(activity).apply { text=if(side=="server")
                 "Install Ago server-modlauncher-0.47.zip once, then import individual mod ZIPs. Loader installation does not enable bundled mods."
-                else "Import and organize client mods now. Toggles stage their files, but this test build does not launch the client mod loader." })
+                else "Install Ago client-modlauncher-0.15.zip, then livemap-1.8.zip. The client loader can run with all mods off for an initial check. Start the game from Client; mod changes apply on its next start." })
             fun button(title: String, action: ()->Unit) {
                 controls += Button(activity).apply { text=title; setOnClickListener { action() }; view.addView(this) }
             }
-            button(if(side=="server") "Import server loader / mod ZIP" else "Import client mod ZIP") { chooseZip(side) }
+            button("Import $side loader / mod ZIP") { chooseZip(side) }
             button("Check ${side} mod files / dependencies") { operate(side) { store ->
                 val entries=store.validate()
-                "${side.replaceFirstChar { it.uppercase() }} mod check passed: ${entries.size} imported, ${entries.count { it.enabled }} ${if(side=="client") "staged" else "enabled"}.".also { showReport(it+"\n\n"+store.report()) }
+                "${side.replaceFirstChar { it.uppercase() }} mod check passed: ${entries.size} imported, ${entries.count { it.enabled }} enabled.".also { showReport(it+"\n\n"+store.report()) }
             } }
             button("View ${side} mod manifest") { operate(side) { store -> showReport(store.report()); "Mod manifest opened." } }
             view.addView(status); view.addView(mods)
@@ -52,19 +52,32 @@ class ModsPage(private val activity: Activity, private val chooseZip: (String) -
             if(key==revision) return
             revision=key; loading=true
             Thread({
-                val result=runCatching { root?.let { ModStore(it,side).entries() }.orEmpty() }
+                val result=runCatching { root?.let { ModStore(it,side) }?.let { Triple(it.entries(),it.loaderInstalled(),it.clientLoaderEnabled()) }
+                    ?: Triple(emptyList(),false,false) }
                 activity.runOnUiThread {
                     loading=false; mods.removeAllViews(); switches.clear()
-                    result.fold({ entries ->
+                    result.fold({ (entries,loaderInstalled,loaderEnabled) ->
+                        if(side=="client" && loaderInstalled) {
+                            switches += Switch(activity).apply {
+                                text="Use client mod loader"; isChecked=loaderEnabled
+                                setOnCheckedChangeListener { _, enabled ->
+                                    setOnCheckedChangeListener(null); isChecked=loaderEnabled; isEnabled=false
+                                    operate(side) { store -> store.setClientLoaderEnabled(enabled)
+                                        "Client loader ${if(enabled) "enabled" else "disabled"} for next client start." }
+                                    revision=""
+                                }
+                                mods.addView(this)
+                            }
+                        }
                         if(entries.isEmpty()) mods.addView(TextView(activity).apply { text="No mods imported." })
                         entries.forEach { e ->
                             switches += Switch(activity).apply {
-                                text="${e.name} (${e.version})${if(side=="client") " · staged only" else ""}"
+                                text="${e.name} (${e.version})"
                                 isChecked=e.enabled
                                 setOnCheckedChangeListener { _, enabled ->
                                     // The asynchronous operation owns the authoritative manifest state.
                                     setOnCheckedChangeListener(null); isChecked=e.enabled; isEnabled=false
-                                    operate(side) { store -> store.toggle(e.name,enabled); "${e.name}: ${if(enabled) "enabled" else "disabled"}${if(side=="client") " for later client testing" else " for next server start"}." }
+                                    operate(side) { store -> store.toggle(e.name,enabled); "${e.name}: ${if(enabled) "enabled" else "disabled"} for next $side start." }
                                     revision=""
                                 }
                                 mods.addView(this)

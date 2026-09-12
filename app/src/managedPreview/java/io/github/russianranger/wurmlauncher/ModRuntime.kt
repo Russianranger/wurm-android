@@ -5,6 +5,17 @@ import java.io.File
 
 object ModRuntime {
     const val JAVASSIST_SHA="eba37290994b5e4868f3af98ff113f6244a6b099385d9ad46881307d3cb01aaf"
+    fun prepareClient(context: Context, runtime: File, session: File): List<String> {
+        val store=ModStore(runtime,"client")
+        val entries=store.validate().filter { it.enabled }
+        val active=store.clientLoaderEnabled()
+        ClientSession.log("[mods] CLIENT_SELECTION ${entries.joinToString { "${it.name}@${it.version}" }.ifEmpty { "none" }}; loader=${if(active) "enabled" else "disabled; baseline startup"}")
+        if(!active) return emptyList()
+        val bytecode=File(session,"mod-javassist.jar")
+        context.assets.open("mod-javassist.jar").use { input->bytecode.outputStream().use { input.copyTo(it) } }
+        check(ProbeInputs.sha256(bytecode)==JAVASSIST_SHA) { "Mod bytecode dependency mismatch" }
+        return listOf(store.loader.absolutePath,bytecode.absolutePath)
+    }
     fun prepareServer(context: Context, runtime: File, session: File): List<String> {
         val store=ModStore(runtime,"server")
         val entries=store.validate().filter { it.enabled }

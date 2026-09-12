@@ -2,6 +2,17 @@
 
 Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
+## Current work — 0.10.38 client mods, release validation in progress
+
+User confirms server mods working and authorizes client-side implementation. Continue only on **mod-launcher-test**; main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- New reports: `wurm-server-report (1)(7).txt` and `wurm-client-report (1)(9).txt`. Announcer ran 15m47.8s and saved/exited 0 at 19:37:58Z. Announcer + Survival both reached `SERVER_MOD_READY` at 19:44:04Z (count 2); combined server still running at export. Client retained entry exits are 0. User's Survival choice supersedes CropMod as the second server test.
+- Implementing **0.10.38**, code **52**, `.clientmods`, tag **v0.10.38-client-mods**. Client loader 0.15 import/switch, shared client mods, early transforming entry and retained startup markers. Live Map 1.8 is the first client-mod target. Exact public ZIP/JAR hashes and direct downloads are in [CLIENT_MODS_TEST.md](CLIENT_MODS_TEST.md).
+- All game, client helpers, graphics bridge and LWJGL/native owners remain in one transforming loader. Only the entry stage receives loader/Javassist. Existing Android overlays and bootstrap remain selected; upstream desktop launcher is not used. Init failure exits 42, never a silent vanilla fallback. Loader alone (count 0) is testable; disable all client mods then its loader switch to recover baseline.
+- Local validation: 168 host tests, 24 expected unavailable-fixture/platform skips; 17 focused Kotlin tests passed; full Android API compilation passed with one existing resize deprecation warning. CI supplies the remaining fixtures and complete build/lint/native gates. New four-case host regression uses the actual client loader and its support hooks with authored game ABI fixtures. Covers shared GUI package access plus an isolated mod, overlay/order, single graphics/game owner, failure and diagnostic isolation. Kotlin checks use the real Live Map ZIP and pinned client loader. Native device rendering remains unverified.
+- No native, graphics/audio policy or GC changes are planned. Server implementation is retained. No proprietary inputs or upstream mod binaries are committed.
+- Next: finish local/CI gates, verify the release APK, update this section with immutable commit/run/checksum evidence, then provide the focused loader-alone / Live Map / off-on device checklist. Client mod functionality must not be claimed device-confirmed before those reports arrive.
+
 ## Latest physical result — 0.10.37 Announcer on/off passed
 
 User supplied `wurm-client-report(20260912-191104).txt` and `wurm-server-report(20260912-191104).txt`, enabling Announcer for the first session and disabling it for the second. Continue only on **mod-launcher-test**; main is unchanged.

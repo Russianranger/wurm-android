@@ -1,3 +1,25 @@
+# 0.10.38 — client loader and Live Map test
+
+Server mods now have device evidence: Announcer's longer run saved/exited normally,
+and Announcer + Survival initialized together. This release adds Ago client loader
+0.15, shared client mods, a client-loader switch, and retained mod-startup reports.
+Live Map 1.8 is the first client target; its Android rendering awaits device testing.
+
+Install the separate `.clientmods` app alongside 0.10.37. Stop/export the **working
+server runtime ZIP** from 0.10.37 and import it into this version to preserve the
+world and server mods. Import your normal client ZIP. In Mods → Client, import
+[client-modlauncher-0.15.zip](https://github.com/ago1024/WurmClientModLauncher/releases/download/v0.15/client-modlauncher-0.15.zip),
+first test with no client mods, then import and enable
+[livemap-1.8.zip](https://github.com/ago1024/LiveHudMap/releases/download/v1.8/livemap-1.8.zip).
+Export both reports from Diagnostics. No desktop launcher is needed.
+
+[Client mod checklist and implementation](https://github.com/Russianranger/wurm-android/blob/mod-launcher-test/docs/CLIENT_MODS_TEST.md).
+[Maintained handoff](https://github.com/Russianranger/wurm-android/blob/mod-launcher-test/docs/HANDOFF.md).
+
+---
+
+## Previous release
+
 # 0.10.37 — mod hook ordering fix
 
 Fixes the 0.10.36 startup failure with Announcer: `Communicator class is frozen`.
