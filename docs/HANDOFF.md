@@ -2,7 +2,37 @@
 
 Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current branch release — 0.10.38 client mods, awaiting physical test
+## Latest physical result — 0.10.38 Live Map renders and restarts
+
+User supplied `wurm-client-report (1)(10).txt`, `wurm-server-report (1)(8).txt`
+and `Screenshot_20260912-182923.png`. Live Map 1.8 reaches ready count 1 in
+both client sessions, enters the world and is visibly rendering in the screenshot.
+Both clients exit 0, and both Survival-enabled servers save and exit 0 after
+normal stop requests. Main remains unchanged; only review/handoff docs change.
+
+- Client sessions: 23:28:34–23:34:16Z and 23:36:49–23:38:16Z (about 5m42s and
+  1m28s). Render/present/viewer medians are 30 FPS at 1280x720. No loader error,
+  fatal crash, ASan memory-error report, OOM or server SEVERE record found.
+- Reports are not error-free: seven unique startup/initial-entry GL errors,
+  three recoverable pre-readback exceptions in the first run, existing
+  content/platform warnings, three initial Epic mission-difficulty warnings,
+  and one tile-removal warning during spawn selection. Rendering continues;
+  no later GL errors are retained. Do not claim these are caused by Live Map.
+- First-client RSS peaks at 1.58 GiB, ends at 1.53 GiB; heap/direct-buffer use
+  falls after collections, FDs remain 52. First-server FDs fall 135→75 and end
+  85. No swap or proven continuing leak. Gameplay young GC still pauses about
+  184–207 ms; longer full collections at exit are shutdown work.
+- Only Survival is enabled server-side in this new app; Announcer is absent
+  from this manifest. Both client attempts enable Live Map. Loader-only and
+  mod-disabled runs are not in these reports. Screenshot confirms rendering,
+  not every map control or long-run behavior.
+- Next: same APK, 15–20-minute map movement/zoom/hide-show test, check spawn
+  position and persisted reentry, then disabled/re-enabled client-mod startup
+  and both report exports. No runtime fix is required before that test on
+  current evidence. Logging and frame-copy reductions are future work.
+- [Detailed review, timestamps, warnings and metrics](CLIENT_MOD_DEVICE_REVIEW_20260912.md).
+
+## Current branch release — 0.10.38 client mods
 
 User confirms server mods working and authorizes client-side implementation. Continue only on **mod-launcher-test**; main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
 
@@ -14,7 +44,7 @@ User confirms server mods working and authorizes client-side implementation. Con
 - [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.38-client-mods/Wurm-Server.apk), **53,770,689 bytes**, SHA-256 **`2c40f7041778a7be0993016108f5fefbe5c4660ffedd9b336fe1d14cfbdf0ded`**. Independently downloaded and matched SHA256SUMS, version/code/package, client loader pin/switch/entry selection, both Java helpers and startup markers. Full `verify-managed-apk.py` passed locally. Relative to 0.10.37, JRE members, server POC and 39 native libraries are byte-identical. GL4ES differs only in 26 bytes covering GNU build ID and compile-time banner. Handoff-only commits after the implementation commit do not alter the APK.
 - Longer Announcer server measurements now show FD counts falling from peak 112 to 79; combined Announcer/Survival counts fall from 122 to 93. Client retained entries exit 0 and sampled swap is zero. These reports do not establish a continuing resource leak; no speculative memory changes were made.
 - No native, graphics/audio policy or GC changes. Server implementation is retained. No proprietary inputs or upstream mod binaries are committed.
-- Next physical test: normally stop/export the working 0.10.37 server runtime to preserve world, Announcer and Survival; keep that app installed, install 0.10.38 alongside, import the server export and normal client ZIP. Import client loader and test count 0; then import/enable Live Map and test count 1, movement/zoom/hide-show/reentry, then disable/restart. Both report exports remain in Diagnostics. Client mod functionality must not be claimed device-confirmed before those reports arrive. No other client mods are qualified yet.
+- Original install/test checklist is in CLIENT_MODS_TEST.md. Live Map loading, visible rendering and another client/server session now have device evidence above; longer-run/map-control/disable-path coverage remains pending. No other client mods are qualified yet.
 
 ## Earlier physical result — 0.10.37 Announcer on/off passed
 

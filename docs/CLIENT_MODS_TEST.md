@@ -4,6 +4,12 @@ Branch: `mod-launcher-test`. Separate package:
 `io.github.russianranger.wurmlauncher.clientmods`, versionCode 52.
 Main and the preceding apps remain separate. No desktop launcher is needed.
 
+**Device update, 2026-09-12:** Live Map now initializes in two Thor sessions,
+renders in the supplied screenshot, and both client/server sessions exit
+normally. Startup graphics/content warnings remain. Longer-run, map-control
+and mod-disabled checks are still pending. See the
+[first device review](CLIENT_MOD_DEVICE_REVIEW_20260912.md).
+
 ## Device evidence leading to this release
 
 The user reports server mods working. Reports `wurm-server-report (1)(7).txt`
@@ -87,8 +93,8 @@ occurred. A `CLIENT_MOD_READY` marker alone does not prove visible map rendering
 Live Map 1.8 uses shared loading to add classes in Wurm's GUI package. Its JAR
 also contains its button images and a resource-lookup fallback for the older
 shared loader. The original JAR/config are retained. `hiResMap=false` is its
-default. The client loader and Live Map have not yet been tested on the Thor
-with this APK; other client mods remain unqualified.
+default. First loading/rendering/restart evidence is recorded above; other
+client mods remain unqualified.
 
 ## Public dependency identity
 
@@ -129,5 +135,6 @@ Downloaded APK: **53,770,689 bytes**, SHA-256
 `2c40f7041778a7be0993016108f5fefbe5c4660ffedd9b336fe1d14cfbdf0ded`.
 It matches the release checksum, version/package, expected client-mod classes
 and markers, and full managed-runtime verification. CI verified its APK v2
-signature. Device rendering and Live Map behavior still require the checklist
-above. Handoff-only commits after the implementation commit do not change it.
+signature. Remaining Live Map behavior requires the checklist above; initial
+device rendering is now confirmed. Handoff-only commits after the implementation
+commit do not change it.
