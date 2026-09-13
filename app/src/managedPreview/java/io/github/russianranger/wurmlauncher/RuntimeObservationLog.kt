@@ -6,6 +6,8 @@ import java.io.File
 class RuntimeObservationLog(private val file: File) {
     @Synchronized fun observe(line: String) {
         if (!line.startsWith("[runtime-memory] ") && !line.startsWith("[graphics-error] ") && !line.startsWith("[graphics-depth] ") &&
+            !line.startsWith("[graphics-driver] ") && !line.startsWith("[graphics-capability] ") &&
+            !line.startsWith("[client-gc] ") && !line.startsWith("[client-audio] ") &&
             !line.contains(" TCP_PROBE_POLICY ") && !line.contains(" TCP_PROBE_SUMMARY ") && !line.startsWith("[mods] ") &&
             !line.startsWith("[window] FRAME_TIMING ") && !(line.startsWith("[graphics-ui] ") &&
                 (line.contains(" UI_TIMING ") || line.contains(" FRAME_READ_ERROR ") || line.contains(" FRAME_COPY_ERROR "))) &&

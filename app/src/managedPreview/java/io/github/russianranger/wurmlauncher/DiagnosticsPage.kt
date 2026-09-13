@@ -19,6 +19,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val clientLogs: TextView
     private val serverLogs: TextView
     private val verbose: CheckBox
+    private val periodicGc: CheckBox
     private fun label(text: String)=TextView(activity).apply { this.text=text; setPadding(0,8,0,8); target.addView(this) }
     private fun button(text: String, action: () -> Unit)=Button(activity).apply {
         this.text=text; setOnClickListener { action() }; target.addView(this)
@@ -38,6 +39,12 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
             setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("verbose-diagnostics",checked).apply() }
         }
         label("Normal mode keeps errors, startup checks and performance samples. Enable verbose output before starting the client when investigating a problem.")
+        periodicGc=CheckBox(activity).apply {
+            text="Skip periodic client cleanup (test)"; isChecked=prefs.getBoolean("skip-periodic-gc",false)
+            target.addView(this)
+            setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("skip-periodic-gc",checked).apply() }
+        }
+        label("Compare brief pauses with this off, then on. Applies on the next client start. Normal memory collection and shutdown cleanup continue; watch memory use during longer play.")
         target=LauncherUi.section(view,"Individual reports")
         button("Export Client Report") { export(ManagedActivity.EXPORT_CLIENT,"wurm-client-report.txt") }
         button("Export Server Report") { export(ManagedActivity.EXPORT_REPORT,"wurm-server-report.txt") }
@@ -83,6 +90,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         val client=ClientSession.snapshot()
         val server=ManagedSession.snapshot()
         verbose.isEnabled=!client.busy
+        periodicGc.isEnabled=!client.busy
         status.updateText("Client: ${client.phase} · ${client.detail}\nServer: ${server.phase} · ${server.detail}")
         clientTests.forEach { it.isEnabled=!client.busy }
         serverTests.forEach { it.isEnabled=!server.busy }

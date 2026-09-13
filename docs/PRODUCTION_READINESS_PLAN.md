@@ -12,6 +12,12 @@ qualification, separate normal/ASan native comparison and persistent signing
 remain pending. The original proposal below is historical;
 its unimplemented/authorization wording describes the earlier review date.
 
+The user subsequently authorized all three 0.10.43 review follow-ups. Version
+0.10.44 implements verified sound-fallback and vendor-query fixes, optional
+driver diagnostics, and a separate periodic-GC comparison. See
+[CLIENT_SESSION_FIXES.md](CLIENT_SESSION_FIXES.md) and HANDOFF.md; the two
+unattributed GL_INVALID_OPERATION sites still require device evidence.
+
 Update 2026-09-13: the user authorized the next preparation/input phase.
 The user confirms 0.10.40 Send and backup/restore work. The untouched server
 archive has now been supplied and qualified for 0.10.41 automatic preparation.

@@ -50,6 +50,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"SERVER_LOADER_STAGE" in helper.read("server/ServerModLaunch.class")
         assert int.from_bytes(helper.read("client/ClientConnectionMonitor$LogGate.class")[6:8], "big") == 61
         assert b"wurm.diagnostics.verbose" in helper.read("client/ClientConnectionMonitor.class")
+        for name in ("ClientMethodOwner", "ClientGlCapabilities", "ClientWorldGc", "ClientSoundResources"):
+            assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
+        assert b"res/wurm-android-missing-sound.wav" in helper.read("client/ClientSoundResources.class")
+        assert b"wurm.client.skipPeriodicGc" in helper.read("client/ClientWorldGc.class")
         assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/client-compat.jar"))) as compat:
         classes = {n for n in compat.namelist() if n.endswith(".class")}

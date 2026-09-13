@@ -94,6 +94,7 @@ public final class ClientBootstrap {
     private static void entry() throws Exception {
         ClientGraphicsPatch.verifySelected();
         if (System.getProperty("wurm.client.offscreenOverlay") != null) ClientBuffers.verifyRuntime();
+        ClientWorldGc.reportPolicy();
         ClientFonts.prepareIfConfigured();
         log("ENTRY_INITIALIZE " + ENGINE + " (desktop JavaFX launcher bypassed)");
         Class<?> cls = Class.forName(ENGINE, true, ClientBootstrap.class.getClassLoader());

@@ -2,16 +2,17 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.40 — keyboard Send and offline preparation dependencies.**
+**Current branch test: 0.10.44 — sound, capability and periodic-GC fixes.**
 
-Continue on `mod-launcher-test`; main remains separate. Keyboard submission now
-includes the newline Wurm needs, and long text drains without losing its tail.
-Server preparation supplies verified SQLite dependencies offline for the
-existing supported Thor server files. Clean desktop-server conversion is still
-awaiting an untouched archive and a qualified item-database patch recipe.
+Continue on `mod-launcher-test`; main remains separate. The 35-minute 0.10.43
+session passed normal play/save/shutdown near 30 FPS. This build repairs its
+damaged missing-sound fallback, guards unsupported vendor memory queries and
+adds driver error details. An opt-in setting skips only periodic world-tick GC
+requests for a separate pause/memory comparison. Two remaining GL errors still
+need device attribution. Stock server preparation and backup/restore are available.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.40-keyboard-preparation).
-[Backup migration, preparation limits and test checklist](docs/KEYBOARD_AND_PREPARATION.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.44-session-fixes).
+[Fixes, limits and device comparison](docs/CLIENT_SESSION_FIXES.md).
 [Maintained handoff](docs/HANDOFF.md). Reports remain in Diagnostics.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

@@ -2,7 +2,35 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.43 frame performance
+## In progress — 0.10.44 session fixes
+
+The user authorized work on all three findings from the 0.10.43 extended review.
+See [CLIENT_SESSION_FIXES.md](CLIENT_SESSION_FIXES.md) for exact evidence,
+implementation and two-run Thor comparison. Work remains on mod-launcher-test.
+
+- Guard only the inspected engine's NVIDIA/ATI memory queries using real LWJGL
+  capabilities; retain other queries and the game's unknown-memory fallback.
+  Exact method-reference and offscreen reversals reproduce the engine SHA.
+- Replace the known-corrupt missing-sound mapping with an authored silent WAV
+  in the private overlay. The real InternalPack and WavData decoder pass; other
+  mappings/packs/imported files remain unchanged. A short Ogg candidate exposed
+  legacy EOF handling and was discarded; no Ogg binary is shipped.
+- Opt-in Diagnostics periodic-cleanup setting defaults off. On redirects only
+  World.tick's explicit gc request; ordinary/pressure/other/shutdown GC remains.
+  Serial/client heap, server GC/heap, JRE, ASan and buffer cleanup are retained.
+- Add bounded non-consuming GLES KHR_debug messages when supported. Two 0x502
+  sites remain unproven; collect a Thor report before any speculative renderer
+  state patch. Non-debug driver messages are optional, with old breadcrumbs kept.
+- Local host suite: 188 tests, 20 expected fixture/platform skips; actual client
+  overlay, mapping selection and decoder qualified. Android Kotlin compilation
+  passed. CI/release/APK verification is the next gate; do not claim publication
+  until the records below are completed.
+- Planned version 0.10.44/code 58, `.sessionfix`, `v0.10.44-session-fixes`.
+  Keep 0.10.43 and restore a stopped complete backup. First test with periodic
+  cleanup unchanged; then enable the option for a separate 20–30-minute run.
+  Main stays `2e41fb091ee75a76b9116e934abecff90bc735d9`. Private files stay out of git.
+
+## Previous release — 0.10.43 frame performance
 
 Latest device review: the user reports extended play remains functional, though
 shorter than 60 minutes. See

@@ -1,3 +1,29 @@
+# 0.10.44 — sound, capability and pause fixes
+
+Repairs the known-corrupt missing-sound fallback using a generated silent WAV
+through the game's existing decoder. Checks NVIDIA/ATI GPU-memory capabilities
+before querying, retaining the game's unknown-memory fallback. Imported game
+files, normal sound packs, frame reuse, stock preparation and input stay intact.
+
+Adds bounded GLES driver error messages when KHR_debug is available. Two
+remaining GL_INVALID_OPERATION observations still need a new Thor report;
+this release does not claim they are fixed. Existing GL errors and ASan remain.
+
+Diagnostics adds **Skip periodic client cleanup (test)**, default off. Enabling
+it on the next start skips only World.tick's periodic System.gc request.
+Ordinary memory collection, other explicit callers and shutdown cleanup remain.
+Heaps, collectors, server behavior and native renderer are retained.
+
+Keep 0.10.43, save/stop both runtimes and export a complete backup. Install the
+separate `.sessionfix` app and restore. First test with both diagnostic options
+off and export support. Then enable Skip periodic client cleanup and repeat
+similar play for 20–30 minutes, exporting a second bundle to compare pauses and
+memory. No stock reimport is required. Longer qualification remains incomplete.
+
+See CLIENT_SESSION_FIXES.md for evidence, host validation, limitations and steps.
+
+---
+
 # 0.10.43 — frame reuse and quieter diagnostics
 
 Starts the performance qualification phase after the user's successful 0.10.42

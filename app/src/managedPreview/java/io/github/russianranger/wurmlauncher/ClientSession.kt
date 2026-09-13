@@ -65,9 +65,9 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.43\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.44\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: user reports 0.10.42 working. This build tests frame-buffer reuse and reduced routine logging; long-run performance qualification remains pending. Native graphics, audio, heap and collector policies are retained.\n\n" +
+            "Gate status: 0.10.43 passed approximately 35 minutes of user play. This build guards vendor GPU-memory queries, replaces the damaged missing-sound fallback, adds driver error detail and offers an opt-in periodic-GC comparison. Remaining GL errors and longer qualification need device reports; heaps and collectors are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -207,6 +207,7 @@ object ClientSession {
     private fun run(context: Context, store: ClientStore, mode: String) {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val verbose = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("verbose-diagnostics", false)
+        val skipPeriodicGc = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("skip-periodic-gc", false)
         log("[diagnostics] ${Instant.now()} CLIENT_LOG_MODE ${if (verbose) "verbose" else "normal"}; errors, compile/link breadcrumbs, native crash capture and periodic measurements retained")
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
         if(installed!=null && mode in listOf("start","local")) {
@@ -297,6 +298,7 @@ object ClientSession {
                     // native LWJGL window creation is still attempted independently below.
                     "-Djava.home=$home", "-Djava.io.tmpdir=$tmp", "-Duser.home=$user", "-Djava.awt.headless=true",
                     "-Dwurm.diagnostics.verbose=$verbose",
+                    "-Dwurm.client.skipPeriodicGc=$skipPeriodicGc",
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",

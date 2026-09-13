@@ -21,6 +21,10 @@ class RuntimeObservationLogTest {
             log.observe("[window] FRAME_TIMING time=fixture pid=1 renderFps=30.0")
             log.observe("[diagnostics] time CLIENT_LOG_MODE normal")
             log.observe("[graphics-ui] FRAME_COPY_ERROR fixture")
+            log.observe("[graphics-driver] time=fixture message=invalid uniform")
+            log.observe("[client-gc] time WORLD_GC_REQUEST action=skipped")
+            log.observe("[client-audio] time SOUND_FALLBACK_PREPARED")
+            log.observe("[graphics-capability] time GPU_MEMORY_QUERY_UNAVAILABLE")
             assertTrue(file.length() <= 2 * 1024 * 1024 + 4001)
             val saved = RuntimeObservationLog(file).read()
             assertFalse(saved.contains("frame="))
@@ -33,6 +37,10 @@ class RuntimeObservationLogTest {
             assertTrue(saved.contains("FRAME_TIMING time=fixture pid=1"))
             assertTrue(saved.contains("CLIENT_LOG_MODE normal"))
             assertTrue(saved.contains("FRAME_COPY_ERROR fixture"))
+            assertTrue(saved.contains("message=invalid uniform"))
+            assertTrue(saved.contains("WORLD_GC_REQUEST action=skipped"))
+            assertTrue(saved.contains("SOUND_FALLBACK_PREPARED"))
+            assertTrue(saved.contains("GPU_MEMORY_QUERY_UNAVAILABLE"))
         } finally { home.deleteRecursively() }
     }
 }
