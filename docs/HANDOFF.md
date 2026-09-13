@@ -8,6 +8,23 @@ The user authorized work on all three findings from the 0.10.43 extended review.
 See [CLIENT_SESSION_FIXES.md](CLIENT_SESSION_FIXES.md) for exact evidence,
 implementation and two-run Thor comparison. Work remains on mod-launcher-test.
 
+Latest device evidence: [0.10.44 comparison review](CLIENT_SESSION_FIXES_REVIEW_20260913.md).
+The user reports off first, on second, with smoother second play. Policy markers
+confirm the order, but the retained runs cover about 18m45s off and 2m29s on.
+Off has one 326.718 ms World.tick collection matching a 350.93 ms viewer gap;
+on ends before its first periodic request, so no actual skipped request is yet
+qualified. Both clients exit 0; the same Adventure server remains running.
+No 0x500, Ogg failure or invalid audio sample rate recurs. Each attempt has one
+startup 0x502, now paired with the driver message "unable to generate levels for
+texture target 3553" near TextureLoader's error cleanup. Exact asset/format/call
+still need tracing. The previous in-play GL exception does not recur.
+On-run client PSS rises to about 1,942 MiB and direct buffers to 364 MiB before
+any periodic skip; do not claim either a leak or a GC-policy cause from this.
+Next device check is a 20–30-minute on run crossing two expected requests,
+followed by normal client/server shutdown and a support export. Keep the default
+off until the skipped-request and memory comparison is qualified. No new APK
+is needed for this check; this review preserves the published release.
+
 - Guard only the inspected engine's NVIDIA/ATI memory queries using real LWJGL
   capabilities; retain other queries and the game's unknown-memory fallback.
   Exact method-reference and offscreen reversals reproduce the engine SHA.
@@ -60,12 +77,13 @@ implementation and two-run Thor comparison. Work remains on mod-launcher-test.
   `6bef5de17bf94b6515bf6eb8cef07423b895b1990790db02fa6db0ff2ad8b5ed`.
   Engine overlay SHA `a162c00ea5e5cf3819208b75a21f9c7fb6197c7fead4003deb82f3ecd843c85b`;
   World overlay SHA `e091ae0a8a67a45e68cd6cee7b878cf6b0d3e421ee6d2e43092229a3328462dc`.
-- Next gate is device qualification, not another speculative renderer change.
-  Keep 0.10.43 and restore a stopped complete backup. First test with periodic
-  cleanup unchanged; then enable the option for a separate 20–30-minute run.
-  Export both support bundles. Confirm sound/graphics behavior and compare memory,
+- Next gate is continued device qualification; the first comparison is above.
+  Keep the prior stopped backup and collect a longer 20–30-minute on run.
+  Confirm sound/graphics behavior and compare memory,
   WORLD_GC_REQUEST actions and viewer gaps. The two 0x502 sites remain unresolved;
-  optional non-debug KHR messages may still be absent. Longer soak/lifecycle,
+  startup is narrowed to texture-level generation, while the previous in-play
+  site is not reproduced. KHR messages work on this Thor but remain optional on
+  other non-debug drivers. Longer soak/lifecycle,
   persistent signing and the separate native instrumentation comparison remain.
   Main was verified unchanged at `2e41fb091ee75a76b9116e934abecff90bc735d9`.
   Private files stay out of git and release assets.
