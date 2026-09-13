@@ -22,6 +22,18 @@ public final class WindowInput {
     public int displayX() { return (int)Math.max(0, Math.min(width - 1, x)); }
     public int displayY() { return (int)Math.max(0, Math.min(height - 1, y)); }
 
+    /** Leave input in the IPC queue until LWJGL has room; its native-size queue holds 200 events. */
+    public boolean canApply(String line) {
+        int keyboard = 0, mouse = 0;
+        if (line.startsWith("TEXT ")) keyboard = 2;
+        else if (line.startsWith("KEY ") || line.startsWith("KEYCHAR ")) keyboard = 1;
+        else if (line.equals("RESET")) {
+            for (boolean down : keys) if (down) keyboard++;
+            for (boolean down : buttons) if (down) mouse++;
+        } else if (line.startsWith("BUTTON ") || line.startsWith("MOVE ") || line.startsWith("POINT ") || line.startsWith("WHEEL ")) mouse = 1;
+        return GLFWInputImplementation.singleton.canQueueInput(keyboard, mouse);
+    }
+
     public void apply(String line) {
         DesktopInput.Event e = parser.accept(line);
         GLFWInputImplementation sink = GLFWInputImplementation.singleton;

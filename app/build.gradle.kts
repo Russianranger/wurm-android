@@ -116,6 +116,25 @@ val packageModBytecode by tasks.registering(Copy::class) {
     into(modAssets)
 }
 
+// Exact public artifacts already proven on the Thor. JVM assets only, never D8 dependencies.
+val serverSqlite by configurations.creating { isTransitive = false }
+val sqliteAssets = layout.buildDirectory.dir("generated/serverSqliteAssets")
+val packageServerSqlite by tasks.registering(Copy::class) {
+    from(serverSqlite)
+    from(rootProject.file("docs/SQLITE_DEPENDENCY_NOTICES.txt"))
+    into(sqliteAssets)
+    doLast {
+        mapOf(
+            "sqlite-jdbc-3.53.2.1.jar" to "f55e405ed96d5ffe629e05b7b51b059e1c7d64527c0cc90a972fbac06730ccc1",
+            "sqlite-jdbc-3.53.2.1-natives-android.jar" to "011d4edb8d06012ced78d6aa675ffc85bf339d3cd640845684b80873ec5a6e97"
+        ).forEach { (name, expected) ->
+            val file=sqliteAssets.get().file(name).asFile
+            val actual=MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+            check(actual==expected) { "Bundled SQLite checksum failed: $name" }
+        }
+    }
+}
+
 android {
     namespace = "io.github.russianranger.wurmlauncher"
     compileSdk = 34
@@ -126,8 +145,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 53
-        versionName = "0.10.39"
+        versionCode = 54
+        versionName = "0.10.40"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -151,7 +170,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".launcherpreview"
+            applicationIdSuffix = ".keyboardprep"
             if (managedSigningStore != null) signingConfig = signingConfigs.getByName("managedRelease")
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
@@ -175,6 +194,7 @@ android {
         assets.srcDir(probeAssets)
         assets.srcDir(clientCompatAssets)
         assets.srcDir(modAssets)
+        assets.srcDir(sqliteAssets)
         assets.srcDir(layout.buildDirectory.dir("generated/managedRuntime/assets"))
         jniLibs.srcDir(layout.buildDirectory.dir("generated/managedRuntime/jniLibs"))
         assets.srcDir(layout.buildDirectory.dir("generated/clientGraphics/assets"))
@@ -190,10 +210,12 @@ android {
 
 tasks.named("preBuild").configure { dependsOn(packagePoc) }
 tasks.matching { it.name == "preJvmProbeBuild" }.configureEach { dependsOn(prepareJvmProbe, packageProbe) }
-tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe, packageClientCompat, prepareClientGraphics, packageModBytecode) }
+tasks.matching { it.name == "preManagedPreviewBuild" }.configureEach { dependsOn(prepareManagedRuntime, packageProbe, packageClientCompat, prepareClientGraphics, packageModBytecode, packageServerSqlite) }
 
 dependencies {
     add(modBytecode.name, "org.javassist:javassist:3.30.2-GA")
+    add(serverSqlite.name, "org.xerial:sqlite-jdbc:3.53.2.1")
+    add(serverSqlite.name, "org.xerial:sqlite-jdbc:3.53.2.1:natives-android")
     testImplementation("junit:junit:4.13.2")
     add("testManagedPreviewImplementation", "org.xerial:sqlite-jdbc:3.53.2.1")
 }

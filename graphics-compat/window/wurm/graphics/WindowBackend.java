@@ -76,7 +76,11 @@ public final class WindowBackend {
         owned();
         synchronized(events) {
             String line;
-            while ((line = events.poll()) != null) {
+            while ((line = events.peek()) != null) {
+                // A 240-character paste produces 480 LWJGL events. Do not silently
+                // drop the tail (including Enter) into its 200-event destination.
+                if (!pointer.canApply(line)) break;
+                events.poll();
                 try {
                     if (line.startsWith("FPS ")) pacer.setFps(Integer.parseInt(line.substring(4)));
                     else if (line.equals("HUD restore-focus") || line.equals("HUD restore-button")) hud(line.substring(4));

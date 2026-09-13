@@ -145,9 +145,7 @@ class ManagedServerController(private val context: Context, private val config: 
         report { it.prepare() }
         // Pin the exact device-proven inputs. In particular, never replace the
         // owner's patched server/common JARs with unpatched desktop files.
-        val pins = linkedMapOf(
-            "server.jar" to "9ea2761f210e05e7080777e988ddc0bd04e6fa5221813cdf141881cfb8ec8e06",
-            "common.jar" to "066fe846ac3ea3d1a85e070ed452c43e8e390cbfa112a9c0d7eaff3fbe531633",
+        val pins = ServerRuntimePreparation.GAME_PINS + linkedMapOf(
             "wurm-arm64-poc.jar" to ManagedRuntimeStore.POC_SHA256
         ) + ProbeInputs.BASELINE.mapKeys { "poc-lib/${it.key}" }
         pins.forEach { (path, expected) ->

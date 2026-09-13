@@ -106,9 +106,9 @@ class GraphicsTestActivity : Activity() {
         if(!ClientSession.send("KEY $code 1")) Toast.makeText(this,"Game input is not ready.",Toast.LENGTH_SHORT).show()
         else ClientSession.send("KEY $code 0")
     }
-    private fun insertDraft(): Boolean {
+    private fun insertDraft(submit: Boolean = false): Boolean {
         val value=keyboardText.text.toString()
-        if(!ClientSession.sendText(value)) {
+        if(!ClientSession.sendText(value,submit)) {
             Toast.makeText(this,"Text was not sent. Keep the draft and retry when game input is ready.",Toast.LENGTH_SHORT).show()
             return false
         }
@@ -239,7 +239,7 @@ class GraphicsTestActivity : Activity() {
         fun label(value: String, size: Float = 14f) = TextView(this).apply {
             text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
         }
-        label(if (mode == "render") "JVM Graphics Test · 0.10.39" else "Game controls · 0.10.39",20f)
+        label(if (mode == "render") "JVM Graphics Test · 0.10.40" else "Game controls · 0.10.40",20f)
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
         }
@@ -254,7 +254,7 @@ class GraphicsTestActivity : Activity() {
                         0 -> startActivity(Intent(this,GameKeybindsActivity::class.java))
                         1 -> startActivity(Intent(this,ControllerSettingsActivity::class.java))
                         else -> AlertDialog.Builder(this).setTitle("Touch & keyboard")
-                            .setMessage("Touch selects and drags. Right stick moves the pointer; A/RT clicks, LT right-clicks.\n\nSelect a text field in the game, then use Show keyboard. Compose text in the Android bar and tap Insert; Enter submits in the game. Backspace edits the selected game field when the draft is empty. Hide keyboard keeps an unsent draft. Hardware keyboards type directly when the text bar is closed; mouse hover, buttons and wheel are supported.")
+                            .setMessage("Touch selects and drags. Right stick moves the pointer; A/RT clicks, LT right-clicks.\n\nSelect a text field in the game, then use Show keyboard. Compose text in the Android bar and tap Insert to fill it, or Send / Enter (also the keyboard’s Send key) to fill and submit it. Backspace edits the selected game field when the draft is empty. Hide keyboard keeps an unsent draft. Hardware keyboards type directly when the text bar is closed; mouse hover, buttons and wheel are supported.")
                             .setPositiveButton("Close",null).show()
                     }
                 }.show()
@@ -289,9 +289,18 @@ class GraphicsTestActivity : Activity() {
         keyboardText=EditText(this).apply {
             hint="Select a game text field, then compose here"; setSingleLine()
             filters=arrayOf(android.text.InputFilter.LengthFilter(240))
-            imeOptions=android.view.inputmethod.EditorInfo.IME_ACTION_DONE or android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            imeOptions=android.view.inputmethod.EditorInfo.IME_ACTION_SEND or android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI
             setText(savedInstanceState?.getString("keyboard-draft").orEmpty())
-            setOnEditorActionListener { _,action,_ -> if(action==android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { insertDraft(); true } else false }
+            setOnEditorActionListener { _,action,event ->
+                val enter=event?.keyCode in listOf(KeyEvent.KEYCODE_ENTER,KeyEvent.KEYCODE_NUMPAD_ENTER)
+                val imeSubmit=action in listOf(android.view.inputmethod.EditorInfo.IME_ACTION_SEND,
+                    android.view.inputmethod.EditorInfo.IME_ACTION_DONE,android.view.inputmethod.EditorInfo.IME_ACTION_GO)
+                if(enter || (event==null && imeSubmit)) {
+                    // Consume both hardware edges, but submit once, without key-repeat duplicates.
+                    if(event==null || (event.action==KeyEvent.ACTION_DOWN && event.repeatCount==0 && !event.isCanceled)) insertDraft(true)
+                    true
+                } else false
+            }
             keyboardBar.addView(this,LinearLayout.LayoutParams(-1,dp(48)))
         }
         val typing=LinearLayout(this); keyboardBar.addView(typing)
@@ -299,7 +308,7 @@ class GraphicsTestActivity : Activity() {
             text=title; isAllCaps=false; setOnClickListener { action() }
         },LinearLayout.LayoutParams(0,dp(48),1f)) }
         typingButton("Insert") { insertDraft() }
-        typingButton("Enter") { if(keyboardText.text.isEmpty() || insertDraft()) tapGameKey(28) }
+        typingButton("Send / Enter") { insertDraft(true) }
         typingButton("Backspace") {
             val text=keyboardText.text
             if(text.isEmpty()) tapGameKey(14) else {

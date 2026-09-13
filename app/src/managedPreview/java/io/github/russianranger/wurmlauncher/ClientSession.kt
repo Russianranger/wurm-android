@@ -61,9 +61,9 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.39\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.40\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: user reports 0.10.38 server/client mods stable. This build tests launcher flow, complete backups and keyboard/mouse input. Native graphics, audio, heap and collector policies are retained.\n\n" +
+            "Gate status: user reports 0.10.39 functional except keyboard submission. This build fixes composer Send/Enter and input queue overflow, and supplies verified server dependencies offline. Clean desktop server conversion remains unqualified. Native graphics, audio, heap and collector policies are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -160,15 +160,8 @@ object ClientSession {
             return false
         }
     }
-    fun sendText(text: String): Boolean {
-        if(!inputReady() || text.isEmpty() || text.length>240 || text.any { it.code<32 || it.code==127 }) return false
-        synchronized(queue) {
-            // All-or-nothing enqueue preserves a composed draft when the child is busy.
-            if(queue.remainingCapacity()<text.length+8) return false
-            text.forEach { queue.add("TEXT ${it.code}") }
-            return true
-        }
-    }
+    fun sendText(text: String, submit: Boolean = false): Boolean =
+        inputReady() && GameTextInput.enqueue(queue, text, submit)
     private fun checkCancelled() { if (cancelled || Thread.currentThread().isInterrupted) throw InterruptedException("Client operation cancelled") }
     private fun reachable() = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", 3724), 300) }; true }.getOrDefault(false)
     private fun runNativeHeap(context: Context, store: ClientStore) {

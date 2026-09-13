@@ -1,5 +1,11 @@
 # Production readiness proposal — 2026-09-13
 
+Update 2026-09-13: the user authorized the next preparation/input phase.
+0.10.40 fixes Send and supplies the exact public Android SQLite dependencies
+offline for verified Thor server inputs. The dependency provenance gap below
+is resolved. Clean stock-JAR qualification still needs the untouched archive.
+See [current scope and remaining prerequisite](KEYBOARD_AND_PREPARATION.md).
+
 Progress: the user subsequently authorized the GUI/backup phase plus keyboard
 input. Version 0.10.39 implements that first pass; see
 [implementation, migration and device checks](LAUNCHER_BACKUP_KEYBOARD.md) and

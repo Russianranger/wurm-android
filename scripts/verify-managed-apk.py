@@ -10,6 +10,12 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 with zipfile.ZipFile(sys.argv[1]) as apk:
+    for name, checksum in {
+        "sqlite-jdbc-3.53.2.1.jar": "f55e405ed96d5ffe629e05b7b51b059e1c7d64527c0cc90a972fbac06730ccc1",
+        "sqlite-jdbc-3.53.2.1-natives-android.jar": "011d4edb8d06012ced78d6aa675ffc85bf339d3cd640845684b80873ec5a6e97",
+    }.items():
+        assert hashlib.sha256(apk.read("assets/" + name)).hexdigest() == checksum, name
+    assert apk.read("assets/SQLITE_DEPENDENCY_NOTICES.txt")
     info = json.loads(apk.read("assets/jvm-runtime.json"))
     assert info["javaVersion"] == "17.0.20"
     data = apk.read("assets/jre17-data.zip")
@@ -79,6 +85,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/graphics-probe.jar"))) as probe:
         assert set(probe.namelist()) == {"wurm/graphics/GraphicsProbe.class", "wurm/graphics/GlChecks.class", "wurm/graphics/FrameFile.class", "wurm/graphics/NativeEgl.class", "wurm/graphics/LibraryNames.class"}
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/pojav-wurm-api.jar"))) as adapter:
+        assert b"canQueueInput" in adapter.read("org/lwjgl/input/GLFWInputImplementation.class")
+        assert b"remainingEvents" in adapter.read("org/lwjgl/input/EventQueue.class")
         assert "META-INF/LICENSE.lwjgl.txt" in adapter.namelist()
         assert "org/lwjgl/opengl/ARBProgram.class" in adapter.namelist()
         assert b"OPENAL_CONTEXT_READY" in adapter.read("org/lwjgl/openal/AL.class")
@@ -86,6 +94,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
+        assert b"canApply" in window.read("wurm/graphics/WindowBackend.class")
         assert b"KEYCHAR" in window.read("wurm/graphics/WindowInput.class")
         assert b"TEXT" in window.read("wurm/graphics/WindowInput.class")
         assert int.from_bytes(window.read("wurm/graphics/WurmVisibility.class")[6:8], "big") == 61

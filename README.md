@@ -2,16 +2,17 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.38 — client loader and Live Map.**
+**Current branch test: 0.10.40 — keyboard Send and offline preparation dependencies.**
 
-This branch is `mod-launcher-test`; stable main/0.10.35 remain separate. Server,
-Client, Mods and Diagnostics tabs; manifest-based ZIP imports and stopped-runtime
-toggles. Announcer and Survival have loaded together on the Thor. This test adds
-client loader 0.15 and shared client mods, beginning with Live Map 1.8.
+Continue on `mod-launcher-test`; main remains separate. Keyboard submission now
+includes the newline Wurm needs, and long text drains without losing its tail.
+Server preparation supplies verified SQLite dependencies offline for the
+existing supported Thor server files. Clean desktop-server conversion is still
+awaiting an untouched archive and a qualified item-database patch recipe.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.38-client-mods).
-[Client loader/mod downloads and device checklist](docs/CLIENT_MODS_TEST.md).
-[Maintained handoff](docs/HANDOFF.md). Existing runtime reports stay in Diagnostics.
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.40-keyboard-preparation).
+[Backup migration, preparation limits and test checklist](docs/KEYBOARD_AND_PREPARATION.md).
+[Maintained handoff](docs/HANDOFF.md). Reports remain in Diagnostics.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed
 approximately 36 minutes on 0.10.31 with normal client/server exits and about

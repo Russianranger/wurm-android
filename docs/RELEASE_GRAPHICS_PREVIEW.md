@@ -1,3 +1,27 @@
+# 0.10.40 — keyboard send and offline runtime dependencies
+
+Fixes Android keyboard Send/Done and the on-screen Send / Enter button. Wurm
+receives the newline needed to submit the selected text field. Long drafts
+retain their tail and submit event as the input queue drains. Insert and Hide
+keep their separate behavior.
+
+Server setup now supplies the exact, verified Android SQLite dependencies and
+existing bootstrap offline, records its preparation recipe and rejects unknown
+inputs before activation. **This accepts the verified prepared Thor server
+files; clean desktop-server conversion still needs an untouched server archive
+and a qualified item SQLite patch recipe.**
+
+In 0.10.39, stop both runtimes and export a complete backup. Install the separate
+`.keyboardprep` app alongside it and restore the backup. Select Wurm chat, open
+the gear keyboard, type and press Send; verify the message appears once. Export
+a support bundle afterward. Preserve the older app and backup.
+
+[Implementation, preparation limits and test steps](https://github.com/Russianranger/wurm-android/blob/mod-launcher-test/docs/KEYBOARD_AND_PREPARATION.md).
+Native renderer/audio, ASan and collectors are retained. This is a device-test
+preview; physical confirmation remains pending.
+
+## Previous release
+
 # 0.10.39 — launcher, backups and keyboard
 
 Client now has contextual Play/Resume, grouped settings and complete app

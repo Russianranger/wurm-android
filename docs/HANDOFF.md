@@ -2,6 +2,46 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
+## Current continuation — 0.10.40 keyboard and preparation dependencies
+
+The user resumed **Review Repo Progress** after its length limit and authorized
+continuing the last request: fix keyboard chat submission with automatic runtime
+preparation. Continue only on **mod-launcher-test**; main remains unchanged.
+Recovered the latest `wurm-support.zip`; it matches 0.10.39 `.launcherpreview`.
+User reports other features functional. The bundle has two normal client exits,
+two requested normal server exits and median sampled presentation 30 FPS; no new
+fatal marker was found. This is not a long-duration qualification result.
+
+- Implemented IME Send/Done/Go and composer hardware Enter through one atomic
+  draft + CR + key-release batch. Insert remains separate; failure retains draft.
+- Supplied client disassembly confirms WurmInputField submits on LF/CR in
+  keyTyped, not a zero-character Enter key code. Also fixed the 200-event LWJGL
+  queue limit: long pastes now wait for capacity rather than dropping the tail.
+- **SQLite gap resolved:** public Maven main and `natives-android` classifier
+  artifacts at 3.53.2.1 exactly match both existing device hash pins. Bundled as
+  JVM assets with license notices and build/APK checks; no new native build.
+- Prepare / import server ZIP uses recipe `thor-prepared-sqlite-1`: verify the
+  existing Thor game JAR pins, add missing SQLite/bootstrap offline, stage a
+  manifest/final inventory and select atomically. Existing JARs/worlds/mod files
+  are preserved. Changed inputs fail without publishing the stage. Existing
+  first-launch preflight/checkpoint/mod ordering is retained.
+- **Still needed from user:** an untouched Wurm Unlimited dedicated-server ZIP
+  for clean-stock item SQLite patch qualification. The recovered server JAR is
+  the prepared baseline. Older embedded reference classes are not sufficient
+  evidence of pristine stock. No SQLite upload is needed now. Generic clean-ZIP
+  conversion is not implemented; never bypass pins to advertise it as complete.
+- Planned release: **0.10.40**, code **54**, package `.keyboardprep`, tag
+  `v0.10.40-keyboard-preparation`. Full 0.10.39 backups provide migration;
+  persistent signing remains unresolved. Keep old app installed.
+- Local Android API compile and 28 focused Kotlin/JUnit tests pass. Both input
+  tests pass, including the actual pinned LWJGL queue and 240-unit text plus CR.
+  The full host suite passed: 168 tests, 16 unavailable fixture/platform
+  skips; supplied server/private overlay checks and actual pinned input ran.
+  CI/release verification are pending at this implementation checkpoint. Add their exact results and immutable release identity below.
+- [Implementation, recovered bundle details and device checklist](KEYBOARD_AND_PREPARATION.md).
+  No proprietary assets or disassembly are committed. Native renderer/audio,
+  ASan and GC policies remain unchanged. New device behavior is unconfirmed.
+
 ## Current branch release — 0.10.39 launcher, backups and keyboard
 
 The user **authorized the proposed GUI and backup/migration phase**, and added

@@ -22,6 +22,7 @@ public class GLFWInputImplementation {
  public boolean grab;
  public final List<String> events = new ArrayList<>();
  public final List<String> text = new ArrayList<>();
+ public boolean canQueueInput(int keyboard, int mouse) { return true; }
  public void putKeyboardEvent(int k, byte s, int c, long n, boolean r) { events.add("K "+k+" "+s); text.add(k+" "+s+" "+c+" "+r); }
  public void putMouseEventWithCoords(byte b, byte s, int x, int y, int z, long n) { events.add("M "+b+" "+s+" "+x+" "+y+" "+z); }
 }""")
@@ -45,6 +46,8 @@ public class Check {
   p.apply("TEXT 233"); p.apply("KEYCHAR 30 65 0"); p.apply("KEYCHAR 30 65 1");
   check(s.text.contains("0 1 233 false") && s.text.contains("30 1 65 false") && s.text.contains("30 1 65 true"));
   p.apply("RESET"); check(s.text.contains("30 0 0 false"));
+  p.apply("KEYCHAR 28 13 0"); p.apply("KEY 28 0");
+  check(s.text.contains("28 1 13 false") && s.text.contains("28 0 0 false"));
   s.grab=true; check(!p.visible()); p.apply("MOVE -100 -100"); check(p.x()<0 && p.displayX()==0);
   int count=p.applied(), queued=s.events.size();
   for(String invalid:new String[]{"POINT NaN 0","POINT 0 Infinity","POINT -0.01 0","POINT 1.01 0","POINT 0 2","BUTTON 8 1","TEXT 31","TEXT 65536","KEYCHAR 256 65 0","KEYCHAR 30 65 2"}) {
@@ -93,6 +96,25 @@ public class Check {
   keys.getLong(); keys.get(); keys.position(36);
   if(keys.getInt()!=30 || keys.get()!=1 || keys.getInt()!=65) throw new AssertionError("hardware character lost");
   if(sink.key_down_buffer[30]!=0) throw new AssertionError("hardware release lost");
+  // The real queue has room for only 200 events. Deliver a maximum composer
+  // draft with backpressure, followed by the newline and key release.
+  keys.clear(); sink.readKeyboard(keys);
+  var pending=new java.util.ArrayDeque<String>();
+  for(int i=0;i<240;i++) pending.add("TEXT "+(65+i%26));
+  pending.add("KEYCHAR 28 13 0"); pending.add("KEY 28 0");
+  var chars=new StringBuilder(); int frames=0;
+  while(!pending.isEmpty()) {
+   if(++frames>10) throw new AssertionError("input did not drain");
+   while(!pending.isEmpty() && p.canApply(pending.peek())) p.apply(pending.remove());
+   keys=ByteBuffer.allocate(200*18); sink.readKeyboard(keys); keys.flip();
+   while(keys.hasRemaining()) {
+    int k=keys.getInt(), down=keys.get(), c=keys.getInt(); keys.getLong(); keys.get();
+    if(down==1 && c!=0) chars.append((char)c);
+   }
+  }
+  StringBuilder expected=new StringBuilder(); for(int i=0;i<240;i++) expected.append((char)(65+i%26)); expected.append((char)13);
+  if(!chars.toString().equals(expected.toString()) || frames<3 || sink.key_down_buffer[28]!=0)
+   throw new AssertionError("paste/submit lost, reordered or stuck");
  }
 }""")
             api = os.environ["WURM_INPUT_API_JAR"]

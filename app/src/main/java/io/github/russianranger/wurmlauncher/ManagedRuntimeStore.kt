@@ -10,7 +10,7 @@ import java.util.UUID
 import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 
-/** Storage only. Never executes, patches or uploads imported game files. */
+/** Private staged storage. Never executes or uploads imported game files. */
 class ManagedRuntimeStore(
     private val home: File,
     private val maxBytes: Long = 32L * 1024 * 1024 * 1024,
@@ -60,6 +60,12 @@ class ManagedRuntimeStore(
 
     /** Caller serializes imports. An interrupted process can leave only unselected staging data. */
     fun importZip(input: InputStream, pocJar: ByteArray, progress: (String) -> Unit = {}): Installed {
+        return importPreparedZip(input, pocJar, {}, progress)
+    }
+
+    /** Preparation runs only inside unpublished staging; failure leaves the current import selected. */
+    fun importPreparedZip(input: InputStream, pocJar: ByteArray, prepare: (File) -> Unit,
+                          progress: (String) -> Unit = {}): Installed {
         require(sha256(pocJar) == POC_SHA256) { "Packaged POC checksum failed." }
         check(home.isDirectory || home.mkdirs()) { "Cannot create private import storage." }
         val previous = current()?.generation
@@ -101,6 +107,7 @@ class ManagedRuntimeStore(
                         val digest = if (name.endsWith(".jar", ignoreCase = true)) MessageDigest.getInstance("SHA-256") else null
                         target.outputStream().use { output ->
                             while (true) {
+                                if (Thread.currentThread().isInterrupted) throw InterruptedException("Import cancelled")
                                 val count = zip.read(buffer)
                                 if (count == -1) break
                                 total += count
@@ -128,6 +135,23 @@ class ManagedRuntimeStore(
                 }
                 children[0]
             }
+            prepare(root)
+            // Preparation may have installed dependencies. Inventory the resulting bytes,
+            // rather than retaining hashes/counts from the incoming archive alone.
+            total = 0L; fileCount = 0; hashes.clear()
+            root.walkTopDown().filter { it.isFile }.forEach { file ->
+                if (Thread.currentThread().isInterrupted) throw InterruptedException("Import cancelled")
+                total += file.length(); fileCount++
+                require(total <= maxBytes && fileCount <= maxEntries) { "Prepared runtime exceeds the import limit." }
+                if (file.extension.equals("jar", true)) {
+                    val digest = MessageDigest.getInstance("SHA-256")
+                    file.inputStream().use { source ->
+                        while (true) { val count=source.read(buffer); if(count<0) break; digest.update(buffer,0,count) }
+                    }
+                    hashes[file.relativeTo(payload).invariantSeparatorsPath] = hex(digest.digest())
+                }
+            }
+            check(home.usableSpace > reserveBytes) { "Not enough free internal storage after preparation." }
             REQUIRED_JARS.forEach { path ->
                 val jar = File(root, path)
                 require(jar.isFile) { "Missing $path. Import the complete prepared POC runtime." }

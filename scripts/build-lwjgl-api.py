@@ -93,6 +93,22 @@ def append_methods(source, methods):
     return source[:position] + '\n' + methods + '\n' + source[position:]
 
 
+def patch_input_capacity(source, queue=False):
+    if queue:
+        if 'private final ByteBuffer queue;' not in source or 'private final int event_size;' not in source:
+            raise ValueError('Pinned input EventQueue layout changed')
+        return append_methods(source, '''
+    public synchronized int remainingEvents() { return this.queue.remaining() / event_size; }
+''')
+    if 'keyboardEventQueue' not in source or 'event_queue' not in source:
+        raise ValueError('Pinned GLFW input queues changed')
+    return append_methods(source, '''
+    public boolean canQueueInput(int keyboardEvents, int mouseEvents) {
+        return keyboardEventQueue.remainingEvents() >= keyboardEvents && event_queue.remainingEvents() >= mouseEvents;
+    }
+''')
+
+
 def patch_legacy_queries(source):
     # The pinned LWJGLX convenience methods overwrite size with type, leave the
     # second slot zero, and advance position. LWJGL2 callers expect two outputs.
@@ -213,7 +229,11 @@ def compile_verified_source(source, annotations, output, tracked, patches=True):
         content = content.replace('public int mouseLastX = 0;', 'private int wheel;\n    public int mouseLastX = 0;')
         content = content.replace('buttons.rewind();', 'coord_buffer.put(2, wheel); wheel = 0;\n        buttons.rewind();')
         content = content.replace('event_buffer.putInt(dz).putLong(nanos);', 'wheel += dz;\n        event_buffer.putInt(dz).putLong(nanos);')
-        target.write_text(content)
+        target.write_text(patch_input_capacity(content))
+        java[java.index(original)] = target
+        original = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/input/EventQueue.java'
+        target = output/'patched/EventQueue.java'
+        target.write_text(patch_input_capacity(original.read_text(), queue=True))
         java[java.index(original)] = target
         original = source/'modules/lwjgl/lwjglx/src/main/java/org/lwjgl/input/Mouse.java'
         target = output/'patched/Mouse.java'
