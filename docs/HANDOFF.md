@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Active implementation — 0.10.39 launcher, backups and keyboard
+## Current branch release — 0.10.39 launcher, backups and keyboard
 
 The user **authorized the proposed GUI and backup/migration phase**, and added
 Android keyboard invocation/dismissal through the gear menu plus the conventional
@@ -25,16 +25,35 @@ Continue on **mod-launcher-test**; main is unchanged.
   transaction; exclusive app/native ownership; startup recovery blocks launch
   if incomplete. Journal cleanup is renamed away before deletion. Restore
   recreates launcher screens to prevent stale selection writes.
-- Local checks so far: all Android source compiled; **24 focused Kotlin tests
+- Released **0.10.39**, code **53**, package
+  `io.github.russianranger.wurmlauncher.launcherpreview`, tag
+  **v0.10.39-launcher-backup**. Implementation commit
+  `c7a1c94fca1c639760820633468b1b172d5597b4`, tree
+  `8575185df5d52a0ddda460314eda4e5b13ab17d7`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.39-launcher-backup/Wurm-Server.apk),
+  **53,868,729 bytes**, SHA-256
+  **`7e513956535741071505cd0d85c296527d800fa77f61789b99df8982d62402ef`**.
+- Local validation: full Android API compilation and **24 focused Kotlin tests
   passed**, including complete round-trip and process-death injection at each
-  publication boundary. **168 host tests passed, 30 expected missing-fixture/
-  platform skips** in the clean local workspace. Both authored and actual pinned LWJGL queue tests passed, including text,
-  character state, repeat and reset. Native checks and full Gradle
-  unit/lint/APK packaging remain CI gates. Do not call
-  the APK released until CI and release verification are recorded here.
-- Version 0.10.39/code53/package `.launcherpreview`; release target
-  `v0.10.39-launcher-backup`. No native graphics/audio/ASan, server POC/SQLite or
-  GC policy changes. Java input adapter/helper changes are intentional.
+  publication boundary. **168 host tests passed, 30 expected unavailable local
+  fixture/platform skips**; both authored and actual pinned LWJGL queue tests
+  then passed, including text, character state, repeat and reset.
+- [CI run 34742995721](https://github.com/Russianranger/wurm-android/actions/runs/34742995721):
+  build `103685767034` and publisher `103686875178` succeeded. Host suite:
+  **168 tests, 17 expected initial skips**. All three Android variants built
+  and passed unit/lint gates; subsequent required native and actual-LWJGL
+  checks passed. Real host EGL shader compilation remained unavailable (one
+  explicit skip). APK v2 signing verified; certificate SHA-256
+  `fcf0fe482ba5aa9450fd89fd17bf9fe926c83fe88f78029f2bb4e4d013f8d01b`.
+- Independently downloaded APK matches release SHA256SUMS, version/code/package,
+  new launcher/backup/input classes and maintained packaging verifier. JRE
+  members, server POC and 39 native libraries are byte-identical to 0.10.38.
+  GL4ES differs only in 27 bytes: 20 GNU build-ID bytes and seven compile
+  date/time bytes. Java input adapter/helper changes are intentional.
+- No native graphics/audio/ASan, server POC/SQLite or GC policy changes. The
+  new GUI, IME/hardware paths and real-world full restore remain to be checked
+  physically. Handoff-only commits after the implementation do not change
+  the immutable APK.
 - Migration caveat: the old 0.10.38 app cannot export a complete backup and its
   signing key was not persisted. Keep it installed, export its stopped working
   server runtime, and import client/client mods separately. Full backups start

@@ -1,5 +1,12 @@
 # Production readiness proposal — 2026-09-13
 
+Progress: the user subsequently authorized the GUI/backup phase plus keyboard
+input. Version 0.10.39 implements that first pass; see
+[implementation, migration and device checks](LAUNCHER_BACKUP_KEYBOARD.md) and
+[HANDOFF.md](HANDOFF.md) for release evidence and remaining work. The proposal
+below preserves the original scope; automatic stock-runtime preparation and
+full production qualification are still later milestones.
+
 This is a proposal, not an implemented release. Reviewed `mod-launcher-test` at
 `da2c5bb370c9350492d9f83e9d5e9cebdb312dd9`; the APK remains **0.10.38**.
 Keep implementation on this branch unless the user authorizes otherwise.
