@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.43 frame performance
+## Latest release — 0.10.43 frame performance
 
 The user reports “Everything worked” on 0.10.42 and authorizes the next milestone.
 Continue phase 4 of PRODUCTION_READINESS_PLAN.md on mod-launcher-test only.
@@ -31,10 +31,29 @@ bundle identity, precise scope, limitations and device steps.
   Kotlin tests pass. Host suite: 182 tests, 30 expected local fixture/platform
   skips. Seven shader trace and four connection tests pass in their applicable
   modes. No proprietary game files are needed for these new tests.
-- Version 0.10.43, code 57, `.frameperf`, planned immutable tag
-  `v0.10.43-frame-performance`. Publication/independent APK evidence follows.
-  Main, native graphics/audio/ASan, JRE, collectors/heaps, SQLite, POC and stock
-  recipe are retained. No FPS gain or completed soak qualification is claimed.
+- Released 0.10.43, code 57, `io.github.russianranger.wurmlauncher.frameperf`,
+  immutable tag `v0.10.43-frame-performance`. Implementation commit
+  `e253dfdbeffe657a1780d84bdb7cf11c876ef0fc`, tree
+  `383f18d7bd2c083cd512387178624139a28fd510`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.43-frame-performance/Wurm-Server.apk),
+  68,515,069 bytes, SHA-256
+  `8bd0c00a9f9a0e91f6a112053dd8131cae4cfe33f772ed7aaa239d2bde340c62`.
+- [CI run 34771446319](https://github.com/Russianranger/wurm-android/actions/runs/34771446319)
+  passed: build `103761662806`, publisher `103762760363`; unrelated import/JVM
+  publishers skipped. Initial host suite: 182 tests, 23 expected fixture/platform
+  skips. All three Android variants passed build, unit tests and lint. Required
+  native graphics/input and packaging gates passed; one expected real-host-EGL
+  shader-compilation skip remains in the later native checks.
+- Independently downloaded APK size/checksum, version/code/package, v2 signature
+  and maintained packaged-class/runtime verifier passed. Certificate SHA-256:
+  `801abd1bd628e32e98aa43b1cfc40daf0095adad103ec969b5b63bec277d116b`.
+  All 194 JRE members, POC and 39 of 40 native libraries match 0.10.42 exactly.
+  GL4ES differs only in 25 bytes: 20 GNU build-ID bytes and five compile-time
+  string characters. No native behavior source changed.
+- Main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`. Native graphics/audio/
+  ASan, JRE, collectors/heaps, SQLite, POC and stock recipe are retained.
+  Subsequent handoff-only commits do not alter the immutable release APK.
+  No FPS gain or completed device soak qualification is claimed.
 - Device: keep 0.10.42, export a complete backup with both runtimes stopped,
   restore into 0.10.43, keep the same settings, test play/background/resume and
   save/restart. A 60–90-minute mixed-play support bundle is the next useful

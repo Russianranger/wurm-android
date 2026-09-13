@@ -101,9 +101,17 @@ locally. Its seven graphics-trace tests cover unchanged delegates/exceptions,
 normal/verbose policy, trace budgets and a flushed unfinished native call after
 an abrupt exit. Four connection tests cover real authored state transitions,
 periodic counters, immediate error/reason changes and read-only behavior. CI
-also runs its required actual upstream native/input fixtures and all three
-Android build/unit/lint gates. Final CI and independently verified APK evidence
-are recorded in HANDOFF.md after publication.
+also passed its required actual upstream native/input fixtures and all three
+Android build/unit/lint gates in
+[run 34771446319](https://github.com/Russianranger/wurm-android/actions/runs/34771446319).
+The initial CI suite has 23 expected fixture/platform skips; the later native
+checks retain one unavailable real-host-EGL shader-compilation skip.
+
+The published APK independently passes its contents verifier, published checksum,
+package/version and v2 signature checks. All 194 JRE members, POC and 39 of 40
+native libraries match 0.10.42 exactly. GL4ES differs only in 20 build-ID bytes
+and five compile-time string characters. Full release/commit/certificate identities
+are recorded in HANDOFF.md. Device performance and lifecycle results remain pending.
 
 ## Thor qualification
 
