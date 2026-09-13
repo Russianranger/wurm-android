@@ -32,6 +32,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert b"[native-heap] STARTUP_PROBE_PASS" in runner
     assert apk.read("assets/wurm-arm64-poc.jar") == base64.b64decode((ROOT / "poc/artifacts/wurm-arm64-poc.jar.base64").read_bytes())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/runtime-probe.jar"))) as helper:
+        assert b"KEYCHAR" in helper.read("client/DesktopInput.class")
+        assert b"TEXT" in helper.read("client/DesktopInput.class")
         assert int.from_bytes(helper.read("client/ClientHudVisibility.class")[6:8], "big") == 61
         for name in ("probe/RuntimeMeasurements.class", "probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerModBootstrap.class", "server/ServerModLaunch.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/ServerSqlitePatch.class", "server/ServerLoginPatch.class", "server/LegacyBase64Encoder.class", "server/ServerPreflight.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientModBootstrap.class", "client/ClientModLaunch.class", "client/ClientJvmDiagnostics.class", "client/ClientMemoryProbe.class", "client/ClientMemoryProbe$Kernel.class", "client/ClientMemoryProbe$Loader.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/ClientSettingsPatch.class", "client/ClientVisualOptions.class", "client/ClientKeybindings.class", "client/DesktopInput.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
@@ -84,6 +86,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
+        assert b"KEYCHAR" in window.read("wurm/graphics/WindowInput.class")
+        assert b"TEXT" in window.read("wurm/graphics/WindowInput.class")
         assert int.from_bytes(window.read("wurm/graphics/WurmVisibility.class")[6:8], "big") == 61
         assert b"WURM_VISIBILITY_POLICY" in window.read("wurm/graphics/WurmVisibility.class")
         assert b"wurm/graphics/WurmVisibility" in window.read("wurm/graphics/CapabilityChecks.class")

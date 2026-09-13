@@ -11,6 +11,19 @@ public final class DesktopInput {
     public synchronized Event accept(String line) {
         if (line.length() > 160) throw new IllegalArgumentException("Oversized input event");
         String[] p = line.split(" ");
+        if (p.length == 4 && p[0].equals("KEYCHAR")) {
+            int code=Integer.parseInt(p[1]), character=Integer.parseInt(p[2]), repeat=Integer.parseInt(p[3]);
+            if(code<1 || code>255 || character<0 || character>65535 || (repeat!=0 && repeat!=1))
+                throw new IllegalArgumentException("Invalid keyboard event");
+            keys.add(code);
+            return new Event("KEYCHAR",code,character,repeat);
+        }
+        if (p.length == 2 && p[0].equals("TEXT")) {
+            // UTF-16 code unit, matching LWJGL's character queue. Text is never logged.
+            int character=Integer.parseInt(p[1]);
+            if(character<32 || character>65535 || character==127) throw new IllegalArgumentException("Invalid text unit");
+            return new Event("TEXT",character,0,0);
+        }
         if (p.length == 3 && (p[0].equals("KEY") || p[0].equals("BUTTON"))) {
             int code = Integer.parseInt(p[1]); int down = Integer.parseInt(p[2]);
             if (code < 0 || code > (p[0].equals("KEY") ? 255 : 7) || (down != 0 && down != 1)) throw new IllegalArgumentException("Invalid input code");

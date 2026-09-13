@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <application android:extractNativeLibs="true">
+    <application android:extractNativeLibs="true" android:name=".ManagedApplication">
         <activity android:name=".HomeActivity" android:exported="false" tools:replace="android:exported">
             <intent-filter tools:node="removeAll" />
         </activity>
@@ -15,7 +15,9 @@
         <activity android:name=".ControllerSettingsActivity" android:exported="false" />
         <activity android:name=".GameKeybindsActivity" android:exported="false" />
         <activity android:name=".ControllerTestActivity" android:exported="false" />
-        <activity android:name=".GraphicsTestActivity" android:exported="false" />
+        <activity android:name=".GraphicsTestActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".BackupActivity" android:exported="false" />
+        <service android:name=".BackupService" android:exported="false" android:stopWithTask="false" />
         <service android:name=".ClientService" android:exported="false" android:stopWithTask="false" />
         <service android:name=".ManagedServerService" android:exported="false" android:stopWithTask="false" />
     </application>

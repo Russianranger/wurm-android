@@ -1,4 +1,23 @@
-# 0.10.38 — client loader and Live Map test
+# 0.10.39 — launcher, backups and keyboard
+
+Client now has contextual Play/Resume, grouped settings and complete app
+backup/restore. Server controls and Diagnostics are grouped; Mods has a
+Server/Client selector and observed loading status. Gear provides an Android
+text composer with Show/Hide keyboard, hardware keyboard/mouse support,
+left/right gear placement and readable panel opacity. All 47 graphics choices
+remain available with search/categories and live-application feedback.
+
+Install the separate `.launcherpreview` package alongside 0.10.38. Export its
+normally stopped working server runtime and import it here; import your client
+ZIP and client mods separately. 0.10.38 cannot export a full app backup. Keep
+the previous installation until the migration is verified. From this version,
+Backups & migration can export and restore both sides and settings together.
+
+Native graphics/audio, ASan, server POC/SQLite and GC policies are retained.
+This is a test build. See **LAUNCHER_BACKUP_KEYBOARD.md** for migration, keyboard
+usage, backup behavior, signing limitations and the physical-device checklist.
+
+## Previous 0.10.38 notes
 
 Server mods now have device evidence: Announcer's longer run saved/exited normally,
 and Announcer + Survival initialized together. This release adds Ago client loader

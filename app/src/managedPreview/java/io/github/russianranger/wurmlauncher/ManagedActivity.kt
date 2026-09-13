@@ -24,6 +24,7 @@ import android.widget.Toast
 class ManagedActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("managed-settings", MODE_PRIVATE) }
+    private val navigationPrefs by lazy { getSharedPreferences("launcher-settings", MODE_PRIVATE) }
     private lateinit var page: LinearLayout
     private lateinit var status: TextView
     private lateinit var clientPage: ClientPage
@@ -50,13 +51,13 @@ class ManagedActivity : Activity() {
         super.onCreate(savedInstanceState)
         ClientSession.initialize(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        root.addView(TextView(this).apply { text="Wurm · 0.10.38"; textSize=22f; setPadding(20,12,20,8) })
+        root.addView(TextView(this).apply { text="Wurm · 0.10.39"; textSize=22f; setPadding(20,12,20,8) })
         val navigation=LinearLayout(this)
         root.addView(navigation)
         val content=android.widget.FrameLayout(this)
         root.addView(content,LinearLayout.LayoutParams(-1,0,1f))
         setContentView(root)
-        page = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(20,12,20,12) }
+        page = LauncherUi.column(this)
         fun addPage(view: View) {
             val scroll=ScrollView(this).apply { isFillViewport=true; addView(view); visibility=View.GONE }
             pages.add(scroll); content.addView(scroll)
@@ -69,8 +70,8 @@ class ManagedActivity : Activity() {
         }
         addPage(modsPage.view)
         diagnosticsPage=DiagnosticsPage(this, { audit(it) }, { request, name ->
-            document(Intent.ACTION_CREATE_DOCUMENT,"text/plain",name,request)
-        }, { worldReport() })
+            document(Intent.ACTION_CREATE_DOCUMENT,if(request==EXPORT_SUPPORT) "application/zip" else "text/plain",name,request)
+        }, { worldReport() }, { side -> modsPage.diagnostics(side) })
         addPage(diagnosticsPage.view)
         listOf("Server","Client","Mods","Diagnostics").forEachIndexed { index, title ->
             tabs += Button(this).apply {
@@ -79,39 +80,48 @@ class ManagedActivity : Activity() {
                 navigation.addView(this,LinearLayout.LayoutParams(0,-2,1f))
             }
         }
-        idleButtons += button("Import Server ZIP") {
-            AlertDialog.Builder(this).setTitle("Import prepared runtime")
-                .setMessage("Choose the working runtime ZIP exported while stopped from your previous Wurm Server app, or your prepared Termux POC ZIP. Include its existing SQLite fixes. This preview keeps one original import plus a separate working copy. Allow at least 4 GiB free space for your current runtime and recovery files.")
-                .setPositiveButton("Choose ZIP") { _, _ -> document(Intent.ACTION_OPEN_DOCUMENT, "*/*", "", IMPORT) }
-                .setNegativeButton("Cancel", null).show()
-        }
-        status = label("Stopped")
-        label("World")
+        status = label("Server",22f)
+        label("Selected world")
         worlds = Spinner(this).also { page.addView(it) }
-        idleButtons += button("Server Settings") { settings() }
-        idleButtons += button("World gameplay settings") {
-            if (saveWorld()) WorldSettingsDialog.show(this, worlds.selectedItem as String)
-            else toast("Import a runtime and select a world first.")
-        }
-        start = button("Start Server") {
+        start = button("Start server") {
             if (!saveWorld()) return@button
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 70)
             startForegroundService(Intent(this, ManagedServerService::class.java).setAction(ManagedServerService.START))
         }
-        stop = button("Stop Server") { ManagedSession.stop() }
-        restart = button("Restart Server") { ManagedSession.stop(restart = true) }
-        force = button("Force Stop") {
-            AlertDialog.Builder(this).setTitle("Force Stop the server?")
-                .setMessage("This kills only this app's Java process. Unsaved world changes can be lost. The original import and before-start checkpoint remain available.")
-                .setPositiveButton("Force Stop") { _, _ -> ManagedSession.forceStop() }.setNegativeButton("Cancel", null).show()
+        stop = button("Save & stop server") { ManagedSession.stop() }
+        val primary=page
+        page=LauncherUi.section(primary,"World & server settings")
+        idleButtons += button("World gameplay settings") {
+            if (saveWorld()) WorldSettingsDialog.show(this, worlds.selectedItem as String)
+            else toast("Import a runtime and select a world first.")
         }
-        idleButtons += button("Export working runtime ZIP") { document(Intent.ACTION_CREATE_DOCUMENT, "application/zip", "wurm-working-runtime.zip", EXPORT_WORKING) }
-        idleButtons += button("Export before-start checkpoint ZIP") { document(Intent.ACTION_CREATE_DOCUMENT, "application/zip", "wurm-before-start.zip", EXPORT_CHECKPOINT) }
+        idleButtons += button("Server memory & connection check") { settings() }
+        page=LauncherUi.section(primary,"Setup & runtime",!java.io.File(filesDir,"managed-preview/original/current").isFile)
+        label("Import a prepared runtime or a stopped working server export from an older app. For a complete app backup, use Backups & migration below.")
+        idleButtons += button("Import server ZIP") {
+            AlertDialog.Builder(this).setTitle("Import prepared runtime")
+                .setMessage("Choose your stopped working runtime export or prepared Termux ZIP, including its SQLite fixes. This keeps an original and separate working copy. Free storage: ${filesDir.usableSpace/1024/1024} MiB. Import and checkpoint creation check available space as they run.")
+                .setPositiveButton("Choose ZIP") { _, _ -> document(Intent.ACTION_OPEN_DOCUMENT,"*/*","",IMPORT) }
+                .setNegativeButton("Cancel",null).show()
+        }
+        page=primary
+        button("Backups & migration") { saveWorld(); startActivity(Intent(this,BackupActivity::class.java)) }
+        page=LauncherUi.section(primary,"Server exports & recovery")
+        idleButtons += button("Export working server ZIP") { document(Intent.ACTION_CREATE_DOCUMENT,"application/zip","wurm-working-runtime.zip",EXPORT_WORKING) }
+        idleButtons += button("Export before-start checkpoint ZIP") { document(Intent.ACTION_CREATE_DOCUMENT,"application/zip","wurm-before-start.zip",EXPORT_CHECKPOINT) }
         idleButtons += button("Restore before-start checkpoint") { restore(false) }
         idleButtons += button("Restore original import") { restore(true) }
+        page=LauncherUi.section(primary,"Advanced session controls")
+        restart=button("Save & restart server") { ManagedSession.stop(restart=true) }
+        force=button("Force stop server") {
+            AlertDialog.Builder(this).setTitle("Force stop the server?")
+                .setMessage("Unsaved world changes can be lost. The original import and before-start checkpoint remain available.")
+                .setPositiveButton("Force stop") { _,_->ManagedSession.forceStop() }.setNegativeButton("Cancel",null).show()
+        }
+        page=primary
         render()
-        val initial=savedInstanceState?.getInt("tab") ?: intent.getIntExtra("tab",SERVER)
+        val initial=savedInstanceState?.getInt("tab") ?: intent.getIntExtra("tab",navigationPrefs.getInt("tab",CLIENT))
         savedInstanceState?.let { state -> scrollOffsets.indices.forEach { index ->
             scrollOffsets[index]=state.getInt("scroll-$index")
         } }
@@ -121,7 +131,8 @@ class ManagedActivity : Activity() {
     private fun selectTab(tab: Int) {
         saveWorld()
         if (pageShown) scrollOffsets[selectedTab]=pages[selectedTab].scrollY
-        selectedTab=tab.takeIf { it in SERVER..DIAGNOSTICS } ?: SERVER
+        selectedTab=tab.takeIf { it in SERVER..DIAGNOSTICS } ?: CLIENT
+        if(navigationPrefs.getInt("tab",-1)!=selectedTab) navigationPrefs.edit().putInt("tab",selectedTab).apply()
         pages.forEachIndexed { index, view -> view.visibility=if (index==selectedTab) View.VISIBLE else View.GONE }
         tabs.forEachIndexed { index, button ->
             button.isSelected=index==selectedTab
@@ -137,7 +148,7 @@ class ManagedActivity : Activity() {
     private fun renderSelected() {
         when(selectedTab) { SERVER -> render(); CLIENT -> clientPage.render(); MODS -> modsPage.render(); DIAGNOSTICS -> diagnosticsPage.render() }
     }
-    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); selectTab(intent.getIntExtra("tab",SERVER)) }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); selectTab(intent.getIntExtra("tab",navigationPrefs.getInt("tab",CLIENT))) }
     override fun onSaveInstanceState(out: Bundle) {
         out.putInt("tab",selectedTab)
         scrollOffsets[selectedTab]=pages[selectedTab].scrollY
@@ -161,7 +172,7 @@ class ManagedActivity : Activity() {
     private fun render() {
         val state = ManagedSession.snapshot(includeLog=false)
         val recovery = ManagedSession.workspace(this).recoveryRequired.exists()
-        val text = state.phase + (if (state.phase=="Error") ": ${state.detail}" else "") + if (!state.busy && recovery)
+        val text = (OperationGate.recoveryError ?: state.phase) + (if (state.phase=="Error") ": ${state.detail}" else "") + if (!state.busy && recovery)
             "\nRecovery needed: export current files/logs, then restore the checkpoint or original before another Start." else ""
         if (status.text.toString()!=text) status.text=text
         val installed = runCatching { ManagedSession.workspace(this).imports.current() }.getOrNull()
@@ -173,9 +184,11 @@ class ManagedActivity : Activity() {
             val selected = prefs.getString("world", "Adventure")
             worlds.setSelection(knownWorlds.indexOf(selected).coerceAtLeast(0))
         }
-        idleButtons.forEach { it.isEnabled = !state.busy }
+        idleButtons.forEach { it.isEnabled = !state.busy && !OperationGate.maintenance && OperationGate.recoveryError==null }
         worlds.isEnabled = !state.busy && installed != null
-        start.isEnabled = !state.busy && installed != null && !recovery
+        start.isEnabled = !state.busy && installed != null && !recovery && !OperationGate.maintenance && OperationGate.recoveryError==null
+        start.visibility=if(ManagedSession.ownsServer()) View.GONE else View.VISIBLE
+        stop.visibility=if(ManagedSession.ownsServer()) View.VISIBLE else View.GONE
         stop.isEnabled = ManagedSession.ownsServer() && state.phase != "Stopping"
         restart.isEnabled = ManagedSession.ownsServer() && state.phase == "Running"
         force.isEnabled = ManagedSession.ownsServer() && state.phase == "Stopping"
@@ -184,7 +197,7 @@ class ManagedActivity : Activity() {
     private fun saveWorld(): Boolean {
         val world = worlds.selectedItem as? String ?: return false
         if (world !in knownWorlds) return false
-        prefs.edit().putString("world", world).apply()
+        if(prefs.getString("world",null)!=world) prefs.edit().putString("world", world).apply()
         return true
     }
     private fun settings() {
@@ -228,6 +241,11 @@ class ManagedActivity : Activity() {
         if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         val app = applicationContext
+        if(requestCode==EXPORT_SUPPORT) {
+            startForegroundService(Intent(this,BackupService::class.java).setAction("support").setData(uri))
+            startActivity(Intent(this,BackupActivity::class.java))
+            return
+        }
         if(requestCode==IMPORT_SERVER_MOD || requestCode==IMPORT_CLIENT_MOD) {
             modsPage.importZip(if(requestCode==IMPORT_SERVER_MOD) "server" else "client",uri)
             return
@@ -283,9 +301,13 @@ class ManagedActivity : Activity() {
     private fun label(value: String, size: Float = 14f) = TextView(this).apply {
         text = value; textSize = size; setPadding(0, 8, 0, 8)
     }.also { page.addView(it) }
-    private fun button(value: String, action: () -> Unit) = Button(this).apply { text = value; setOnClickListener { action() } }.also { page.addView(it) }
+    private fun button(value: String, action: () -> Unit) = LauncherUi.button(page,value,action)
     private fun toast(value: String) = Toast.makeText(this, value, Toast.LENGTH_LONG).show()
-    override fun onResume() { super.onResume(); main.post(refresh) }
+    override fun onResume() {
+        super.onResume()
+        if(BackupStatus.busy) startActivity(Intent(this,BackupActivity::class.java))
+        main.removeCallbacks(refresh); main.post(refresh)
+    }
     override fun onPause() { saveWorld(); main.removeCallbacks(refresh); super.onPause() }
     companion object {
         const val SERVER=0
@@ -304,5 +326,6 @@ class ManagedActivity : Activity() {
         const val EXPORT_REPORT = 53
         const val EXPORT_STORAGE_REPORT = 54
         const val EXPORT_WORLD_REPORT = 55
+        const val EXPORT_SUPPORT = 56
     }
 }

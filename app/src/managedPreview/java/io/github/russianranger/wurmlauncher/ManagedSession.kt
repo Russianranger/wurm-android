@@ -10,6 +10,8 @@ object ManagedSession {
     private var busy = false
     private var phase = "Stopped"
     private var detail = "No server process owned by this app."
+    @Volatile var loadedMods: Set<String> = emptySet()
+        private set
     private val lines = ArrayDeque<String>()
     private var logFile: File? = null
     private var observations: RuntimeObservationLog? = null
@@ -19,6 +21,7 @@ object ManagedSession {
     @Synchronized fun snapshot(includeLog: Boolean = true) = Snapshot(busy, phase, detail, if (includeLog) lines.joinToString("\n") else "")
     @Synchronized fun status(next: String, message: String) { phase = next; detail = message }
     @Synchronized fun log(line: String) {
+        Regex("SERVER_MOD_READY ([A-Za-z0-9_.-]+)").find(line)?.let { loadedMods=loadedMods+it.groupValues[1] }
         val bounded = line.take(4000)
         lines.addLast(bounded)
         while (lines.size > 500) lines.removeFirst()
@@ -31,7 +34,7 @@ object ManagedSession {
         }
     }
     @Synchronized private fun claim(context: Context, next: String): Boolean {
-        if (busy) return false
+        if (busy || !OperationGate.enter()) return false
         busy = true; phase = next; detail = next
         if (logFile == null) {
             logFile = File(context.filesDir, "managed-session.txt")
@@ -54,13 +57,14 @@ object ManagedSession {
             } catch (failure: Exception) {
                 status("Error", failure.message ?: title)
                 log("[app] $title failed: $failure")
-            } finally { synchronized(this) { busy = false } }
+            } finally { synchronized(this) { busy = false }; OperationGate.leave() }
         }, "wurm-storage").start()
         return true
     }
 
     fun start(context: Context, config: ManagedLaunch, auditCapture: Boolean? = null, finished: () -> Unit): Boolean {
         if (!claim(context, if (auditCapture == null) "Preparing" else "Checking storage")) return false
+        loadedMods=emptySet()
         val owner = ManagedServerController(context.applicationContext, config)
         synchronized(this) { controller = owner }
         Thread({
@@ -71,6 +75,7 @@ object ManagedSession {
                 log("[app] ${if (auditCapture == null) "Server launch" else "Storage audit"} failed: $failure")
             } finally {
                 synchronized(this) { controller = null; busy = false }
+                OperationGate.leave()
                 finished()
             }
         }, "wurm-managed-server").start()

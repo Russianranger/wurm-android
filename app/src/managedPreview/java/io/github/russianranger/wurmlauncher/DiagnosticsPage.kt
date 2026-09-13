@@ -8,16 +8,19 @@ import android.widget.*
 
 /** All launcher diagnostics, refreshed only while this page is visible. */
 class DiagnosticsPage(private val activity: Activity, private val audit: (String) -> Unit,
-    private val export: (Int,String) -> Unit, private val worldReport: () -> String) {
-    val view=LinearLayout(activity).apply { orientation=LinearLayout.VERTICAL; setPadding(20,12,20,12) }
+    private val export: (Int,String) -> Unit, private val worldReport: () -> String, private val modDiagnostics: (String)->Unit) {
+    val view=LauncherUi.column(activity)
+    private var target=view
+    private var warningsOnly=false
+    private fun filterLog(value: String)=if(!warningsOnly) value else value.lineSequence().filter { Regex("(?i)warn|error|exception|failed|fatal").containsMatchIn(it) }.joinToString("\n")
     private val clientTests=mutableListOf<Button>()
     private val serverTests=mutableListOf<Button>()
     private val status: TextView
     private val clientLogs: TextView
     private val serverLogs: TextView
-    private fun label(text: String)=TextView(activity).apply { this.text=text; setPadding(0,8,0,8); view.addView(this) }
+    private fun label(text: String)=TextView(activity).apply { this.text=text; setPadding(0,8,0,8); target.addView(this) }
     private fun button(text: String, action: () -> Unit)=Button(activity).apply {
-        this.text=text; setOnClickListener { action() }; view.addView(this)
+        this.text=text; setOnClickListener { action() }; target.addView(this)
     }
     private fun showReport(title: String, value: String) {
         val text=TextView(activity).apply { this.text=value; setTextIsSelectable(true); setPadding(20,12,20,12) }
@@ -26,9 +29,11 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     }
     init {
         status=label("")
+        button("Export support bundle") { export(ManagedActivity.EXPORT_SUPPORT,"wurm-support.zip") }
+        target=LauncherUi.section(view,"Individual reports")
         button("Export Client Report") { export(ManagedActivity.EXPORT_CLIENT,"wurm-client-report.txt") }
         button("Export Server Report") { export(ManagedActivity.EXPORT_REPORT,"wurm-server-report.txt") }
-        label("Client tests").textSize=20f
+        target=LauncherUi.section(view,"Client tests")
         label("Stop the client before running a test. Normal play does not require these checks.")
         clientTests += button("Native Memory Startup Test") {
             activity.startForegroundService(Intent(activity,ClientService::class.java).setAction("native-heap"))
@@ -42,7 +47,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         }
         clientTests += button("JVM Graphics Test") { activity.startActivity(Intent(activity,GraphicsTestActivity::class.java)) }
         button("Stop Client / Test") { activity.startService(Intent(activity,ClientService::class.java).setAction("stop")) }
-        label("World and configuration").textSize=20f
+        target=LauncherUi.section(view,"World & storage checks")
         button("View world/configuration report") { showReport("World/configuration report",worldReport()) }
         button("Export world/configuration report") { export(ManagedActivity.EXPORT_WORLD_REPORT,"wurm-world-report.txt") }
         label("Storage verification").textSize=20f
@@ -55,6 +60,12 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         serverTests += button("Check stored data") { audit(ManagedServerService.CHECK) }
         button("View storage report") { showReport("Storage report",ManagedSession.workspace(activity).storageReport()) }
         button("Export storage report") { export(ManagedActivity.EXPORT_STORAGE_REPORT,"wurm-storage-report.txt") }
+        target=LauncherUi.section(view,"Mod diagnostics")
+        button("Server mod files & manifest") { modDiagnostics("server") }
+        button("Client mod files & manifest") { modDiagnostics("client") }
+        target=LauncherUi.section(view,"Live logs")
+        val filter=CheckBox(activity).apply { text="Warnings and errors only"; target.addView(this) }
+        filter.setOnCheckedChangeListener { _,checked -> warningsOnly=checked; render() }
         label("Client output · latest 80 lines").textSize=20f
         clientLogs=label("").apply { textSize=12f; typeface=Typeface.MONOSPACE; setTextIsSelectable(true) }
         label("Server output · latest 500 lines").textSize=20f
@@ -66,8 +77,8 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         status.updateText("Client: ${client.phase} · ${client.detail}\nServer: ${server.phase} · ${server.detail}")
         clientTests.forEach { it.isEnabled=!client.busy }
         serverTests.forEach { it.isEnabled=!server.busy }
-        clientLogs.updateText(ClientSession.recent())
-        serverLogs.updateText(server.log)
+        if(clientLogs.isShown) clientLogs.updateText(filterLog(ClientSession.recent()))
+        if(serverLogs.isShown) serverLogs.updateText(filterLog(server.log))
     }
     private fun TextView.updateText(value: String) { if (text.toString()!=value) text=value }
 }

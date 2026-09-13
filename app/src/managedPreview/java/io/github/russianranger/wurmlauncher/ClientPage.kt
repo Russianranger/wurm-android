@@ -8,38 +8,69 @@ import android.widget.*
 
 /** Basic client controls. Services retain session ownership while tabs change. */
 class ClientPage(private val activity: Activity, private val importClient: () -> Unit) {
-    val view = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL; setPadding(20,12,20,12) }
-    private val actions = mutableListOf<Button>()
-    private val imported = label("")
+    val view = LauncherUi.column(activity)
     private val status = label("")
     private val player = label("")
-    private val resume: Button
+    private val play: Button
+    private val connect: Button
     private val stop: Button
-    private fun label(text: String) = TextView(activity).apply { this.text=text; setPadding(0,8,0,8); view.addView(this) }
-    private fun button(text: String, idle: Boolean = false, action: () -> Unit) = Button(activity).apply {
-        this.text=text; setOnClickListener { action() }; view.addView(this); if (idle) actions.add(this)
-    }
+    private val rename: Button
+    private val importButton: Button
+    private var importStamp=""
+    private var hasClient=false
+    private fun label(text: String)=LauncherUi.label(view,text)
+    private fun button(text: String, action: () -> Unit)=LauncherUi.button(view,text,action)
     init {
-        button("Import Client ZIP",true,importClient)
-        button("Change Player Name",true) { editPlayerName(player) }
-        button("Graphics Settings") { GraphicsSettingsDialog.show(activity,ClientSession.gameActive() && ClientSession.inputReady()) }
-        button("Controller Settings") { activity.startActivity(Intent(activity,ControllerSettingsActivity::class.java)) }
-        button("Start Local Game",true) { launch("local") }
-        button("Start Client",true) { launch("start") }
-        resume=button("Return to Game") {
-            activity.startActivity(Intent(activity,GraphicsTestActivity::class.java).putExtra("mode","start"))
+        status.textSize=20f
+        play=button("Play") {
+            if(ClientSession.gameActive()) activity.startActivity(Intent(activity,GraphicsTestActivity::class.java).putExtra("mode","start"))
+            else launch("local")
         }
-        stop=button("Stop Client") { activity.startService(Intent(activity,ClientService::class.java).setAction("stop")) }
-        label("Start Local Game starts your selected server and connects the client. Tests, reports and logs are in Diagnostics.")
+        stop=button("Stop client") { activity.startService(Intent(activity,ClientService::class.java).setAction("stop")) }
+        label("Play starts the selected local server when needed, then connects your character. Returning to the launcher keeps the server running.")
+        val settings=LauncherUi.section(view,"Character & settings")
+        rename=LauncherUi.button(settings,"Change player name") { editPlayerName(player) }
+        LauncherUi.button(settings,"Graphics") { GraphicsSettingsDialog.show(activity,ClientSession.gameActive() && ClientSession.inputReady()) }
+        LauncherUi.button(settings,"Game keybindings") { activity.startActivity(Intent(activity,GameKeybindsActivity::class.java)) }
+        LauncherUi.button(settings,"Controller mappings") { activity.startActivity(Intent(activity,ControllerSettingsActivity::class.java)) }
+        val runtime=LauncherUi.section(view,"Setup & runtime")
+        LauncherUi.label(runtime,"Import the complete Wurm client ZIP. Import a prepared server ZIP on Server for local play, or restore a complete app backup.")
+        importButton=LauncherUi.button(runtime,"Import client ZIP",importClient)
+        connect=LauncherUi.button(runtime,"Connect to running local server") { launch("start") }
+        LauncherUi.button(view,"Backups & migration") { activity.startActivity(Intent(activity,BackupActivity::class.java)) }
+        LauncherUi.button(view,"Diagnostics & reports") { activity.startActivity(ManagedActivity.tabIntent(activity,ManagedActivity.DIAGNOSTICS)) }
+        // Setup is visible on a fresh install; Play becomes primary after imports.
+        if(!java.io.File(ClientSession.store(activity).home,"current").isFile) runtime.visibility=android.view.View.VISIBLE
     }
     fun render() {
         val state=ClientSession.snapshot()
-        status.updateText(state.phase + if (state.phase=="Error") ": ${state.detail}" else "")
-        actions.forEach { it.isEnabled=!state.busy }
-        resume.isEnabled=ClientSession.gameActive()
-        stop.isEnabled=state.busy
-        player.updateText("Local player: ${activity.getSharedPreferences("client-settings",Activity.MODE_PRIVATE).getString("player","Thor")}")
-        imported.updateText(runCatching { ClientSession.store(activity).current()?.let { "Client imported · ${it.jars.size} JARs" } ?: "Import your client ZIP to get started." }.getOrElse { "Import metadata error: ${it.message}" })
+        val current=java.io.File(ClientSession.store(activity).home,"current")
+        val stamp="${current.lastModified()}:${current.length()}"
+        if(stamp!=importStamp) { importStamp=stamp; hasClient=runCatching { ClientSession.store(activity).current()!=null }.getOrDefault(false) }
+        val server=ManagedSession.snapshot(false)
+        val workspace=ManagedSession.workspace(activity)
+        val hasServer=runCatching { workspace.imports.current()!=null }.getOrDefault(false)
+        val recovery=workspace.recoveryRequired.exists()
+        val active=ClientSession.gameActive()
+        val blocked=OperationGate.maintenance || OperationGate.recoveryError!=null
+        status.updateText(when {
+            blocked -> OperationGate.recoveryError ?: "Backup operation in progress"
+            state.busy -> "${state.phase} · ${state.detail}"
+            !hasClient -> "Setup needed · Import your client ZIP below"
+            !hasServer -> "Client ready · Import a server on Server for local play"
+            recovery -> "Server recovery needed · Open Server → Backups"
+            state.phase=="Error" -> "Client stopped · ${state.detail}"
+            else -> "Ready to play · Server: ${server.phase}"
+        })
+        play.text=if(active) "Resume game" else if(state.busy) "Starting…" else "Play"
+        play.isEnabled=!blocked && (active || (!state.busy && hasClient && hasServer && !recovery && (!server.busy || server.phase=="Running")))
+        connect.isEnabled=!blocked && !state.busy && hasClient
+        rename.isEnabled=!blocked && !state.busy
+        importButton.isEnabled=!blocked && !state.busy
+        stop.visibility=if(state.busy) android.view.View.VISIBLE else android.view.View.GONE
+        val name=activity.getSharedPreferences("client-settings",Activity.MODE_PRIVATE).getString("player","Thor")
+        val world=activity.getSharedPreferences("managed-settings",Activity.MODE_PRIVATE).getString("world","Adventure")
+        player.updateText("Character: $name · World: $world")
     }
     private fun TextView.updateText(value: String) { if (text.toString()!=value) text=value }
     private fun launch(mode: String) {

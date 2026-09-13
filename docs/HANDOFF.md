@@ -2,6 +2,48 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
+## Active implementation — 0.10.39 launcher, backups and keyboard
+
+The user **authorized the proposed GUI and backup/migration phase**, and added
+Android keyboard invocation/dismissal through the gear menu plus the conventional
+input path. That authorization supersedes the proposal-only status below.
+Continue on **mod-launcher-test**; main is unchanged.
+
+- Implementation: contextual Client Play/Resume, grouped Server controls,
+  persistent tab selection, Mods side selector/observed READY labels and
+  Diagnostics support bundle/expandable checks. Graphics keeps all 47 options
+  with categories/search/reset and acknowledgment status. Gear has grouped
+  controls, left/right placement and background-only opacity.
+- Android keyboard uses a native text composer invoked/dismissed from gear,
+  with Insert/Enter/Backspace/Hide. Hardware keys send LWJGL key/character/repeat
+  events; hardware mouse hover/buttons/wheel use normalized frame geometry.
+  Focus/menu/device removal releases held input. Visible game keeps screen awake.
+  Exact IME/game text behavior still needs a physical test.
+- Complete backup includes active original/working server/checkpoint, selected
+  client, both mod stores, client user files/bindings, controller and typed app
+  settings. Hash-checked staging plus a recoverable multi-root/preference
+  transaction; exclusive app/native ownership; startup recovery blocks launch
+  if incomplete. Journal cleanup is renamed away before deletion. Restore
+  recreates launcher screens to prevent stale selection writes.
+- Local checks so far: all Android source compiled; **24 focused Kotlin tests
+  passed**, including complete round-trip and process-death injection at each
+  publication boundary. **168 host tests passed, 30 expected missing-fixture/
+  platform skips** in the clean local workspace. Both authored and actual pinned LWJGL queue tests passed, including text,
+  character state, repeat and reset. Native checks and full Gradle
+  unit/lint/APK packaging remain CI gates. Do not call
+  the APK released until CI and release verification are recorded here.
+- Version 0.10.39/code53/package `.launcherpreview`; release target
+  `v0.10.39-launcher-backup`. No native graphics/audio/ASan, server POC/SQLite or
+  GC policy changes. Java input adapter/helper changes are intentional.
+- Migration caveat: the old 0.10.38 app cannot export a complete backup and its
+  signing key was not persisted. Keep it installed, export its stopped working
+  server runtime, and import client/client mods separately. Full backups start
+  with this version. Gradle accepts private persistent signing environment
+  inputs, but CI key provisioning is not completed; preview signing remains.
+- [Migration, design, keyboard usage and device checklist](LAUNCHER_BACKUP_KEYBOARD.md).
+  Automatic stock-server ZIP preparation and performance/native qualification
+  remain later milestones. No proprietary inputs are committed.
+
 ## Current request — production GUI and runtime preparation proposal
 
 The user reports that the additional suggested tests worked and asks for a

@@ -7,7 +7,7 @@ import android.view.*
 import kotlin.math.max
 
 /** Focus-scoped controller capture reusable by the JVM frame viewer and game window. */
-class ControllerCapture(private val activity: Activity) : InputManager.InputDeviceListener {
+class ControllerCapture(private val activity: Activity, private val deviceReleased: (Int)->Unit = {}) : InputManager.InputDeviceListener {
     private val handler = Handler(Looper.getMainLooper())
     private val manager = activity.getSystemService(InputManager::class.java)
     var enabled = true
@@ -44,8 +44,8 @@ class ControllerCapture(private val activity: Activity) : InputManager.InputDevi
     fun reset() { mapper.reset(); previous=0 }
     private fun detect() { ClientSession.log("[controller] DETECTED ${ControllerSettingsActivity.controllerNames()}") }
     override fun onInputDeviceAdded(deviceId: Int) { detect() }
-    override fun onInputDeviceChanged(deviceId: Int) { mapper.releaseDevice(deviceId); detect() }
-    override fun onInputDeviceRemoved(deviceId: Int) { mapper.releaseDevice(deviceId); detect() }
+    override fun onInputDeviceChanged(deviceId: Int) { mapper.releaseDevice(deviceId); deviceReleased(deviceId); detect() }
+    override fun onInputDeviceRemoved(deviceId: Int) { mapper.releaseDevice(deviceId); deviceReleased(deviceId); detect() }
     fun key(event: KeyEvent): Boolean {
         if (!enabled || !activity.hasWindowFocus()) return false
         val device = event.device

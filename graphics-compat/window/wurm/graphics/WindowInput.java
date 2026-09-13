@@ -27,6 +27,11 @@ public final class WindowInput {
         GLFWInputImplementation sink = GLFWInputImplementation.singleton;
         long now = System.nanoTime();
         switch (e.kind()) {
+            case "KEYCHAR" -> { keys[e.code()]=true; sink.putKeyboardEvent(e.code(),(byte)1,(int)e.x(),now,e.y()==1); }
+            case "TEXT" -> {
+                sink.putKeyboardEvent(0,(byte)1,e.code(),now,false);
+                sink.putKeyboardEvent(0,(byte)0,0,now,false);
+            }
             case "KEY" -> { keys[e.code()] = e.x() == 1; sink.putKeyboardEvent(e.code(), (byte)e.x(), 0, now, false); }
             case "BUTTON" -> {
                 if (e.code() >= buttons.length) throw new IllegalArgumentException("Unsupported mouse button");
@@ -47,7 +52,7 @@ public final class WindowInput {
             default -> throw new IllegalArgumentException("Unknown event");
         }
         if (applied < Integer.MAX_VALUE) applied++;
-        if (!e.kind().equals("MOVE") && !e.kind().equals("POINT"))
+        if (!e.kind().equals("MOVE") && !e.kind().equals("POINT") && !e.kind().equals("TEXT") && !e.kind().equals("KEYCHAR"))
             System.out.println("[window] INPUT_APPLIED " + e + " sink=lwjgl2-queues");
     }
     private void move(GLFWInputImplementation sink, long now) {

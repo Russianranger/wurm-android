@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.view.MotionEvent
+import android.view.InputDevice
 import android.widget.ImageView
 import android.widget.Toast
 
@@ -15,6 +16,7 @@ class GameFrameView(context: Context, private val interactive: Boolean) : ImageV
     private var pointer: GraphicsFrame.Pointer? = null
     private var pointerId = -1
     private var bottomUp = false
+    private var mouseButtons=0
     private val touch = TouchPointer { event ->
         val queued = ClientSession.send(event)
         if (!event.startsWith("POINT ")) ClientSession.log("[touch] TRANSLATE $event queued=$queued")
@@ -32,10 +34,32 @@ class GameFrameView(context: Context, private val interactive: Boolean) : ImageV
         invalidate()
     }
     fun clearFrame() { cancelTouch(); frameWidth = 0; frameHeight = 0; pointer = null; setImageDrawable(null) }
-    fun cancelTouch() { touch.cancel(); pointerId = -1; parent?.requestDisallowInterceptTouchEvent(false) }
+    fun cancelTouch() {
+        touch.cancel(); pointerId = -1
+        for((mask,button) in mouseMapping) if(mouseButtons and mask!=0) ClientSession.send("BUTTON $button 0")
+        mouseButtons=0; parent?.requestDisallowInterceptTouchEvent(false)
+    }
+    private val mouseMapping=listOf(MotionEvent.BUTTON_PRIMARY to 0,MotionEvent.BUTTON_SECONDARY to 1,MotionEvent.BUTTON_TERTIARY to 2)
+    private fun mouse(event: MotionEvent): Boolean {
+        if(!interactive || !event.isFromSource(InputDevice.SOURCE_MOUSE)) return false
+        if(!isEnabled || !ClientSession.inputReady()) return true
+        val p=point(event,0,mouseButtons!=0) ?: return false
+        ClientSession.send("POINT ${p.first} ${p.second}")
+        val state=if(event.actionMasked==MotionEvent.ACTION_CANCEL) 0 else event.buttonState
+        for((mask,button) in mouseMapping) if((state and mask)!=(mouseButtons and mask)) ClientSession.send("BUTTON $button ${if(state and mask!=0) 1 else 0}")
+        mouseButtons=state
+        if(event.actionMasked==MotionEvent.ACTION_SCROLL) {
+            val wheel=(event.getAxisValue(MotionEvent.AXIS_VSCROLL)*120).toInt().coerceIn(-1200,1200)
+            if(wheel!=0) ClientSession.send("WHEEL $wheel")
+        }
+        return true
+    }
+    override fun onGenericMotionEvent(event: MotionEvent)=mouse(event) || super.onGenericMotionEvent(event)
+    override fun onHoverEvent(event: MotionEvent)=mouse(event) || super.onHoverEvent(event)
     private fun point(event: MotionEvent, index: Int, clamp: Boolean = false) =
         FramePointerGeometry.point(event.getX(index), event.getY(index), width, height, frameWidth, frameHeight, clamp)
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if(mouse(event)) return true
         if (!isEnabled) return true
         if (!interactive || drawable == null) return super.onTouchEvent(event)
         when (event.actionMasked) {

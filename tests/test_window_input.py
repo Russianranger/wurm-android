@@ -21,7 +21,8 @@ public class GLFWInputImplementation {
  public static final GLFWInputImplementation singleton = new GLFWInputImplementation();
  public boolean grab;
  public final List<String> events = new ArrayList<>();
- public void putKeyboardEvent(int k, byte s, int c, long n, boolean r) { events.add("K "+k+" "+s); }
+ public final List<String> text = new ArrayList<>();
+ public void putKeyboardEvent(int k, byte s, int c, long n, boolean r) { events.add("K "+k+" "+s); text.add(k+" "+s+" "+c+" "+r); }
  public void putMouseEventWithCoords(byte b, byte s, int x, int y, int z, long n) { events.add("M "+b+" "+s+" "+x+" "+y+" "+z); }
 }""")
             test = home / "Check.java"
@@ -41,9 +42,12 @@ public class Check {
   check(p.x()==0.5 && p.y()==0.5); // Slow controller movement must retain fractional pixels.
   p.apply("KEY 17 1"); p.apply("BUTTON 1 1"); p.apply("RESET");
   check(s.events.contains("K 17 0") && s.events.contains("M 1 0 0 0 0"));
+  p.apply("TEXT 233"); p.apply("KEYCHAR 30 65 0"); p.apply("KEYCHAR 30 65 1");
+  check(s.text.contains("0 1 233 false") && s.text.contains("30 1 65 false") && s.text.contains("30 1 65 true"));
+  p.apply("RESET"); check(s.text.contains("30 0 0 false"));
   s.grab=true; check(!p.visible()); p.apply("MOVE -100 -100"); check(p.x()<0 && p.displayX()==0);
   int count=p.applied(), queued=s.events.size();
-  for(String invalid:new String[]{"POINT NaN 0","POINT 0 Infinity","POINT -0.01 0","POINT 1.01 0","POINT 0 2","BUTTON 8 1"}) {
+  for(String invalid:new String[]{"POINT NaN 0","POINT 0 Infinity","POINT -0.01 0","POINT 1.01 0","POINT 0 2","BUTTON 8 1","TEXT 31","TEXT 65536","KEYCHAR 256 65 0","KEYCHAR 30 65 2"}) {
    try {p.apply(invalid); throw new AssertionError(invalid);} catch(IllegalArgumentException ok) {}
   }
   check(p.applied()==count && s.events.size()==queued);
@@ -81,6 +85,14 @@ public class Check {
   if(sink.mouse_buffer[0]!=0) throw new AssertionError("stuck click");
   p.apply("KEY 17 1"); p.apply("BUTTON 1 1"); p.apply("RESET");
   if(sink.key_down_buffer[17]!=0 || sink.mouse_buffer[1]!=0) throw new AssertionError("stuck held input");
+  ByteBuffer keys=ByteBuffer.allocate(1024); sink.readKeyboard(keys); keys.clear();
+  p.apply("TEXT 233"); p.apply("KEYCHAR 30 65 0"); p.apply("KEY 30 0");
+  sink.readKeyboard(keys); keys.flip();
+  if(keys.remaining()!=72) throw new AssertionError("four keyboard queue events expected");
+  if(keys.getInt()!=0 || keys.get()!=1 || keys.getInt()!=233) throw new AssertionError("text character lost");
+  keys.getLong(); keys.get(); keys.position(36);
+  if(keys.getInt()!=30 || keys.get()!=1 || keys.getInt()!=65) throw new AssertionError("hardware character lost");
+  if(sink.key_down_buffer[30]!=0) throw new AssertionError("hardware release lost");
  }
 }""")
             api = os.environ["WURM_INPUT_API_JAR"]

@@ -126,8 +126,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 52
-        versionName = "0.10.38"
+        versionCode = 53
+        versionName = "0.10.39"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -135,12 +135,24 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { buildConfig = false }
+    // Optional persistent signing, supplied privately by the release operator.
+    // Never generate a new "release" identity implicitly or commit a private key.
+    val managedSigningStore = providers.environmentVariable("WURM_SIGNING_STORE").orNull
+    signingConfigs {
+        if (managedSigningStore != null) create("managedRelease") {
+            storeFile = file(managedSigningStore)
+            storePassword = requireNotNull(System.getenv("WURM_SIGNING_PASSWORD"))
+            keyAlias = requireNotNull(System.getenv("WURM_SIGNING_ALIAS"))
+            keyPassword = requireNotNull(System.getenv("WURM_SIGNING_KEY_PASSWORD"))
+        }
+    }
     sourceSets.getByName("main").assets.srcDir(pocAssets)
     buildTypes {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".clientmods"
+            applicationIdSuffix = ".launcherpreview"
+            if (managedSigningStore != null) signingConfig = signingConfigs.getByName("managedRelease")
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")
         }

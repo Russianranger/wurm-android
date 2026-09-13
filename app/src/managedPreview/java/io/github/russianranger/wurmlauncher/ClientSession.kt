@@ -24,11 +24,15 @@ object ClientSession {
         private set
     @Volatile var settingsRequests = 0L
         private set
+    @Volatile var graphicsAcknowledgment=0L
+        private set
     @Volatile var graphicsNotice = ""
         private set
     private val queue = LinkedBlockingQueue<String>(512)
     private var file: File? = null
     private var observations: RuntimeObservationLog? = null
+    @Volatile var loadedMods: Set<String> = emptySet()
+        private set
     private val lines = ArrayDeque<String>()
     private var worker: Thread? = null
     fun snapshot() = state
@@ -40,6 +44,7 @@ object ClientSession {
     fun graphicsFrame(context: Context) = File(context.filesDir, "client-graphics-frame.bin")
     fun keybindReport(context: Context) = File(context.filesDir, "client-keybindings.properties")
     @Synchronized fun log(message: String) {
+        Regex("CLIENT_MOD_READY ([A-Za-z0-9_.-]+)").find(message)?.let { loadedMods=loadedMods+it.groupValues[1] }
         val line = message.take(4000); lines.addLast(line)
         while (lines.size > 1500) lines.removeFirst()
         runCatching { observations?.observe(line) }
@@ -53,12 +58,12 @@ object ClientSession {
     }
     private fun status(phase: String, detail: String) { state = State(true, phase, detail); log("[app] ${Instant.now()} $phase — $detail") }
     fun recent() = synchronized(this) { lines.takeLast(80).joinToString("\n") }
-    fun report(context: Context): String {
+    fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.38\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.39\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: user reports 0.10.35 stable. Server mod loading is device-confirmed. This test adds client loader 0.15 and shared client mods, starting with Live Map 1.8; client mod gameplay requires device confirmation. Native graphics, audio, heap and collector policies are retained.\n\n" +
+            "Gate status: user reports 0.10.38 server/client mods stable. This build tests launcher flow, complete backups and keyboard/mouse input. Native graphics, audio, heap and collector policies are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -74,11 +79,11 @@ object ClientSession {
             runCatching { observations?.read().orEmpty() }.getOrDefault("Unavailable\n") + "\nSession history:\n" +
             (file?.takeIf { it.isFile }?.readText() ?: recent()) +
             "\n\nServer Session Report from this app only (history; compare timestamps):\n" +
-            ManagedSession.report(context)
+            (if(includeServer) ManagedSession.report(context) else "Included separately in support bundle.\n")
     }
     /** File-only client mod operations share the same ownership and native-child guard as import. */
     @Synchronized fun mutateMods(context: Context, action: (ModStore) -> String): Boolean {
-        if(state.busy) return false
+        if(state.busy || !OperationGate.enter()) return false
         val app=context.applicationContext
         initialize(app); activeMode="mods"; status("Mods", "Updating client mod files")
         worker=Thread({
@@ -96,13 +101,13 @@ object ClientSession {
                     }
                 }
             } catch(failure: Exception) { status("Error",failure.message ?: "Client mod operation failed"); log("[mods] CLIENT_MOD_FAILED $failure") }
-            finally { synchronized(this) { worker=null; state=state.copy(busy=false) } }
+            finally { synchronized(this) { worker=null; state=state.copy(busy=false) }; OperationGate.leave() }
         },"wurm-client-mods").apply { start() }
         return true
     }
     @Synchronized fun start(context: Context, mode: String, uri: Uri?, done: () -> Unit): Boolean {
-        if (state.busy) return false
-        initialize(context); activeMode=mode; cancelled = false; queue.clear()
+        if (state.busy || !OperationGate.enter()) return false
+        initialize(context); loadedMods=emptySet(); activeMode=mode; cancelled = false; queue.clear()
         nativeDrawTrace(context).delete()
         status("Preparing", "Client operation: $mode")
         worker = Thread({
@@ -131,6 +136,7 @@ object ClientSession {
             } finally {
                 reapChild()
                 synchronized(this) { worker = null; state = state.copy(busy = false) }
+                OperationGate.leave()
                 done()
             }
         }, "wurm-client-owner").apply { start() }
@@ -148,9 +154,20 @@ object ClientSession {
     }
     fun send(event: String): Boolean {
         if (!inputReady()) return false
-        if (queue.offer(event)) return true
-        queue.clear(); queue.offer("RESET"); log("[input] QUEUE_RESET overflow; held input release queued")
-        return false
+        synchronized(queue) {
+            if (queue.offer(event)) return true
+            queue.clear(); queue.offer("RESET"); log("[input] QUEUE_RESET overflow; held input release queued")
+            return false
+        }
+    }
+    fun sendText(text: String): Boolean {
+        if(!inputReady() || text.isEmpty() || text.length>240 || text.any { it.code<32 || it.code==127 }) return false
+        synchronized(queue) {
+            // All-or-nothing enqueue preserves a composed draft when the child is busy.
+            if(queue.remainingCapacity()<text.length+8) return false
+            text.forEach { queue.add("TEXT ${it.code}") }
+            return true
+        }
     }
     private fun checkCancelled() { if (cancelled || Thread.currentThread().isInterrupted) throw InterruptedException("Client operation cancelled") }
     private fun reachable() = runCatching { Socket().use { it.connect(InetSocketAddress("127.0.0.1", 3724), 300) }; true }.getOrDefault(false)
@@ -331,8 +348,8 @@ object ClientSession {
                     try { RootServerController.consumeLines(process.inputStream) { line ->
                         evidence.observe(line); log(line)
                         if (stage == "entry" && line == "[client-ui] OPEN_GRAPHICS_SETTINGS") settingsRequests++
-                        if (line.startsWith("[client-ui] GRAPHICS_APPLIED ")) graphicsNotice = "Graphics preset applied."
-                        if (line.startsWith("[client-ui] GRAPHICS_FAILED ")) graphicsNotice = "Graphics change failed; export Client Report."
+                        if (line.startsWith("[client-ui] GRAPHICS_APPLIED ")) { graphicsNotice = "Live graphics applied; restart-only choices remain saved for next launch."; graphicsAcknowledgment++ }
+                        if (line.startsWith("[client-ui] GRAPHICS_FAILED ")) { graphicsNotice = "Live graphics failed. Settings are saved; export the client report."; graphicsAcknowledgment++ }
                         if (line.startsWith("[memory] MEMORY_PROBE_PASS collector=${if (stage == "memory-g1") "g1" else "serial"} ")) memoryPassed.set(true)
                         if (stage == "entry") connectionState.observe(line)?.let { status(it.phase, it.detail) }
                         if ((stage == "input" || window) && line.startsWith("[client] INPUT_READY ")) inputReady = true
