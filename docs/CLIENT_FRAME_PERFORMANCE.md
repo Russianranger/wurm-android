@@ -6,6 +6,11 @@ ASan instrumentation, audio, Java runtime, collectors/heaps, frame transport,
 resolution/FPS defaults, server preparation and input behavior are retained.
 This release does not claim an FPS gain or completed production qualification.
 
+Subsequent device evidence: the user's approximately 35-minute 0.10.43 session
+confirms payload reuse, near-30-FPS play and normal exits, with recoverable GL,
+audio and GC-hitch findings. See the
+[extended session review](CLIENT_FRAME_PERFORMANCE_REVIEW_20260913.md).
+
 ## Device evidence
 
 The new support bundle is 82,503 bytes, SHA-256
@@ -111,7 +116,8 @@ The published APK independently passes its contents verifier, published checksum
 package/version and v2 signature checks. All 194 JRE members, POC and 39 of 40
 native libraries match 0.10.42 exactly. GL4ES differs only in 20 build-ID bytes
 and five compile-time string characters. Full release/commit/certificate identities
-are recorded in HANDOFF.md. Device performance and lifecycle results remain pending.
+are recorded in HANDOFF.md. Subsequent device performance results are linked
+above; lifecycle and longer-soak qualification remain incomplete.
 
 ## Thor qualification
 

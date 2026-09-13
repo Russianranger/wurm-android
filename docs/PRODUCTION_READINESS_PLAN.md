@@ -4,8 +4,12 @@ Current progress (2026-09-13): the user reports 0.10.42 worked and authorized
 moving to the next milestone. Phase 4 starts with 0.10.43 bounded frame reuse,
 normal/verbose logging and retained performance measurements. See
 [CLIENT_FRAME_PERFORMANCE.md](CLIENT_FRAME_PERFORMANCE.md) and HANDOFF.md.
-A longer device session, GL qualification, separate normal/ASan native comparison
-and persistent signing remain pending. The original proposal below is historical;
+A subsequent approximately 35-minute device run confirms payload reuse and
+near-30-FPS play with normal saves/exits; see the
+[extended review](CLIENT_FRAME_PERFORMANCE_REVIEW_20260913.md). Recoverable GL
+and audio errors and brief GC hitches remain follow-ups. Longer lifecycle/soak
+qualification, separate normal/ASan native comparison and persistent signing
+remain pending. The original proposal below is historical;
 its unimplemented/authorization wording describes the earlier review date.
 
 Update 2026-09-13: the user authorized the next preparation/input phase.

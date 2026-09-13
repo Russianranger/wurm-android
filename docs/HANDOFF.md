@@ -4,6 +4,20 @@ Updated: 2026-09-13. Keep this file current when investigating, changing, or rel
 
 ## Latest release — 0.10.43 frame performance
 
+Latest device review: the user reports extended play remains functional, though
+shorter than 60 minutes. See
+[CLIENT_FRAME_PERFORMANCE_REVIEW_20260913.md](CLIENT_FRAME_PERFORMANCE_REVIEW_20260913.md).
+The 18:30:59Z export covers about 35 minutes: client/server exit 0, normal saves,
+mean steady viewer windows 29.831 FPS, one reused 3.52 MiB payload allocation,
+zero steady-play skipped sequences, no crash/OOM/database-open/frame-copy failure.
+Three native GL observations remain (one recovered exception at frame 4904 in
+early play), plus an Ogg decoding failure and two invalid-sample-rate warnings.
+Periodic full GC aligns with brief viewer gaps up to 519 ms. No obvious runaway
+memory growth, but this is partial qualification; lifecycle/restart and a longer
+soak are not demonstrated. Keep 0.10.43 as the working baseline; investigate GL
+and sound issues next, with GC/native comparisons kept separate. Documentation
+review only; no new APK or release identity change.
+
 The user reports “Everything worked” on 0.10.42 and authorizes the next milestone.
 Continue phase 4 of PRODUCTION_READINESS_PLAN.md on mod-launcher-test only.
 [CLIENT_FRAME_PERFORMANCE.md](CLIENT_FRAME_PERFORMANCE.md) records the support
@@ -56,9 +70,9 @@ bundle identity, precise scope, limitations and device steps.
   No FPS gain or completed device soak qualification is claimed.
 - Device: keep 0.10.42, export a complete backup with both runtimes stopped,
   restore into 0.10.43, keep the same settings, test play/background/resume and
-  save/restart. A 60–90-minute mixed-play support bundle is the next useful
-  measurement. This performance comparison does not require another stock import.
-- Later: remaining startup GL investigation, separate matched normal/ASan native
+  save/restart. The subsequent 35-minute session is reviewed above; a longer run
+  with lifecycle/restart remains useful. This comparison needs no stock reimport.
+- Later: remaining GL/audio investigation, separate matched normal/ASan native
   comparison, owner-persisted release signing/stable identity, wider device matrix.
   Do not combine native/GC experiments with this frame/logging comparison.
 
