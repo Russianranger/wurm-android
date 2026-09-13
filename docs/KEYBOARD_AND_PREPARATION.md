@@ -86,7 +86,8 @@ button; full backup restore remains the supported migration route.
 The recovered `server.jar` exactly matches the prepared baseline
 `9ea2761f210e05e7080777e988ddc0bd04e6fa5221813cdf141881cfb8ec8e06`.
 Its older reference item classes are not evidence of a pristine vendor archive.
-An **untouched, user-owned Wurm Unlimited dedicated-server ZIP** is still needed
+An **untouched, user-owned Wurm Unlimited dedicated-server ZIP** (or its
+original `server.jar` and `common.jar` for the initial patch comparison) is still needed
 for comparing and qualifying the item SQLite transformation, class identity and
 SQL parameter/update/rollback semantics. Include `server.jar`, `common.jar`,
 `lib/`, configuration/resources and an included world. No SQLite dependency
@@ -125,5 +126,10 @@ validation, unchanged game/world/mod content, cancellation/corruption and
 publication rollback, import accounting, and existing checkpoint behavior.
 The actual pinned LWJGL queue regression passes maximum-length text followed by
 CR and release across multiple drains; the authored queue fixture also passes.
-Full host suite, release CI and APK verification results are recorded in HANDOFF.
+The local full host suite passed 168 tests with 16 unavailable fixture/platform
+skips. [Release CI 34755650835](https://github.com/Russianranger/wurm-android/actions/runs/34755650835)
+passed all three Android variants and required native/input gates; its initial
+host suite ran 168 tests with 17 expected skips. Published APK checksum,
+package/version, signature and maintained packaging verification passed.
+Exact release identity and native comparison are recorded in HANDOFF.
 Device confirmation of the new behavior remains pending.

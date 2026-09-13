@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current continuation — 0.10.40 keyboard and preparation dependencies
+## Latest release — 0.10.40 keyboard and preparation dependencies
 
 The user resumed **Review Repo Progress** after its length limit and authorized
 continuing the last request: fix keyboard chat submission with automatic runtime
@@ -25,24 +25,51 @@ fatal marker was found. This is not a long-duration qualification result.
   manifest/final inventory and select atomically. Existing JARs/worlds/mod files
   are preserved. Changed inputs fail without publishing the stage. Existing
   first-launch preflight/checkpoint/mod ordering is retained.
-- **Still needed from user:** an untouched Wurm Unlimited dedicated-server ZIP
-  for clean-stock item SQLite patch qualification. The recovered server JAR is
+- **Still needed from user:** an untouched Wurm Unlimited dedicated-server ZIP,
+  or its original `server.jar` and `common.jar`, for clean-stock item SQLite
+  patch qualification. The recovered server JAR is
   the prepared baseline. Older embedded reference classes are not sufficient
   evidence of pristine stock. No SQLite upload is needed now. Generic clean-ZIP
   conversion is not implemented; never bypass pins to advertise it as complete.
-- Planned release: **0.10.40**, code **54**, package `.keyboardprep`, tag
-  `v0.10.40-keyboard-preparation`. Full 0.10.39 backups provide migration;
-  persistent signing remains unresolved. Keep old app installed.
-- Local Android API compile and 28 focused Kotlin/JUnit tests pass. Both input
-  tests pass, including the actual pinned LWJGL queue and 240-unit text plus CR.
-  The full host suite passed: 168 tests, 16 unavailable fixture/platform
-  skips; supplied server/private overlay checks and actual pinned input ran.
-  CI/release verification are pending at this implementation checkpoint. Add their exact results and immutable release identity below.
+- Released **0.10.40**, code **54**, package
+  `io.github.russianranger.wurmlauncher.keyboardprep`, tag
+  `v0.10.40-keyboard-preparation`. Implementation commit
+  `7f36b3fb80935fce767603fc0356662e8948c72d`, tree
+  `f81f4e1574b98b44d4cc2993db8e1ff4206faad3`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.40-keyboard-preparation/Wurm-Server.apk),
+  **68,472,529 bytes**, SHA-256
+  **`e12bbf4e86cb26237751327148af43b48eca0cbd4595ac2923ca30a4c3ebd7a2`**.
+- [CI run 34755650835](https://github.com/Russianranger/wurm-android/actions/runs/34755650835):
+  build `103719449936` and publisher `103720593433` succeeded; two unrelated
+  publishers were intentionally skipped. Host suite: 168 tests, 17 expected
+  initial fixture/platform skips. All three Android variants passed build,
+  unit tests and lint; subsequent required native and actual LWJGL checks
+  passed. Real host EGL shader compilation remained unavailable (one skip).
+- Local Android API compilation and 28 focused Kotlin/JUnit tests passed;
+  local full host suite: 168 tests, 16 unavailable fixture/platform skips,
+  including successful supplied-server overlay checks and actual pinned input.
+  The inspected client JAR SHA-256 matches the bundle:
+  `79e7a5c822a4b744e56fb3aeef3a4f58d2943307163f3cd9fd4d6e9f7ea71a19`.
+- Independently downloaded APK matches release SHA256SUMS and the exact
+  package/version/code. APK v2 signature verified; certificate SHA-256
+  `724e39057d4b4a10f0032b9094b0c4965cb10c11a3a82cc20d10cdafc2e73897`.
+  Maintained packaging verifier passed, including exact SQLite assets, input
+  capacity methods, new composer/preparation DEX classes and absence of SQLite
+  from the Android DEX classpath. JRE members, POC and 39 native libraries are
+  byte-identical to 0.10.39. GL4ES differs in 25 bytes: 20 build-ID bytes and
+  five compile-time string bytes; every other native byte matches.
+- Full 0.10.39 backups provide migration. Keep the old app installed;
+  persistent signing remains unresolved. Next physical test: restore the
+  complete backup, select Wurm chat, use Android Send and Send / Enter,
+  confirm exactly one message, then export support ZIP. Test offline dependency
+  insertion separately with a copy of the supported prepared ZIP missing its
+  POC/SQLite files. New device behavior remains unconfirmed.
+- Handoff-only commits after the implementation do not alter this immutable APK.
 - [Implementation, recovered bundle details and device checklist](KEYBOARD_AND_PREPARATION.md).
   No proprietary assets or disassembly are committed. Native renderer/audio,
   ASan and GC policies remain unchanged. New device behavior is unconfirmed.
 
-## Current branch release — 0.10.39 launcher, backups and keyboard
+## Previous branch release — 0.10.39 launcher, backups and keyboard
 
 The user **authorized the proposed GUI and backup/migration phase**, and added
 Android keyboard invocation/dismissal through the gear menu plus the conventional
@@ -103,7 +130,7 @@ Continue on **mod-launcher-test**; main is unchanged.
   Automatic stock-server ZIP preparation and performance/native qualification
   remain later milestones. No proprietary inputs are committed.
 
-## Current request — production GUI and runtime preparation proposal
+## Historical proposal — production GUI and runtime preparation
 
 The user reports that the additional suggested tests worked and asks for a
 production-readiness evaluation: improve GUI flow, recover the earlier server
