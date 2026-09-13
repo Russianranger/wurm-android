@@ -99,9 +99,13 @@ not a standalone patched desktop/Termux runtime.
   three overlays and Java/SQLite checks with every imported byte preserved.
   The actual game folder APIs recognize both worlds and all 581 recipes using
   the launch resource-root setting. Native Android startup still needs the Thor.
-- Release CI and downloaded-APK results are recorded in HANDOFF.md after
-  publication. CI builds without proprietary inputs; those qualification tests
-  remain optional local fixtures and do not upload the supplied files.
+- [Release CI 34758094487](https://github.com/Russianranger/wurm-android/actions/runs/34758094487)
+  passed all three Android build/unit/lint variants and required native/input
+  and APK packaging gates. Initial host suite: 174 tests with 21 expected
+  fixture/platform skips. Published APK checksum, package/version and v2
+  signature independently verified; exact release identity is in HANDOFF.md.
+  CI builds without proprietary inputs; private qualification fixtures are
+  optional locally and do not upload the supplied files.
 
 ## Thor test
 

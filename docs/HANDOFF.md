@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.41 stock preparation
+## Latest release — 0.10.41 stock preparation
 
 The user confirms 0.10.40 keyboard Send and export/restore work, and supplied
 fresh support logs plus the untouched WurmServerLauncher ZIP. Continue only on
@@ -29,9 +29,29 @@ private qualification evidence, implementation and device steps.
   581 recipes recognized by game APIs; complete host preflight passes without
   modifying imported files. Android API compile, 35 focused Kotlin tests and
   174 host tests (16 expected local skips) pass. New six private item tests pass.
-- Build/version: 0.10.41, code 55, `.stockprep`; planned tag
-  `v0.10.41-stock-preparation`. CI publication and APK evidence will be appended
-  after success. Native renderer/audio/ASan/GC, keyboard, POC and SQLite unchanged.
+- Released 0.10.41, code 55, `io.github.russianranger.wurmlauncher.stockprep`,
+  tag `v0.10.41-stock-preparation`. Implementation commit
+  `68fadd36b062cb7739c4b86b7afa6a085d38cefc`, tree
+  `c9ed0f8e25c0fd05982db60b8912c651dc45e015`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.41-stock-preparation/Wurm-Server.apk),
+  68,482,997 bytes, SHA-256
+  `a319bfb0c4141d71c37c17557e449fd8bee6a7036dc73de941855db22a06ba54`.
+- [CI run 34758094487](https://github.com/Russianranger/wurm-android/actions/runs/34758094487)
+  passed: build job `103725898571`, publisher `103727107383`; unrelated
+  import/JVM publishers skipped. Initial host suite: 174 tests, 21 expected
+  fixture/platform skips. All three Android variants passed build, unit tests
+  and lint; required native/input and packaging gates passed. Host real-EGL
+  shader compilation retains its one expected unavailable-platform skip.
+- Independently downloaded APK checksum, version/code/package, v2 signature
+  and maintained APK verifier passed. Certificate SHA-256:
+  `42119b2b58523c213876aac7af610b43e9ae1f3746f2b944e55998d3c7c62a96`.
+  A first incomplete local download was discarded; the complete retry verified.
+  All 194 JRE members, POC and 39 of 40 native libraries are byte-identical to
+  0.10.40. GL4ES differs in 23 bytes only: 20 GNU build-ID bytes and three
+  compile-time string characters. No native behavior source changed.
+  Keyboard, renderer/audio/ASan/GC policies and SQLite remain unchanged.
+- Main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`. Subsequent
+  handoff-only commits do not alter the immutable release APK.
 - Next physical check: use a fresh app installation, import the untouched server
   ZIP, then the usual client ZIP, test new-world login/item changes/save/reentry,
   and return support logs. Restoring an old complete backup instead occupies
