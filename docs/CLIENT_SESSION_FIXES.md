@@ -97,15 +97,22 @@ collection timing. Compare both latency and memory over longer device play.
 
 ## Validation and device steps
 
-Host suite: 188 tests pass with 20 unavailable fixture/platform skips locally,
+Host suite: 188 tests run successfully with 20 unavailable fixture/platform skips locally,
 using pinned public GL4ES/LWJGL/JDBC fixtures and the private client for its
 applicable check. Focused tests execute capability routing, unchanged delegates
 and errors, byte-exact reversal, input/output rejection, both GC modes with real
 Serial collection and heap pressure, WAV decoding, actual client overlay/resource
 selection and original Ogg failure. Native callback tests cover optional support,
 exact extension matching, filtering, message bounds and unconsumed errors.
-The Android app/test Kotlin sources compile locally; final CI/APK verification
-results and immutable identities are recorded in HANDOFF.md after publication.
+The Android app/test Kotlin sources compile locally. All three Android variants
+passed build, unit tests and lint in
+[CI run 34777691235](https://github.com/Russianranger/wurm-android/actions/runs/34777691235).
+CI ran 188 host tests with 24 expected fixture/platform skips; required subsequent
+native/input and packaging checks passed, with one real-host-EGL shader skip.
+The independently downloaded APK passed checksum, identity, signature and packaged
+runtime verification. Its actual runtime JAR also generated and verified all nine
+private overlay entries, with successful InternalPack selection and WavData decode.
+Immutable APK/commit identities and comparisons with 0.10.43 are in HANDOFF.md.
 
 Version 0.10.44, code 58, package
 `io.github.russianranger.wurmlauncher.sessionfix`, tag `v0.10.44-session-fixes`.

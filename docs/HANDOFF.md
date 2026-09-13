@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## In progress — 0.10.44 session fixes
+## Latest release — 0.10.44 session fixes
 
 The user authorized work on all three findings from the 0.10.43 extended review.
 See [CLIENT_SESSION_FIXES.md](CLIENT_SESSION_FIXES.md) for exact evidence,
@@ -23,12 +23,52 @@ implementation and two-run Thor comparison. Work remains on mod-launcher-test.
   state patch. Non-debug driver messages are optional, with old breadcrumbs kept.
 - Local host suite: 188 tests, 20 expected fixture/platform skips; actual client
   overlay, mapping selection and decoder qualified. Android Kotlin compilation
-  passed. CI/release/APK verification is the next gate; do not claim publication
-  until the records below are completed.
-- Planned version 0.10.44/code 58, `.sessionfix`, `v0.10.44-session-fixes`.
+  passed for 96 application/test sources; four focused Kotlin/JUnit checks passed.
+- Released version 0.10.44/code 58, package
+  `io.github.russianranger.wurmlauncher.sessionfix`, immutable tag
+  `v0.10.44-session-fixes`. Implementation commit
+  `05458897263a1a1a66e0f97261b716d2745877a4`, tree
+  `a5c1e83ea9d17f23e74d030a2e783643941d9184`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.44-session-fixes/Wurm-Server.apk),
+  68,533,205 bytes, SHA-256
+  `3e56f8a2a692e491f3e21369728ad697494dd17634ac38b9c4c7d497b59eeb6d`.
+  Published 2026-09-13T19:37:34Z with 55 assets, including the new guide and
+  corresponding native/runtime sources. Published APK and guide checksums match
+  independently downloaded files and GitHub asset digests.
+- [CI run 34777691235](https://github.com/Russianranger/wurm-android/actions/runs/34777691235)
+  passed: build `103778700199`, publisher `103780269980`; unrelated import/JVM
+  publishers skipped. Initial host suite: 188 tests, 24 expected fixture/platform
+  skips. All three Android variants passed build, unit tests and lint. Required
+  native graphics/input checks and packaging gates passed; one expected real-host
+  EGL shader-compilation skip remains in the subsequent native checks. The private
+  client fixture is qualified locally, never uploaded to CI.
+- Independent APK version/code/package, v2 signature and maintained packaged
+  runtime/class verifier passed. Certificate SHA-256:
+  `a02cc196066cd05e14ffc2d2badb3612eb61b46dbf13bfc78ec243ec57869962`.
+  This is this release's CI debug certificate; persistent owner-controlled signing
+  remains pending, and the separate package continues the backup/restore workflow.
+- Compared with 0.10.43: all 194 JRE members, all 17 server/persistence helper
+  classes, POC, LWJGL API and compatibility JARs are byte-identical. All 27 window
+  JAR members are identical; only its two notice-entry ZIP timestamps changed.
+  Of 40 native libraries, 38 are byte-identical. libwurm_graphics changes for the
+  new callback; libgl4es differs in 25 build-ID/time bytes only. ASan is retained.
+- Executed the downloaded APK's runtime-probe JAR against the exact private
+  client. All nine generated overlay entries passed selection/integrity checks;
+  the real InternalPack selected the mapping/WAV. The original Ogg failure was
+  reproduced, and the replacement decoded to 8,820 direct-buffer zero PCM bytes
+  at 44,100 Hz/one channel. Packaged runtime-probe SHA-256:
+  `6bef5de17bf94b6515bf6eb8cef07423b895b1990790db02fa6db0ff2ad8b5ed`.
+  Engine overlay SHA `a162c00ea5e5cf3819208b75a21f9c7fb6197c7fead4003deb82f3ecd843c85b`;
+  World overlay SHA `e091ae0a8a67a45e68cd6cee7b878cf6b0d3e421ee6d2e43092229a3328462dc`.
+- Next gate is device qualification, not another speculative renderer change.
   Keep 0.10.43 and restore a stopped complete backup. First test with periodic
   cleanup unchanged; then enable the option for a separate 20–30-minute run.
-  Main stays `2e41fb091ee75a76b9116e934abecff90bc735d9`. Private files stay out of git.
+  Export both support bundles. Confirm sound/graphics behavior and compare memory,
+  WORLD_GC_REQUEST actions and viewer gaps. The two 0x502 sites remain unresolved;
+  optional non-debug KHR messages may still be absent. Longer soak/lifecycle,
+  persistent signing and the separate native instrumentation comparison remain.
+  Main was verified unchanged at `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+  Private files stay out of git and release assets.
 
 ## Previous release — 0.10.43 frame performance
 
