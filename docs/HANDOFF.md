@@ -1,6 +1,49 @@
 # Wurm Android handoff
 
-Updated: 2026-09-12. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+
+## Current request — production GUI and runtime preparation proposal
+
+The user reports that the additional suggested tests worked and asks for a
+production-readiness evaluation: improve GUI flow, recover the earlier server
+runtime/custom-JAR preparation, propose in-app automation, and triage remaining
+log warnings. This is additional **user-reported success**, not newly measured
+duration or log evidence. The latest supplied reports remain those reviewed
+below. No new application behavior or APK was requested by this proposal step.
+
+- [Production readiness plan](PRODUCTION_READINESS_PLAN.md) records the source
+  audit, proposed four-tab/gear flow, preparation design, warning disposition,
+  release/migration work and acceptance checks. It is **not implemented**.
+  Await authorization for the proposed implementation; remain on
+  `mod-launcher-test`, with main unchanged.
+- Retain Server, Client, Mods, Diagnostics order; make Play/Resume contextual,
+  group the existing 47 graphics controls, distinguish applied from
+  restart-required changes, and finish software-keyboard/hardware-input and
+  lifecycle behavior. Add full client/server backup before stable-package
+  migration, and persist a release signing key for normal upgrades.
+- Personal-context searches did not recover the original separate chat's exact
+  commands. Repository instructions establish the Termux working-directory ZIP
+  export; POC source/build is already present, and the app already inserts its
+  bundled JAR. Do not claim the user needs to compile a custom JAR per import.
+- Stock server ZIP preparation still needs a verified item-database patch
+  recipe and reproducible Android SQLite dependency pack. The retained prepared
+  server JAR has active and older reference copies of ItemDbStrings,
+  BodyDbStrings, CoinDbStrings and FrozenItemDbStrings, useful for reconstruction
+  but not proof of pristine vendor inputs. Compare a clean supported archive
+  and validate SQL bindings/effects before accepting it. Current preparation
+  pins must become explicit versioned recipes, not be removed wholesale.
+- Existing `ServerPreflight`/`ServerSqlitePatch` already create the position
+  SQLite overlay. Proposed Prepare server runtime wizard should stage and
+  validate, preserve original/world/checkpoint data and mod ordering, activate
+  atomically, and optionally export a prepared backup. Generic clean-ZIP
+  import is **not currently available**.
+- Latest logs still warrant startup GL attribution, allocation/GC and logging
+  improvements; they do not show a new fatal crash or proven leak. Track the
+  single spawn warning and feature-specific content/Epic warnings. Expected
+  capability/platform fallback and normal teardown messages can be quieter.
+  Keep normal-vs-diagnostic native build work separate from UI/GC changes.
+- This review changes only plan/handoff documentation. Runtime source/release
+  remains 0.10.38 / `ed0267310d247a45e42459accd6674256857044b`.
 
 ## Latest physical result — 0.10.38 Live Map renders and restarts
 
