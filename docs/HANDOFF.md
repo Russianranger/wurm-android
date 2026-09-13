@@ -2,7 +2,44 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.41 stock preparation
+## Current work — 0.10.42 stock database path fix
+
+The user tried the untouched ZIP in 0.10.41 and reported a startup error.
+The import and overlays succeeded; the game failed in Flyway with
+SQLITE_CANTOPEN, exit 1 after 904 ms. Root cause: stock DB_HOST=localhost,
+with databases under Adventure/sqlite and Creative/sqlite and no localhost
+folder. A subsequent reimport attempt produced the one-original-import message;
+that was not the startup cause. Full details and support ZIP identity:
+[STOCK_DATABASE_PATH_FIX.md](STOCK_DATABASE_PATH_FIX.md).
+
+- Recipe `thor-stock-sqlite-2` validates all nine databases and repairs only the
+  missing default localhost case to the owning world's relative directory.
+  All INI bytes except DB_HOST, game JARs, maps and DB contents are preserved.
+  Existing real shared/database directories retain their selection. Partial,
+  unknown, external or ambiguous paths fail in staging without activation.
+- New selected-world database preflight checks paths, headers and writable files
+  without creating or opening SQLite databases. The previous scratch-driver
+  probe did not test the world's DB_HOST path; this missing coverage is fixed.
+- Local: 40 Kotlin/JUnit tests and 179 host tests pass (16 expected local skips).
+  Wurm's actual connection factory reproduces the original SQLITE_CANTOPEN;
+  the corrected paths open all 18 supplied databases across both worlds.
+  Exact stock import checks all 711 source files: only two DB_HOST lines change.
+- Actual stock server on a disposable host copy passed initial startup and STOP,
+  then restart/TCP 3724 readiness and STOP, both exit 0. Flyway uses Adventure
+  databases and personal mode remains true. Imported source remains unchanged.
+  This is host qualification; physical Android play/save remains pending.
+- Version 0.10.42, code 56, `.stockdbfix`, planned immutable tag
+  `v0.10.42-stock-database-fix`. CI/APK publication evidence follows after success.
+  No native/graphics/audio/ASan/GC/input/POC/SQLite changes; main unchanged.
+- Retest in fresh 0.10.42 with the same untouched server ZIP. Keep 0.10.40 and
+  its complete backup. The failed 0.10.41 full backup preserves wrong DB_HOST
+  and the recovery marker; do not use it for the fresh-import test. An exported
+  before-start server checkpoint can be prepared through the new importer if
+  keeping that setup is needed. Never clear recovery markers merely to retry.
+- Remain on mod-launcher-test. No new original game upload is needed. Keep
+  proprietary inputs/disassembly/logs out of git and release assets.
+
+## Previous release — 0.10.41 stock preparation
 
 The user confirms 0.10.40 keyboard Send and export/restore work, and supplied
 fresh support logs plus the untouched WurmServerLauncher ZIP. Continue only on

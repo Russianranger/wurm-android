@@ -22,8 +22,10 @@ class ServerRuntimePreparationTest {
     private val gamePins=ServerRuntimePreparation.GAME_PINS.mapValues { ManagedRuntimeStore.sha256(jar) }
     private val deps=ProbeInputs.BASELINE.mapValues { ManagedRuntimeStore.sha256(jar) }
     private val files=linkedMapOf("server.jar" to jar,"common.jar" to jar,"lib/fixture.jar" to jar,
-        "Adventure/wurm.ini" to "retain=world\r\n".toByteArray(),
-        "Adventure/sqlite/items.db" to byteArrayOf(7,1,9),"mods/example.properties" to "enabled=false".toByteArray())
+        "Adventure/wurm.ini" to "retain=world\r\nDB_HOST=localhost\r\n".toByteArray(),
+        "Adventure/sqlite/items.db" to byteArrayOf(7,1,9),"mods/example.properties" to "enabled=false".toByteArray()) + ServerDatabaseLayout.DATABASES.associate {
+            "Adventure/sqlite/$it" to ("SQLite format 3\u0000".toByteArray()+ByteArray(496))
+        }
     private val poc by lazy {
         Base64.getMimeDecoder().decode(listOf(File("../poc/artifacts/wurm-arm64-poc.jar.base64"),
             File("poc/artifacts/wurm-arm64-poc.jar.base64")).first { it.isFile }.readText())
@@ -79,7 +81,7 @@ class ServerRuntimePreparationTest {
         fails { prepared(limited) }
         assertEquals(first,limited.current())
     }
-    @Test fun stockDesktopLayoutMovesAllResourcesWithoutChangingContentsAndCanReimport() {
+    @Test fun stockDesktopLayoutPreservesDataRepairsDatabaseHostAndCanReimport() {
         val stockJar=zip(mapOf("stock-fixture" to byteArrayOf(4,2)))
         val stockPins=gamePins + ("server.jar" to ManagedRuntimeStore.sha256(stockJar))
         val prep=ServerRuntimePreparation({ jar.inputStream() },gamePins,deps,stockPins)
@@ -90,7 +92,8 @@ class ServerRuntimePreparationTest {
         assertEquals(listOf("Adventure"),first.worlds)
         assertFalse(File(first.runtime,"dist").exists())
         entries.forEach { (name,bytes) ->
-            assertArrayEquals(bytes,File(first.runtime,name.removePrefix("WurmServerLauncher/").removePrefix("dist/")).readBytes())
+            val expected=if(name.endsWith("/wurm.ini")) bytes.toString(Charsets.ISO_8859_1).replace("DB_HOST=localhost","DB_HOST=Adventure").toByteArray(Charsets.ISO_8859_1) else bytes
+            assertArrayEquals(expected,File(first.runtime,name.removePrefix("WurmServerLauncher/").removePrefix("dist/")).readBytes())
         }
         assertEquals(stockPins.getValue("server.jar"),first.jarHashes["server.jar"])
         val manifest=Properties().apply { File(first.runtime,"wurm-preparation.properties").inputStream().use { load(it) } }

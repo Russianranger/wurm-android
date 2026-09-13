@@ -1,5 +1,10 @@
 # 0.10.41 — automatic stock-server preparation
 
+Update: 0.10.41 fresh startup failed because the desktop DB_HOST still pointed
+to a missing localhost directory. This is fixed in
+[0.10.42](STOCK_DATABASE_PATH_FIX.md), which changes only the necessary INI
+line and checks actual database paths. The evidence below describes 0.10.41.
+
 Continue on `mod-launcher-test`. Main is unchanged. The user confirmed that
 0.10.40 keyboard submission and complete backup export/restore work on the Thor.
 The supplied untouched server ZIP now qualifies the missing stock preparation

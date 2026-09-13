@@ -14,7 +14,7 @@ class ManagedLaunchTest {
 
     @Test fun preflightCanPreparePrivateOverlayWithoutLoadingGameClasses() {
         val args = config.arguments(native, home, tmp, runtime, helper, true)
-        assertEquals(listOf("server.ServerPreflight", tmp.parent, runtime.path), args.takeLast(3))
+        assertEquals(listOf("server.ServerPreflight", tmp.parent, runtime.path, "Adventure"), args.takeLast(4))
         val cp = args[args.indexOf("-cp") + 1].split(':')
         assertFalse(cp.any { it.endsWith("/server.jar") || it == "server.jar" })
         assertTrue(cp.contains(helper.path))
@@ -43,7 +43,7 @@ class ManagedLaunchTest {
         assertTrue(cp.indexOf("${tmp.parent}/server-items.jar") in 0 until cp.indexOf("server.jar"))
         assertEquals(listOf("server.ServerModBootstrap","Adventure"),args.takeLast(2))
         val preflight=config.arguments(native,home,tmp,runtime,helper,true,mods)
-        assertEquals(listOf("server.ServerPreflight",tmp.parent,runtime.path),preflight.takeLast(3))
+        assertEquals(listOf("server.ServerPreflight",tmp.parent,runtime.path,"Adventure"),preflight.takeLast(4))
         assertFalse(preflight[preflight.indexOf("-cp")+1].contains("modlauncher"))
     }
     @Test fun storageAuditStillInvokesOnlyReadOnlyAudit() {

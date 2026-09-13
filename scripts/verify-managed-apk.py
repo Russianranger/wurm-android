@@ -10,6 +10,9 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 with zipfile.ZipFile(sys.argv[1]) as apk:
+    dex=b"".join(apk.read(n) for n in apk.namelist() if n.endswith(".dex"))
+    for name in ("ServerDatabaseLayout", "ServerRuntimePreparation"):
+        assert ("Lio/github/russianranger/wurmlauncher/"+name+";").encode() in dex, name
     for name, checksum in {
         "sqlite-jdbc-3.53.2.1.jar": "f55e405ed96d5ffe629e05b7b51b059e1c7d64527c0cc90a972fbac06730ccc1",
         "sqlite-jdbc-3.53.2.1-natives-android.jar": "011d4edb8d06012ced78d6aa675ffc85bf339d3cd640845684b80873ec5a6e97",
@@ -41,7 +44,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"KEYCHAR" in helper.read("client/DesktopInput.class")
         assert b"TEXT" in helper.read("client/DesktopInput.class")
         assert int.from_bytes(helper.read("client/ClientHudVisibility.class")[6:8], "big") == 61
-        for name in ("probe/RuntimeMeasurements.class", "probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerModBootstrap.class", "server/ServerModLaunch.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/ServerSqlitePatch.class", "server/ServerItemSqlitePatch.class", "server/ServerItemSqlitePatch$Rule.class", "server/ServerLoginPatch.class", "server/LegacyBase64Encoder.class", "server/ServerPreflight.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientModBootstrap.class", "client/ClientModLaunch.class", "client/ClientJvmDiagnostics.class", "client/ClientMemoryProbe.class", "client/ClientMemoryProbe$Kernel.class", "client/ClientMemoryProbe$Loader.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/ClientSettingsPatch.class", "client/ClientVisualOptions.class", "client/ClientKeybindings.class", "client/DesktopInput.class"):
+        for name in ("probe/RuntimeMeasurements.class", "probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerModBootstrap.class", "server/ServerModLaunch.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/ServerSqlitePatch.class", "server/ServerItemSqlitePatch.class", "server/ServerItemSqlitePatch$Rule.class", "server/ServerLoginPatch.class", "server/LegacyBase64Encoder.class", "server/ServerPreflight.class", "server/ServerDatabasePreflight.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientModBootstrap.class", "client/ClientModLaunch.class", "client/ClientJvmDiagnostics.class", "client/ClientMemoryProbe.class", "client/ClientMemoryProbe$Kernel.class", "client/ClientMemoryProbe$Loader.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/ClientSettingsPatch.class", "client/ClientVisualOptions.class", "client/ClientKeybindings.class", "client/DesktopInput.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
         assert b"java/lang/invoke/MethodHandles" in helper.read("server/ServerModLaunch.class")
         assert b"SERVER_LOADER_STAGE" in helper.read("server/ServerModLaunch.class")

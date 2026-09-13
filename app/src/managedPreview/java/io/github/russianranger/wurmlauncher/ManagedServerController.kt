@@ -184,7 +184,7 @@ class ManagedServerController(private val context: Context, private val config: 
             }
             reader.join(3000)
             check(preflight.exitValue() == 0 && markers.containsAll(listOf("JAVA_OK", "SQLITE_OK", "NETWORK_OK", "PROBE_OK", "SERVER_PREFLIGHT_OK"))) {
-                "Java/SQLite/network/position-patch preflight failed (exit ${preflight.exitValue()}); world not opened. Export session report."
+                "Server preflight failed (exit ${preflight.exitValue()}); game not started. Export the session report for the database/path or compatibility error."
             }
             child = null
             cancelled()

@@ -32,7 +32,7 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
                 "-Dwurm.server.loginOverlay=${File(tmp.parentFile, "server-login.jar").absolutePath}",
                 "-Dwurm.server.firstErrors=${File(tmp.parentFile!!.parentFile, "managed-first-errors.txt").absolutePath}")) + listOf(
             "-cp", cp.joinToString(":"), if (preflight) "server.ServerPreflight" else if (modJars.isEmpty()) "server.ManagedServerMain" else "server.ServerModBootstrap",
-            if (preflight) tmp.parentFile!!.absolutePath else world) + if (preflight) listOf(runtime.absolutePath) else emptyList()
+            if (preflight) tmp.parentFile!!.absolutePath else world) + if (preflight) listOf(runtime.absolutePath,world) else emptyList()
     }
 
     fun auditArguments(native: File, home: File, tmp: File, runtime: File, helper: File, store: File, capture: Boolean): List<String> {

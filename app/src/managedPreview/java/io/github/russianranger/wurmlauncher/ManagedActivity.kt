@@ -51,7 +51,7 @@ class ManagedActivity : Activity() {
         super.onCreate(savedInstanceState)
         ClientSession.initialize(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        root.addView(TextView(this).apply { text="Wurm · 0.10.41"; textSize=22f; setPadding(20,12,20,8) })
+        root.addView(TextView(this).apply { text="Wurm · 0.10.42"; textSize=22f; setPadding(20,12,20,8) })
         val navigation=LinearLayout(this)
         root.addView(navigation)
         val content=android.widget.FrameLayout(this)
@@ -101,7 +101,7 @@ class ManagedActivity : Activity() {
         label("Prepare the supported original WurmServerLauncher ZIP or import a stopped Thor server export. Android dependencies and compatibility are supplied automatically, offline. For a complete app backup, use Backups & migration below.")
         idleButtons += button("Prepare / import server ZIP") {
             AlertDialog.Builder(this).setTitle("Prepare supported server runtime")
-                .setMessage("Choose the supported original WurmServerLauncher ZIP or a stopped Thor export, with server.jar, common.jar, lib/ and a world. The original desktop dist/ layout is supported. The app supplies Android dependencies and prepares compatibility before the first launch. Game JARs and world file contents are preserved in a private copy. Unknown game versions are rejected. Free storage: ${filesDir.usableSpace/1024/1024} MiB; the working copy and checkpoint need additional space.")
+                .setMessage("Choose the supported original WurmServerLauncher ZIP or a stopped Thor export, with server.jar, common.jar, lib/ and a world. The original desktop dist/ layout is supported. The app supplies Android dependencies and prepares compatibility before the first launch. Game JARs, maps and databases are preserved in a private copy. Missing desktop database paths are adjusted to the included world. Unknown game versions are rejected. Free storage: ${filesDir.usableSpace/1024/1024} MiB; the working copy and checkpoint need additional space.")
                 .setPositiveButton("Choose ZIP") { _, _ -> document(Intent.ACTION_OPEN_DOCUMENT,"*/*","",IMPORT) }
                 .setNegativeButton("Cancel",null).show()
         }

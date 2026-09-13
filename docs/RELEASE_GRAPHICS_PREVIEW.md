@@ -1,3 +1,26 @@
+# 0.10.42 — stock-world database path fix
+
+Fixes the fresh-server startup failure from 0.10.41: Wurm used the desktop
+DB_HOST=localhost directory instead of the databases included with Adventure
+or Creative. Preparation now corrects that default when the localhost directory
+is absent. Existing exports with a real shared database keep their selection.
+Only the affected INI line changes; game JARs, maps and databases retain their bytes.
+A new preflight rejects missing database paths before Wurm starts.
+
+Install the separate `.stockdbfix` app and import the same untouched
+WurmServerLauncher.zip into the fresh app. Keep 0.10.40 and its backup.
+Start Adventure, import the usual client ZIP for play, save/stop, restart, and
+return the support bundle. Restoring a failed 0.10.41 complete backup preserves
+its old configuration; use the fresh import for this test.
+
+The actual stock server passed two host startup/normal-stop cycles, including
+TCP readiness on restart. Android validation remains the next step.
+Keyboard, native renderer/audio, ASan, collectors, POC and SQLite are retained.
+
+[Diagnosis and retest details](https://github.com/Russianranger/wurm-android/blob/mod-launcher-test/docs/STOCK_DATABASE_PATH_FIX.md).
+
+## Previous release
+
 # 0.10.41 — automatic stock-server preparation
 
 Imports the verified untouched WurmServerLauncher ZIP directly. The app prepares

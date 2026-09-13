@@ -32,6 +32,7 @@ class ServerRuntimePreparation(
             }
             check(dist.delete()) { "Cannot finish desktop layout preparation." }
         }
+        if(stock) ServerDatabaseLayout.prepare(root,progress)
         dependencyPins.forEach { (name,hash) ->
             val output=File(root,"poc-lib/$name")
             if(output.exists()) {
@@ -63,6 +64,7 @@ class ServerRuntimePreparation(
             setProperty("sha256.wurm-arm64-poc.jar",ManagedRuntimeStore.POC_SHA256)
             setProperty("sqlite.version","3.53.2.1")
             setProperty("gameJars","preserved")
+            if(stock) setProperty("worldConfig","Missing desktop localhost path redirected to each world's SQLite directory; existing database directories preserved")
             setProperty("checks","input hashes; world startup preflight runs before launch")
         }
         File(root,"wurm-preparation.properties").outputStream().use { manifest.store(it,"Wurm Android preparation; no world or credential contents") }
@@ -71,7 +73,7 @@ class ServerRuntimePreparation(
 
     companion object {
         const val RECIPE="thor-prepared-sqlite-1"
-        const val STOCK_RECIPE="thor-stock-sqlite-1"
+        const val STOCK_RECIPE="thor-stock-sqlite-2"
         val GAME_PINS=linkedMapOf(
             "server.jar" to "9ea2761f210e05e7080777e988ddc0bd04e6fa5221813cdf141881cfb8ec8e06",
             "common.jar" to "066fe846ac3ea3d1a85e070ed452c43e8e390cbfa112a9c0d7eaff3fbe531633"
