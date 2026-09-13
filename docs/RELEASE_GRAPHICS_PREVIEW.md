@@ -1,3 +1,25 @@
+# 0.10.43 — frame reuse and quieter diagnostics
+
+Starts the performance qualification phase after the user's successful 0.10.42
+test. The viewer reuses bounded pixel buffers instead of allocating a full
+720p payload per frame. Normal logging keeps errors, shader compile/link and
+crash evidence while reducing repeated lookup/counter/frame messages. Diagnostics
+adds a verbose option for a separate reproduction when needed.
+
+Support reports now retain viewer update percentiles, skipped published frames
+and pixel-buffer allocation counts alongside existing memory/native samples.
+These are measurements for comparison; an FPS improvement is not yet claimed.
+Native graphics/audio, ASan, collectors, server preparation and input are retained.
+
+Keep 0.10.42 installed. Export a complete backup after normally stopping both
+runtimes, install the separate `.frameperf` app and restore the backup. Keep the
+same settings, test play/background/resume and save/restart, then send a support
+bundle. A 60–90-minute session is the next qualification step when convenient.
+
+[Implementation and device steps](https://github.com/Russianranger/wurm-android/blob/mod-launcher-test/docs/CLIENT_FRAME_PERFORMANCE.md).
+
+## Previous release
+
 # 0.10.42 — stock-world database path fix
 
 Fixes the fresh-server startup failure from 0.10.41: Wurm used the desktop

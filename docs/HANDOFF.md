@@ -2,7 +2,48 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.42 stock database path fix
+## Current work — 0.10.43 frame performance
+
+The user reports “Everything worked” on 0.10.42 and authorizes the next milestone.
+Continue phase 4 of PRODUCTION_READINESS_PLAN.md on mod-launcher-test only.
+[CLIENT_FRAME_PERFORMANCE.md](CLIENT_FRAME_PERFORMANCE.md) records the support
+bundle identity, precise scope, limitations and device steps.
+
+- New support exported 2026-09-13T17:02:32.596781Z: successful login, Survival and
+  Live Map READY, normal client exit 0 and server save/shutdown exit 0. The retained
+  run uses the older prepared server pin and real localhost/sqlite; fresh-stock
+  success is user-reported, not demonstrated by that retained session's input hash.
+  No ASan fatal/OOM/fatal signal/CANTOPEN; two startup native GL observations remain.
+- FrameBuffers owns at most two leased raw/fallback payload slots. Reader-to-UI
+  delivery closes leases on use/discard/error/paused or destroyed activity. One
+  in-flight read normally reuses one raw array. Sequence/atomic file validation,
+  Bitmap copy, raw/fallback orientation and pointer/input behavior are preserved.
+- Normal logging omits routine uniform/attribute lookup pairs and sequence spam;
+  compile/link traces, exceptions, native crash/error evidence remain. Verbose
+  restores detailed tracing on next client start. Connection counters summarize
+  every five seconds while states/reasons remain immediate; app elapsed labels
+  no longer force repeated status log writes. No blanket output/error filter.
+- Timestamped viewer p50/p95/p99/max, read/copy p95, skipped sequences and payload
+  allocation/retained bytes accompany existing producer and memory samples.
+  These measure viewer updates, not GPU timing. Pause/epoch resets and bounded
+  sample windows are explicit. Observation history now bounds at about 2 MiB.
+- Local: all 98 Android application/test Kotlin sources compile; 19 focused
+  Kotlin tests pass. Host suite: 182 tests, 30 expected local fixture/platform
+  skips. Seven shader trace and four connection tests pass in their applicable
+  modes. No proprietary game files are needed for these new tests.
+- Version 0.10.43, code 57, `.frameperf`, planned immutable tag
+  `v0.10.43-frame-performance`. Publication/independent APK evidence follows.
+  Main, native graphics/audio/ASan, JRE, collectors/heaps, SQLite, POC and stock
+  recipe are retained. No FPS gain or completed soak qualification is claimed.
+- Device: keep 0.10.42, export a complete backup with both runtimes stopped,
+  restore into 0.10.43, keep the same settings, test play/background/resume and
+  save/restart. A 60–90-minute mixed-play support bundle is the next useful
+  measurement. This performance comparison does not require another stock import.
+- Later: remaining startup GL investigation, separate matched normal/ASan native
+  comparison, owner-persisted release signing/stable identity, wider device matrix.
+  Do not combine native/GC experiments with this frame/logging comparison.
+
+## Previous release — 0.10.42 stock database path fix
 
 The user tried the untouched ZIP in 0.10.41 and reported a startup error.
 The import and overlays succeeded; the game failed in Flyway with

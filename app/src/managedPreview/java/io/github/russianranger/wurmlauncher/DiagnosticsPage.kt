@@ -18,6 +18,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val status: TextView
     private val clientLogs: TextView
     private val serverLogs: TextView
+    private val verbose: CheckBox
     private fun label(text: String)=TextView(activity).apply { this.text=text; setPadding(0,8,0,8); target.addView(this) }
     private fun button(text: String, action: () -> Unit)=Button(activity).apply {
         this.text=text; setOnClickListener { action() }; target.addView(this)
@@ -30,6 +31,13 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     init {
         status=label("")
         button("Export support bundle") { export(ManagedActivity.EXPORT_SUPPORT,"wurm-support.zip") }
+        val prefs=activity.getSharedPreferences("client-settings",Activity.MODE_PRIVATE)
+        verbose=CheckBox(activity).apply {
+            text="Verbose client diagnostics"; isChecked=prefs.getBoolean("verbose-diagnostics",false)
+            target.addView(this)
+            setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("verbose-diagnostics",checked).apply() }
+        }
+        label("Normal mode keeps errors, startup checks and performance samples. Enable verbose output before starting the client when investigating a problem.")
         target=LauncherUi.section(view,"Individual reports")
         button("Export Client Report") { export(ManagedActivity.EXPORT_CLIENT,"wurm-client-report.txt") }
         button("Export Server Report") { export(ManagedActivity.EXPORT_REPORT,"wurm-server-report.txt") }
@@ -74,6 +82,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     fun render() {
         val client=ClientSession.snapshot()
         val server=ManagedSession.snapshot()
+        verbose.isEnabled=!client.busy
         status.updateText("Client: ${client.phase} · ${client.detail}\nServer: ${server.phase} · ${server.detail}")
         clientTests.forEach { it.isEnabled=!client.busy }
         serverTests.forEach { it.isEnabled=!server.busy }

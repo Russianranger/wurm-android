@@ -1,5 +1,13 @@
 # Production readiness proposal — 2026-09-13
 
+Current progress (2026-09-13): the user reports 0.10.42 worked and authorized
+moving to the next milestone. Phase 4 starts with 0.10.43 bounded frame reuse,
+normal/verbose logging and retained performance measurements. See
+[CLIENT_FRAME_PERFORMANCE.md](CLIENT_FRAME_PERFORMANCE.md) and HANDOFF.md.
+A longer device session, GL qualification, separate normal/ASan native comparison
+and persistent signing remain pending. The original proposal below is historical;
+its unimplemented/authorization wording describes the earlier review date.
+
 Update 2026-09-13: the user authorized the next preparation/input phase.
 The user confirms 0.10.40 Send and backup/restore work. The untouched server
 archive has now been supplied and qualified for 0.10.41 automatic preparation.

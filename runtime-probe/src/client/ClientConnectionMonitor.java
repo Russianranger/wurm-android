@@ -52,6 +52,26 @@ public final class ClientConnectionMonitor implements AutoCloseable {
     record Sample(String phase, String detail) {
         String line(long elapsed) { return "[connection] STATE phase=" + phase + " elapsedMs=" + elapsed + " " + detail; }
     }
+    /** Traffic counters are periodic telemetry, not connection state changes. */
+    static final class LogGate {
+        private static final java.util.regex.Pattern COUNTERS = java.util.regex.Pattern.compile(
+            "\\b(payloadQueued|bytesRead|pendingBytes)=[0-9]+|\\bwriting=(true|false)");
+        private static final java.util.regex.Pattern COUNTDOWN = java.util.regex.Pattern.compile("Trying again in [0-9]+ seconds");
+        private static final java.util.regex.Pattern DOTS = java.util.regex.Pattern.compile("[.]+(?= |$)");
+        private final boolean verbose;
+        private String previous;
+        private long last;
+        LogGate(boolean verbose) { this.verbose = verbose; }
+        boolean emit(Sample sample, long now) {
+            String detail = DOTS.matcher(sample.detail()).replaceAll(".");
+            detail = COUNTDOWN.matcher(detail).replaceAll("Retry countdown");
+            int messages = detail.indexOf(" startup=");
+            if (!verbose && messages >= 0) detail = COUNTERS.matcher(detail.substring(0, messages)).replaceAll("") + detail.substring(messages);
+            String key = sample.phase() + " " + detail;
+            if (!key.equals(previous) || now - last >= 5_000_000_000L) { previous = key; last = now; return true; }
+            return false;
+        }
+    }
     Sample sample() throws ReflectiveOperationException {
         Object client = read(engine, null, "clientObject");
         if (client == null) return new Sample("INITIALIZING", "engineInstance=false");
@@ -87,16 +107,13 @@ public final class ClientConnectionMonitor implements AutoCloseable {
     }
     private void observe() {
         log.accept("[connection] MONITOR_READY target=127.0.0.1:3724 mode=read-only; counters are snapshots, not wire/login proof");
-        String previous = "";
-        long last = 0, stack = 0;
+        LogGate gate = new LogGate(Boolean.getBoolean("wurm.diagnostics.verbose"));
+        long stack = 0;
         try {
             while (!closed && game.isAlive()) {
                 Sample value = sample();
                 long now = System.nanoTime(), elapsed = (now - started) / 1_000_000;
-                String key = value.phase() + value.detail().replaceAll("[.]+(?= |$)", ".").replaceAll("Trying again in [0-9]+ seconds", "Retry countdown");
-                if (!key.equals(previous) || now - last >= 5_000_000_000L) {
-                    log.accept(value.line(elapsed)); previous = key; last = now;
-                }
+                if (gate.emit(value, now)) log.accept(value.line(elapsed));
                 if (!value.phase().equals("GAME_LOOP") && now - stack >= 15_000_000_000L) {
                     stack = now;
                     log.accept("[connection] GAME_THREAD state=" + game.getState() + " elapsedMs=" + elapsed);

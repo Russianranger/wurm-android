@@ -18,6 +18,7 @@ public final class WindowBackend {
     private static final ArrayBlockingQueue<String> events = new ArrayBlockingQueue<>(512);
     private static volatile boolean stop;
     private static WindowInput pointer;
+    private static final boolean VERBOSE = Boolean.getBoolean("wurm.diagnostics.verbose");
 
     public static long open(int w, int h) {
         if (owner != null) throw new IllegalStateException("Only one EGL window is supported");
@@ -131,14 +132,14 @@ public final class WindowBackend {
                 glPixelStorei(GL_PACK_SKIP_ROWS,skipRows); glPixelStorei(GL_PACK_SKIP_PIXELS,skipPixels);
             }
             pacer.presented(frameStart);
-            if (sequence == 1 || sequence%25 == 0) System.out.println("[window] WINDOW_FRAME sequence="+sequence+" size="+width+"x"+height);
+            if (sequence == 1 || (VERBOSE && sequence%25 == 0)) System.out.println("[window] WINDOW_FRAME sequence="+sequence+" size="+width+"x"+height);
         }
         long now = System.nanoTime();
         if (now - statsStart >= 5_000_000_000L) {
             double seconds = (now - statsStart) / 1e9;
             System.out.println(String.format(java.util.Locale.ROOT,
-                "[window] FRAME_TIMING renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=%d",
-                swaps/seconds, published/seconds, readbackNanos/1e6/Math.max(1,published),
+                "[window] FRAME_TIMING time=%s pid=%d renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=%d",
+                java.time.Instant.now(), ProcessHandle.current().pid(), swaps/seconds, published/seconds, readbackNanos/1e6/Math.max(1,published),
                 publishNanos/1e6/Math.max(1,published), pacer.fps()));
             hud("observe");
             statsStart=now; swaps=0; published=0; readbackNanos=0; publishNanos=0;

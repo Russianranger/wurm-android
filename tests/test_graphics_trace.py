@@ -52,6 +52,13 @@ class GL20C {
 public class TraceFixture {
  public static void main(String[] args) {
   if(args.length>0 && args[0].equals("abort")) { GL20.glCompileShader(101); return; }
+  if(args.length>0 && args[0].equals("quiet")) {
+   for(int i=0;i<5000;i++) wurm.graphics.GraphicsTrace.end(wurm.graphics.GraphicsTrace.begin("uniform-location",0,0));
+   long failed=wurm.graphics.GraphicsTrace.begin("uniform-location",1,0);
+   wurm.graphics.GraphicsTrace.failed(failed,new IllegalArgumentException("private error fixture"));
+   GL20.glCompileShader(7);
+   return;
+  }
   if(args.length>0) {
    for(int i=0;i<5000;i++) wurm.graphics.GraphicsTrace.end(wurm.graphics.GraphicsTrace.begin("bounded",0,0));
    return;
@@ -84,8 +91,9 @@ public class TraceFixture {
     def tearDownClass(cls):
         cls.temp.cleanup()
 
-    def run_fixture(self, enabled, *args):
-        result = subprocess.run(['java', '-Dwurm.graphics.trace='+str(enabled).lower(), '-cp', str(self.home),
+    def run_fixture(self, enabled, *args, verbose=True):
+        result = subprocess.run(['java', '-Dwurm.graphics.trace='+str(enabled).lower(),
+            '-Dwurm.diagnostics.verbose='+str(verbose).lower(), '-cp', str(self.home),
             'TraceFixture', *args], capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         return result.stdout
@@ -107,6 +115,24 @@ public class TraceFixture {
         self.assertEqual(text.count('BEGIN seq='), 4096)
         self.assertEqual(text.count('END seq='), 4096)
         self.assertEqual(text.count('TRACE_LIMIT'), 1)
+
+    def test_normal_mode_preserves_delegation_failures_and_compile_link_breadcrumbs(self):
+        text = self.run_fixture(True, verbose=False)
+        self.assertIn('DELEGATES_PASS', text)
+        self.assertEqual(text.count('BEGIN seq='), 9)
+        self.assertEqual(text.count('END seq='), 8)
+        self.assertIn('THREW seq=15 type=java.lang.IllegalArgumentException', text)
+        self.assertIn('op=compile', text)
+        self.assertIn('op=link', text)
+        self.assertNotIn('op=uniform', text)
+
+    def test_suppressed_lookups_do_not_use_breadcrumb_budget_or_hide_failures(self):
+        text = self.run_fixture(True, 'quiet', verbose=False)
+        self.assertEqual(text.count('BEGIN seq='), 1)
+        self.assertIn('THREW seq=5001 type=java.lang.IllegalArgumentException', text)
+        self.assertIn('BEGIN seq=5002 op=compile', text)
+        self.assertNotIn('TRACE_LIMIT', text)
+        self.assertNotIn('private error fixture', text)
 
     def test_source_drift_rejected(self):
         with self.assertRaises(ValueError):

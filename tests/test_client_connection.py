@@ -39,6 +39,24 @@ public class ConnectionFixture {
  }
  public static void main(String[] args) throws Exception {
   List<String> lines=Collections.synchronizedList(new ArrayList<>());
+  if(args[0].equals("gate")) {
+   var normal=new ClientConnectionMonitor.LogGate(false);
+   var verbose=new ClientConnectionMonitor.LogGate(true);
+   String state="connecting=false authenticated=true loggedIn=true splash=false disconnected=false transport=true ";
+   var first=new ClientConnectionMonitor.Sample("GAME_LOOP",state+"payloadQueued=10 bytesRead=20 pendingBytes=0 writing=false startup= authMessage= loginMessage= disconnectMessage=");
+   var traffic=new ClientConnectionMonitor.Sample("GAME_LOOP",state+"payloadQueued=30 bytesRead=99 pendingBytes=7 writing=true startup= authMessage= loginMessage= disconnectMessage=");
+   if(!normal.emit(first,1)||!verbose.emit(first,1))throw new AssertionError("first state lost");
+   if(normal.emit(traffic,1_000_000_001L)||!verbose.emit(traffic,1_000_000_001L))throw new AssertionError("traffic was treated as normal state change");
+   if(!normal.emit(traffic,5_000_000_001L))throw new AssertionError("periodic counters lost");
+   var denied=new ClientConnectionMonitor.Sample("LOGIN_DENIED",traffic.detail());
+   if(!normal.emit(denied,5_000_000_002L))throw new AssertionError("phase change delayed");
+   var reason=new ClientConnectionMonitor.Sample("LOGIN_DENIED",traffic.detail()+"server maintenance");
+   if(!normal.emit(reason,5_000_000_003L))throw new AssertionError("reason change delayed");
+   var errorCount=new ClientConnectionMonitor.Sample("LOGIN_DENIED",traffic.detail()+"bytesRead=123");
+   var otherCount=new ClientConnectionMonitor.Sample("LOGIN_DENIED",traffic.detail()+"bytesRead=124");
+   if(!normal.emit(errorCount,5_000_000_004L)||!normal.emit(otherCount,5_000_000_005L))throw new AssertionError("counter-like reason text was suppressed");
+   System.out.println("LOG_GATE_PASS");return;
+  }
   if(args[0].equals("unavailable")) {
    java.util.concurrent.CountDownLatch hold=new java.util.concurrent.CountDownLatch(1);
    Thread game=new Thread(()->{try{hold.await();}catch(InterruptedException e){}});game.start();
@@ -110,6 +128,9 @@ public class ConnectionFixture {
         text = self.run_fixture('unavailable')
         self.assertIn('MONITOR_UNAVAILABLE java.lang.NoSuchFieldException', text)
         self.assertIn('MONITOR_STOPPED', text)
+
+    def test_normal_counters_are_periodic_but_state_and_reason_changes_are_immediate(self):
+        self.assertIn('LOG_GATE_PASS', self.run_fixture('gate'))
 
 
 if __name__ == '__main__':

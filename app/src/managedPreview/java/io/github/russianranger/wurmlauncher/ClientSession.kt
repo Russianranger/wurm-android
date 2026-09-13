@@ -34,6 +34,7 @@ object ClientSession {
     @Volatile var loadedMods: Set<String> = emptySet()
         private set
     private val lines = ArrayDeque<String>()
+    private val modReady = Regex("CLIENT_MOD_READY ([A-Za-z0-9_.-]+)")
     private var worker: Thread? = null
     fun snapshot() = state
     fun gameActive() = state.busy && activeMode in listOf("start","local")
@@ -44,7 +45,7 @@ object ClientSession {
     fun graphicsFrame(context: Context) = File(context.filesDir, "client-graphics-frame.bin")
     fun keybindReport(context: Context) = File(context.filesDir, "client-keybindings.properties")
     @Synchronized fun log(message: String) {
-        Regex("CLIENT_MOD_READY ([A-Za-z0-9_.-]+)").find(message)?.let { loadedMods=loadedMods+it.groupValues[1] }
+        if (message.startsWith("[mods] ")) modReady.find(message)?.let { loadedMods=loadedMods+it.groupValues[1] }
         val line = message.take(4000); lines.addLast(line)
         while (lines.size > 1500) lines.removeFirst()
         runCatching { observations?.observe(line) }
@@ -56,14 +57,17 @@ object ClientSession {
         observations = RuntimeObservationLog(File(context.filesDir, "client-runtime-observations.txt"))
         file?.takeIf { it.isFile }?.useLines { it.toList().takeLast(100).forEach { line -> lines.addLast(line.take(4000)) } }
     }
-    private fun status(phase: String, detail: String) { state = State(true, phase, detail); log("[app] ${Instant.now()} $phase — $detail") }
+    private fun status(phase: String, detail: String, record: Boolean = true) {
+        state = State(true, phase, detail)
+        if (record) log("[app] ${Instant.now()} $phase — $detail")
+    }
     fun recent() = synchronized(this) { lines.takeLast(80).joinToString("\n") }
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.42\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.43\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: user reports 0.10.39 functional except keyboard submission. This build fixes composer Send/Enter and input queue overflow, and supplies verified server dependencies offline. Clean desktop server conversion remains unqualified. Native graphics, audio, heap and collector policies are retained.\n\n" +
+            "Gate status: user reports 0.10.42 working. This build tests frame-buffer reuse and reduced routine logging; long-run performance qualification remains pending. Native graphics, audio, heap and collector policies are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -202,6 +206,8 @@ object ClientSession {
     }
     private fun run(context: Context, store: ClientStore, mode: String) {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
+        val verbose = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("verbose-diagnostics", false)
+        log("[diagnostics] ${Instant.now()} CLIENT_LOG_MODE ${if (verbose) "verbose" else "normal"}; errors, compile/link breadcrumbs, native crash capture and periodic measurements retained")
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
         if(installed!=null && mode in listOf("start","local")) {
             ModStore(installed.root,"client").validate()
@@ -290,6 +296,7 @@ object ClientSession {
                     // The packaged JRE is built --enable-headless-only=yes. AWT X11 is unavailable;
                     // native LWJGL window creation is still attempted independently below.
                     "-Djava.home=$home", "-Djava.io.tmpdir=$tmp", "-Duser.home=$user", "-Djava.awt.headless=true",
+                    "-Dwurm.diagnostics.verbose=$verbose",
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",
@@ -344,7 +351,11 @@ object ClientSession {
                         if (line.startsWith("[client-ui] GRAPHICS_APPLIED ")) { graphicsNotice = "Live graphics applied; restart-only choices remain saved for next launch."; graphicsAcknowledgment++ }
                         if (line.startsWith("[client-ui] GRAPHICS_FAILED ")) { graphicsNotice = "Live graphics failed. Settings are saved; export the client report."; graphicsAcknowledgment++ }
                         if (line.startsWith("[memory] MEMORY_PROBE_PASS collector=${if (stage == "memory-g1") "g1" else "serial"} ")) memoryPassed.set(true)
-                        if (stage == "entry") connectionState.observe(line)?.let { status(it.phase, it.detail) }
+                        if (stage == "entry") connectionState.observe(line)?.let {
+                            val previous=state
+                            status(it.phase,it.detail,verbose || previous.phase != it.phase ||
+                                previous.detail.substringAfter("s: ") != it.detail.substringAfter("s: "))
+                        }
                         if ((stage == "input" || window) && line.startsWith("[client] INPUT_READY ")) inputReady = true
                         if (stage == "window" && line.startsWith("[window] WINDOW_PROBE_PASS")) graphicsPassed.set(true)
                         if (stage == "render" && line == "[graphics] GRAPHICS_PROBE_EXIT code=0") graphicsPassed.set(true)

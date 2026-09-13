@@ -11,7 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 with zipfile.ZipFile(sys.argv[1]) as apk:
     dex=b"".join(apk.read(n) for n in apk.namelist() if n.endswith(".dex"))
-    for name in ("ServerDatabaseLayout", "ServerRuntimePreparation"):
+    for name in ("ServerDatabaseLayout", "ServerRuntimePreparation", "FrameBuffers", "FrameBuffers$Lease", "FrameTimingStats"):
         assert ("Lio/github/russianranger/wurmlauncher/"+name+";").encode() in dex, name
     for name, checksum in {
         "sqlite-jdbc-3.53.2.1.jar": "f55e405ed96d5ffe629e05b7b51b059e1c7d64527c0cc90a972fbac06730ccc1",
@@ -48,6 +48,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
         assert b"java/lang/invoke/MethodHandles" in helper.read("server/ServerModLaunch.class")
         assert b"SERVER_LOADER_STAGE" in helper.read("server/ServerModLaunch.class")
+        assert int.from_bytes(helper.read("client/ClientConnectionMonitor$LogGate.class")[6:8], "big") == 61
+        assert b"wurm.diagnostics.verbose" in helper.read("client/ClientConnectionMonitor.class")
         assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/client-compat.jar"))) as compat:
         classes = {n for n in compat.namelist() if n.endswith(".class")}
@@ -95,6 +97,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert "org/lwjgl/opengl/ARBProgram.class" in adapter.namelist()
         assert b"OPENAL_CONTEXT_READY" in adapter.read("org/lwjgl/openal/AL.class")
         assert int.from_bytes(adapter.read("wurm/graphics/GraphicsTrace.class")[6:8], "big") == 52
+        assert b"wurm.diagnostics.verbose" in adapter.read("wurm/graphics/GraphicsTrace.class")
         assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
@@ -105,6 +108,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"WURM_VISIBILITY_POLICY" in window.read("wurm/graphics/WurmVisibility.class")
         assert b"wurm/graphics/WurmVisibility" in window.read("wurm/graphics/CapabilityChecks.class")
         assert int.from_bytes(window.read("wurm/graphics/FramePacer.class")[6:8], "big") == 61
+        assert b"wurm.diagnostics.verbose" in window.read("wurm/graphics/WindowBackend.class")
         assert "META-INF/LICENSE.pojav.txt" in window.namelist()
         for name in ("org/lwjgl/glfw/GLFW.class", "wurm/graphics/WindowBackend.class", "wurm/graphics/WindowInput.class", "wurm/graphics/WindowProbe.class", "wurm/graphics/OffscreenSupport.class", "wurm/graphics/ShaderQueries.class", "wurm/graphics/CapabilityChecks.class"):
             assert int.from_bytes(window.read(name)[6:8], "big") == 61

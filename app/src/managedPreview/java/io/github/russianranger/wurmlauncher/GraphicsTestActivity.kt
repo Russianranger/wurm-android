@@ -14,6 +14,9 @@ import java.util.concurrent.Executors
 class GraphicsTestActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val reader = Executors.newSingleThreadExecutor()
+    private val frameBuffers = FrameBuffers()
+    private val frameTimings = FrameTimingStats()
+    private var viewGeneration = 0L
     private lateinit var frame: GameFrameView
     private lateinit var run: Button
     private lateinit var panel: ScrollView
@@ -170,33 +173,36 @@ class GraphicsTestActivity : Activity() {
             val currentEpoch=ClientSession.frameEpoch
             if (epoch != currentEpoch) {
                 epoch=currentEpoch; shownSequence=0; lastReadError=""; readRetryAt=0; frame.clearFrame()
-                statsAt=now; displayed=0
+                statsAt=now; displayed=0; frameTimings.reset()
             }
             if (!file.isFile) { if (shownSequence != 0) frame.clearFrame() }
             else if (!reading && now >= readRetryAt) {
                 reading = true
                 val previousSequence=shownSequence
+                val generation=viewGeneration
                 reader.execute {
                     val readStart=SystemClock.elapsedRealtimeNanos()
-                    val result = runCatching { GraphicsFrame.readNewer(file,previousSequence) }
-                    val readMs=(SystemClock.elapsedRealtimeNanos()-readStart)/1e6
-                    handler.post {
-                        reading = false
+                    val result = runCatching { frameBuffers.readNewer(file,previousSequence) }
+                    val readNanos=SystemClock.elapsedRealtimeNanos()-readStart
+                    val posted=handler.post {
+                      try {
                         // Atomic rename makes an opened frame complete even if a newer one arrives.
                         // Reject prior sessions/out-of-order frames, not a valid completed read.
-                        if (!isDestroyed && resumed && ClientSession.frameEpoch == currentEpoch) result.fold({ data ->
-                            lastReadError=""
-                            if (data == null) return@fold
+                        if (!isDestroyed && resumed && viewGeneration == generation && ClientSession.frameEpoch == currentEpoch) result.fold({ lease ->
+                            val data=lease?.frame ?: return@fold
                             if (data.sequence <= shownSequence) return@fold
+                            val copyStart=SystemClock.elapsedRealtimeNanos()
                             val bitmap = displayedBitmap?.takeIf { it.width == data.width && it.height == data.height }
                                 ?: Bitmap.createBitmap(data.width, data.height, Bitmap.Config.ARGB_8888).also { it.setHasAlpha(false); displayedBitmap = it }
                             val direct=rawCopy && data.rawRgba != null && bitmap.rowBytes == data.width*4
-                            if (direct) bitmap.copyPixelsFromBuffer(java.nio.ByteBuffer.wrap(data.rawRgba!!))
-                            else bitmap.setPixels(data.decodedArgb(), 0, data.width, 0, 0, data.width, data.height)
+                            if (direct) bitmap.copyPixelsFromBuffer(java.nio.ByteBuffer.wrap(data.rawRgba!!,0,data.width*data.height*4))
+                            else bitmap.setPixels(lease.decodedArgb(), 0, data.width, 0, 0, data.width, data.height)
+                            val copiedAt=SystemClock.elapsedRealtimeNanos()
                             frame.setImageBitmap(bitmap)
                             frame.frame(data,direct)
-                            shownSequence=data.sequence; displayed++
-                            if (data.sequence <= 3 || data.sequence % 150 == 0) ClientSession.log("[graphics-ui] FRAME_DISPLAYED sequence=${data.sequence} size=${data.width}x${data.height} readMs=$readMs")
+                            frameTimings.record(data.sequence,copiedAt,readNanos,copiedAt-copyStart)
+                            shownSequence=data.sequence; displayed++; lastReadError=""
+                            if (data.sequence <= 3) ClientSession.log("[graphics-ui] FRAME_DISPLAYED sequence=${data.sequence} size=${data.width}x${data.height} readMs=${readNanos/1e6}")
                         }, { failure ->
                             // Retry by time, not file identity: a later valid frame may share its mtime.
                             readRetryAt=SystemClock.elapsedRealtime()+250
@@ -204,15 +210,33 @@ class GraphicsTestActivity : Activity() {
                             if (lastReadError != message) ClientSession.log("[graphics-ui] FRAME_READ_ERROR $message")
                             lastReadError=message
                         })
+                      } catch (failure: Exception) {
+                        readRetryAt=SystemClock.elapsedRealtime()+250
+                        val message="${failure.javaClass.simpleName}: ${failure.message}"
+                        if (lastReadError != message) ClientSession.log("[graphics-ui] FRAME_COPY_ERROR $message")
+                        lastReadError=message
+                      } finally {
+                        // Bitmap owns its copied pixels. Release on success, read/copy failure,
+                        // stale epoch, pause, and destroy; no payload escapes into ImageView.
+                        result.getOrNull()?.close()
+                        reading=false
+                      }
                     }
+                    if (!posted) result.getOrNull()?.close()
                 }
             }
             if (now-statsAt >= 5000) {
-                if (state.busy) ClientSession.log("[graphics-ui] UI_TIMING displayedFps=${java.lang.String.format(java.util.Locale.ROOT,"%.1f",displayed*1000.0/(now-statsAt))} lastSequence=$shownSequence rawCopy=$rawCopy")
+                recordTimings(now,"periodic")
                 statsAt=now; displayed=0
             }
             handler.postDelayed(this, 16)
         }
+    }
+    private fun recordTimings(now: Long, reason: String) {
+        val values=frameTimings.drain()
+        if (displayed == 0 && !ClientSession.snapshot().busy) return
+        val buffers=frameBuffers.stats()
+        ClientSession.log("[graphics-ui] ${java.time.Instant.now()} UI_TIMING epoch=$epoch reason=$reason displayedFps=${java.lang.String.format(java.util.Locale.ROOT,"%.1f",displayed*1000.0/maxOf(1,now-statsAt))} lastSequence=$shownSequence rawCopy=$rawCopy $values payloadAllocations=${buffers.allocations} retainedPayloadBytes=${buffers.retainedBytes}; viewer bitmap updates, not GPU scanout")
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); ClientSession.initialize(this)
@@ -239,7 +263,7 @@ class GraphicsTestActivity : Activity() {
         fun label(value: String, size: Float = 14f) = TextView(this).apply {
             text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
         }
-        label(if (mode == "render") "JVM Graphics Test · 0.10.42" else "Game controls · 0.10.42",20f)
+        label(if (mode == "render") "JVM Graphics Test · 0.10.43" else "Game controls · 0.10.43",20f)
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
         }
@@ -370,10 +394,14 @@ class GraphicsTestActivity : Activity() {
     override fun onResume() {
         super.onResume(); capture?.resume(); resumed = true
         if (mode in listOf("start","local")) restoreHudOnFocus=true
-        statsAt=SystemClock.elapsedRealtime(); displayed=0; handler.removeCallbacks(refresh); handler.post(refresh)
+        statsAt=SystemClock.elapsedRealtime(); displayed=0; frameTimings.reset(); handler.removeCallbacks(refresh); handler.post(refresh)
         ClientSession.log("[graphics-ui] VIEW_RESUMED sequence=$shownSequence")
     }
-    override fun onPause() { setKeyboard(false); hardware.reset(); frame.cancelTouch(); focusLost=true; resumed = false; capture?.pause(); handler.removeCallbacks(refresh); ClientSession.log("[graphics-ui] VIEW_PAUSED sequence=$shownSequence"); super.onPause() }
+    override fun onPause() {
+        recordTimings(SystemClock.elapsedRealtime(),"pause"); frameTimings.reset(); viewGeneration++
+        setKeyboard(false); hardware.reset(); frame.cancelTouch(); focusLost=true; resumed = false
+        capture?.pause(); handler.removeCallbacks(refresh); ClientSession.log("[graphics-ui] VIEW_PAUSED sequence=$shownSequence"); super.onPause()
+    }
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         ClientSession.log("[graphics-ui] VIEW_FOCUS $hasFocus sequence=$shownSequence")
@@ -393,5 +421,5 @@ class GraphicsTestActivity : Activity() {
         return super.dispatchKeyEvent(event)
     }
     override fun onGenericMotionEvent(event: MotionEvent): Boolean = capture?.motion(event) == true || super.onGenericMotionEvent(event)
-    override fun onDestroy() { graphicsDialog?.dismiss(); reader.shutdown(); super.onDestroy() }
+    override fun onDestroy() { graphicsDialog?.dismiss(); viewGeneration++; frameBuffers.close(); reader.shutdown(); super.onDestroy() }
 }
