@@ -1,10 +1,11 @@
 # Production readiness proposal — 2026-09-13
 
 Update 2026-09-13: the user authorized the next preparation/input phase.
-0.10.40 fixes Send and supplies the exact public Android SQLite dependencies
-offline for verified Thor server inputs. The dependency provenance gap below
-is resolved. Clean stock-JAR qualification still needs the untouched archive.
-See [current scope and remaining prerequisite](KEYBOARD_AND_PREPARATION.md).
+The user confirms 0.10.40 Send and backup/restore work. The untouched server
+archive has now been supplied and qualified for 0.10.41 automatic preparation.
+Both dependency provenance and the stock item SQL recipe are resolved for the
+exact supported hashes; fresh stock play/save/reentry needs device validation.
+See [current implementation and test steps](STOCK_RUNTIME_PREPARATION.md).
 
 Progress: the user subsequently authorized the GUI/backup phase plus keyboard
 input. Version 0.10.39 implements that first pass; see

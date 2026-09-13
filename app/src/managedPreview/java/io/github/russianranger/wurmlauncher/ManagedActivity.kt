@@ -51,7 +51,7 @@ class ManagedActivity : Activity() {
         super.onCreate(savedInstanceState)
         ClientSession.initialize(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        root.addView(TextView(this).apply { text="Wurm · 0.10.40"; textSize=22f; setPadding(20,12,20,8) })
+        root.addView(TextView(this).apply { text="Wurm · 0.10.41"; textSize=22f; setPadding(20,12,20,8) })
         val navigation=LinearLayout(this)
         root.addView(navigation)
         val content=android.widget.FrameLayout(this)
@@ -98,10 +98,10 @@ class ManagedActivity : Activity() {
         }
         idleButtons += button("Server memory & connection check") { settings() }
         page=LauncherUi.section(primary,"Setup & runtime",!java.io.File(filesDir,"managed-preview/original/current").isFile)
-        label("Prepare your verified Thor server files or import a stopped working server export. Android SQLite and the server bootstrap are supplied offline. Clean desktop server JARs still need a qualified compatibility recipe. For a complete app backup, use Backups & migration below.")
+        label("Prepare the supported original WurmServerLauncher ZIP or import a stopped Thor server export. Android dependencies and compatibility are supplied automatically, offline. For a complete app backup, use Backups & migration below.")
         idleButtons += button("Prepare / import server ZIP") {
             AlertDialog.Builder(this).setTitle("Prepare supported server runtime")
-                .setMessage("Choose the verified Thor server files or a stopped working export, with server.jar, common.jar, lib/ and an existing world. Missing Android SQLite dependencies and the bootstrap are supplied by this app. Your game JARs keep their existing item SQLite fixes; this does not yet convert clean desktop server JARs. Preparation validates a private staging copy before activation. Free storage: ${filesDir.usableSpace/1024/1024} MiB; the working copy and checkpoint need additional space.")
+                .setMessage("Choose the supported original WurmServerLauncher ZIP or a stopped Thor export, with server.jar, common.jar, lib/ and a world. The original desktop dist/ layout is supported. The app supplies Android dependencies and prepares compatibility before the first launch. Game JARs and world file contents are preserved in a private copy. Unknown game versions are rejected. Free storage: ${filesDir.usableSpace/1024/1024} MiB; the working copy and checkpoint need additional space.")
                 .setPositiveButton("Choose ZIP") { _, _ -> document(Intent.ACTION_OPEN_DOCUMENT,"*/*","",IMPORT) }
                 .setNegativeButton("Cancel",null).show()
         }

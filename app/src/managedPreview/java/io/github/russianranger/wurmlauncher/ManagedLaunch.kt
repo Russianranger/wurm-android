@@ -14,6 +14,7 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
         val cp = if (preflight) listOf(helper.absolutePath) + ProbeInputs.BASELINE.keys.map { File(runtime, "poc-lib/$it").absolutePath }
         else modJars + listOf("wurm-arm64-poc.jar") + ProbeInputs.BASELINE.keys.map { "poc-lib/$it" } +
             listOf(File(tmp.parentFile, "server-sqlite.jar").absolutePath,
+                File(tmp.parentFile, "server-items.jar").absolutePath,
                 File(tmp.parentFile, "server-login.jar").absolutePath, "server.jar", "common.jar", "lib/*", helper.absolutePath)
         return listOf(File(native, "libwurmjvm_runner.so").absolutePath,
             if (preflight) "-Xms32m" else "-Xms512m", if (preflight) "-Xmx256m" else "-Xmx${heapMiB}m",
@@ -23,7 +24,11 @@ data class ManagedLaunch(val world: String, val heapMiB: Int = 4096, val port: I
             "-Dsun.boot.library.path=${home.absolutePath}/lib:${native.absolutePath}",
             "-XX:ErrorFile=${tmp.parentFile!!.absolutePath}/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash") +
             (if (preflight) listOf("-Dwurm.probe.network=true") else listOf(
+                // Stock preparation flattens dist/ into the runtime. Use the game's
+                // supported root property so recipes, migrations and worlds stay discoverable.
+                "-Dwurm.distRoot=${(File(runtime, "dist").takeIf { it.isDirectory } ?: runtime).absolutePath}",
                 "-Dwurm.server.sqliteOverlay=${File(tmp.parentFile, "server-sqlite.jar").absolutePath}",
+                "-Dwurm.server.itemsOverlay=${File(tmp.parentFile, "server-items.jar").absolutePath}",
                 "-Dwurm.server.loginOverlay=${File(tmp.parentFile, "server-login.jar").absolutePath}",
                 "-Dwurm.server.firstErrors=${File(tmp.parentFile!!.parentFile, "managed-first-errors.txt").absolutePath}")) + listOf(
             "-cp", cp.joinToString(":"), if (preflight) "server.ServerPreflight" else if (modJars.isEmpty()) "server.ManagedServerMain" else "server.ServerModBootstrap",

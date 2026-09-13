@@ -143,9 +143,9 @@ class ManagedServerController(private val context: Context, private val config: 
         reportFailed = false
         worldReport = ManagedWorldReport(workspace.worldReport, runtime, config)
         report { it.prepare() }
-        // Pin the exact device-proven inputs. In particular, never replace the
-        // owner's patched server/common JARs with unpatched desktop files.
-        val pins = ServerRuntimePreparation.GAME_PINS + linkedMapOf(
+        // Accept only the inspected stock or device-proven prepared pair.
+        // Compatibility overlays are generated before the world can open.
+        val pins = ServerRuntimePreparation.verifiedGamePins(runtime) + linkedMapOf(
             "wurm-arm64-poc.jar" to ManagedRuntimeStore.POC_SHA256
         ) + ProbeInputs.BASELINE.mapKeys { "poc-lib/${it.key}" }
         pins.forEach { (path, expected) ->

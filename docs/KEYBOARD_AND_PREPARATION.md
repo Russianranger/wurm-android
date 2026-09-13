@@ -1,5 +1,9 @@
 # 0.10.40 — keyboard submission and offline preparation dependencies
 
+Update: the user confirms keyboard Send and backup/restore work in 0.10.40.
+The untouched archive is now supplied; see [0.10.41 stock preparation](STOCK_RUNTIME_PREPARATION.md).
+The remaining-prerequisite sections below describe the earlier 0.10.40 release.
+
 Continue on `mod-launcher-test`; main remains unchanged. The user reports
 0.10.39 functional except that keyboard Enter fills the Wurm chat field without
 sending. This release fixes the input path and completes the dependency portion

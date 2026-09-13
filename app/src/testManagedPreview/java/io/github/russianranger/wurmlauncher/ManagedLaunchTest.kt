@@ -25,6 +25,9 @@ class ManagedLaunchTest {
         assertEquals("wurm-arm64-poc.jar", cp.first())
         assertTrue(cp.indexOf("poc-lib/sqlite-jdbc-3.53.2.1.jar") < cp.indexOf("server.jar"))
         assertTrue(cp.indexOf("${tmp.parent}/server-sqlite.jar") in 0 until cp.indexOf("server.jar"))
+        assertTrue(cp.indexOf("${tmp.parent}/server-items.jar") in 0 until cp.indexOf("server.jar"))
+        assertTrue(args.contains("-Dwurm.server.itemsOverlay=${tmp.parent}/server-items.jar"))
+        assertTrue(args.contains("-Dwurm.distRoot=${runtime.absolutePath}"))
         assertTrue(cp.indexOf("${tmp.parent}/server-login.jar") in 0 until cp.indexOf("server.jar"))
         assertTrue(args.contains("-Dwurm.server.sqliteOverlay=${tmp.parent}/server-sqlite.jar"))
         assertTrue(args.contains("-Dwurm.server.loginOverlay=${tmp.parent}/server-login.jar"))
@@ -37,6 +40,7 @@ class ManagedLaunchTest {
         val cp=args[args.indexOf("-cp")+1].split(':')
         assertEquals(mods,cp.take(2))
         assertTrue(cp.indexOf("${tmp.parent}/server-sqlite.jar") < cp.indexOf("server.jar"))
+        assertTrue(cp.indexOf("${tmp.parent}/server-items.jar") in 0 until cp.indexOf("server.jar"))
         assertEquals(listOf("server.ServerModBootstrap","Adventure"),args.takeLast(2))
         val preflight=config.arguments(native,home,tmp,runtime,helper,true,mods)
         assertEquals(listOf("server.ServerPreflight",tmp.parent,runtime.path),preflight.takeLast(3))
@@ -47,5 +51,13 @@ class ManagedLaunchTest {
         assertEquals(listOf("persistence.StorageAudit", runtime.path, "/audit", "Adventure", "check"), args.takeLast(5))
         assertFalse(args.contains("server.ServerPreflight"))
         assertFalse(args.any { it.startsWith("-Dwurm.server.") || it == "-Dwurm.probe.network=true" })
+    }
+    @Test fun previousDesktopResourceDirectoryKeepsItsOwnRoot() {
+        val root=java.nio.file.Files.createTempDirectory("wurm-dist-fixture").toFile()
+        try {
+            File(root,"dist").mkdir()
+            val args=config.arguments(native,home,tmp,root,helper,false)
+            assertTrue(args.contains("-Dwurm.distRoot=${File(root,"dist").absolutePath}"))
+        } finally { root.deleteRecursively() }
     }
 }

@@ -2,7 +2,46 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.40 keyboard and preparation dependencies
+## Current work — 0.10.41 stock preparation
+
+The user confirms 0.10.40 keyboard Send and export/restore work, and supplied
+fresh support logs plus the untouched WurmServerLauncher ZIP. Continue only on
+`mod-launcher-test`; main remains unchanged. See
+[STOCK_RUNTIME_PREPARATION.md](STOCK_RUNTIME_PREPARATION.md) for input identities,
+private qualification evidence, implementation and device steps.
+
+- New support: `.keyboardprep`, export 2026-09-13T12:27:22.637585Z; normal client
+  exit and requested server exit 0 after 75,661 ms; successful login; Survival
+  and LiveMap ready; 11 presentation samples median 30 FPS. Short session only.
+- Stock server SHA `ba5301b2e9b56dc9ab7eae9d8ac45188336835e37184e329c90128ea8ab01f64`;
+  common.jar equals the previous pin. Exactly four active item SQL classes
+  differ; every other server JAR entry matches the prepared baseline.
+- Recipe `thor-stock-sqlite-1` flattens dist/ inside unpublished staging, preserves
+  original file contents, rejects collisions/unknown game pairs, supplies the
+  existing offline dependencies/POC and records the final inventory. Launch
+  directs the game's existing distRoot property to the actual resource root.
+- Temporary item overlay changes eight pinned constants to the game's own
+  personal-server UPDATE statements. Exact class input/output pins; no method
+  body changes. Row/child/column identity, missing-row no-op and rollback tested.
+  Older prepared imports retain all item classes unchanged. Mod transformation
+  of the generated classes works with pinned Javassist.
+- Local qualification: all 711 supplied files preserved; both worlds and all
+  581 recipes recognized by game APIs; complete host preflight passes without
+  modifying imported files. Android API compile, 35 focused Kotlin tests and
+  174 host tests (16 expected local skips) pass. New six private item tests pass.
+- Build/version: 0.10.41, code 55, `.stockprep`; planned tag
+  `v0.10.41-stock-preparation`. CI publication and APK evidence will be appended
+  after success. Native renderer/audio/ASan/GC, keyboard, POC and SQLite unchanged.
+- Next physical check: use a fresh app installation, import the untouched server
+  ZIP, then the usual client ZIP, test new-world login/item changes/save/reentry,
+  and return support logs. Restoring an old complete backup instead occupies
+  the existing one-original slot and tests only the preserved prepared path.
+  Keep 0.10.40 and its complete backup. No further stock/dependency upload needed.
+- Still later: stable release signing, broader setup polish and soak/production
+  qualification. Do not claim support for arbitrary server versions. Never
+  commit proprietary files/classes/disassembly or disable the established pins.
+
+## Previous release — 0.10.40 keyboard and preparation dependencies
 
 The user resumed **Review Repo Progress** after its length limit and authorized
 continuing the last request: fix keyboard chat submission with automatic runtime

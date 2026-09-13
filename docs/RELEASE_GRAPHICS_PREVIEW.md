@@ -1,3 +1,31 @@
+# 0.10.41 — automatic stock-server preparation
+
+Imports the verified untouched WurmServerLauncher ZIP directly. The app prepares
+its desktop layout, supplies Android SQLite and bootstrap dependencies offline,
+and generates the inspected item SQL compatibility overlay before startup.
+Original game JARs and world file contents are preserved. Older prepared server
+exports and complete backups remain supported.
+
+The user confirmed 0.10.40 keyboard Send and backup export/restore on the Thor.
+This build keeps those fixes and the existing graphics/audio/GC behavior.
+
+Install the separate `.stockprep` app alongside 0.10.40. To test automatic stock
+preparation, use the fresh app: Server → Setup & runtime → Prepare / import
+server ZIP → select the untouched WurmServerLauncher.zip. Then import your usual
+client ZIP for play, test save/restart, and export a support bundle. Keep the
+older app stopped during the test and retain its complete backup.
+
+Restoring that complete backup instead preserves the previous world/client/mods;
+it uses the earlier prepared-runtime path and fills the one-original-import slot.
+Do the stock test first if testing both routes. Unknown game versions are rejected.
+Stock exports require this launcher's startup overlays; they are not standalone
+patched desktop runtimes.
+
+[Preparation details and Thor checklist](https://github.com/Russianranger/wurm-android/blob/mod-launcher-test/docs/STOCK_RUNTIME_PREPARATION.md).
+Device verification of fresh stock play/save/reentry remains pending.
+
+## Previous release
+
 # 0.10.40 — keyboard send and offline runtime dependencies
 
 Fixes Android keyboard Send/Done and the on-screen Send / Enter button. Wurm

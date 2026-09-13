@@ -41,7 +41,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"KEYCHAR" in helper.read("client/DesktopInput.class")
         assert b"TEXT" in helper.read("client/DesktopInput.class")
         assert int.from_bytes(helper.read("client/ClientHudVisibility.class")[6:8], "big") == 61
-        for name in ("probe/RuntimeMeasurements.class", "probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerModBootstrap.class", "server/ServerModLaunch.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/ServerSqlitePatch.class", "server/ServerLoginPatch.class", "server/LegacyBase64Encoder.class", "server/ServerPreflight.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientModBootstrap.class", "client/ClientModLaunch.class", "client/ClientJvmDiagnostics.class", "client/ClientMemoryProbe.class", "client/ClientMemoryProbe$Kernel.class", "client/ClientMemoryProbe$Loader.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/ClientSettingsPatch.class", "client/ClientVisualOptions.class", "client/ClientKeybindings.class", "client/DesktopInput.class"):
+        for name in ("probe/RuntimeMeasurements.class", "probe/RuntimeProbe.class", "probe/NetworkProbe.class", "server/ManagedServerMain.class", "server/ServerModBootstrap.class", "server/ServerModLaunch.class", "server/ServerDiagnostics.class", "server/ServerLogHandler.class", "server/ServerSqlitePatch.class", "server/ServerItemSqlitePatch.class", "server/ServerItemSqlitePatch$Rule.class", "server/ServerLoginPatch.class", "server/LegacyBase64Encoder.class", "server/ServerPreflight.class", "server/WorldProbe.class", "persistence/StorageAudit.class", "client/ClientBootstrap.class", "client/ClientModBootstrap.class", "client/ClientModLaunch.class", "client/ClientJvmDiagnostics.class", "client/ClientMemoryProbe.class", "client/ClientMemoryProbe$Kernel.class", "client/ClientMemoryProbe$Loader.class", "client/ClientFonts.class", "client/DirectClientLaunch.class", "client/ClientConnectionMonitor.class", "client/ClientConnectionMonitor$Sample.class", "client/ClassInventory.class", "client/ClientGraphicsPatch.class", "client/ClientBuffers.class", "client/ClientShaderResources.class", "client/ClientSettingsPatch.class", "client/ClientVisualOptions.class", "client/ClientKeybindings.class", "client/DesktopInput.class"):
             assert int.from_bytes(helper.read(name)[6:8], "big") == 61
         assert b"java/lang/invoke/MethodHandles" in helper.read("server/ServerModLaunch.class")
         assert b"SERVER_LOADER_STAGE" in helper.read("server/ServerModLaunch.class")
@@ -55,11 +55,12 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
                            "wurm/android/compat/SettingsDispatch.class"}, classes
         assert all(int.from_bytes(compat.read(n)[6:8], "big") == 61 for n in classes)
     assert not any(name in apk.namelist() for name in ("assets/server.jar", "assets/common.jar", "assets/client.jar"))
-    # Position and login overlays are generated from the owner's input at runtime, never bundled.
+    # Position, item and login overlays are generated from the owner's input at runtime, never bundled.
     for asset in (name for name in apk.namelist() if name.startswith("assets/") and name.endswith(".jar")):
         with zipfile.ZipFile(io.BytesIO(apk.read(asset))) as jar:
             assert "com/wurmonline/server/creatures/CreaturePos.class" not in jar.namelist(), asset
             assert "com/wurmonline/server/LoginHandler.class" not in jar.namelist(), asset
+            assert not any(n.startswith("com/wurmonline/server/items/") for n in jar.namelist()), asset
     graphics = json.loads(apk.read("assets/client-graphics.json"))
     assert graphics["sources"] == json.loads((ROOT/"graphics-compat/native-sources.json").read_text())
     assert set(graphics["nativeSha256"]) == {"libwurm_lwjgl3.so", "libwurm_lwjgl3_opengl.so", "libgl4es.so", "libwurm_graphics.so", "libwurm_openal.so", "libclang_rt.asan-aarch64-android.so", "libc++_shared.so"}

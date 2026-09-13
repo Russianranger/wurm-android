@@ -79,4 +79,36 @@ class ServerRuntimePreparationTest {
         fails { prepared(limited) }
         assertEquals(first,limited.current())
     }
+    @Test fun stockDesktopLayoutMovesAllResourcesWithoutChangingContentsAndCanReimport() {
+        val stockJar=zip(mapOf("stock-fixture" to byteArrayOf(4,2)))
+        val stockPins=gamePins + ("server.jar" to ManagedRuntimeStore.sha256(stockJar))
+        val prep=ServerRuntimePreparation({ jar.inputStream() },gamePins,deps,stockPins)
+        val entries=(files + ("server.jar" to stockJar) + ("recipes/example.json" to "{}".toByteArray()))
+            .mapKeys { (name,_) -> "WurmServerLauncher/" + if(name.startsWith("Adventure/") || name.startsWith("recipes/")) "dist/$name" else name }
+        val store=ManagedRuntimeStore(temp.newFolder())
+        val first=store.importPreparedZip(zip(entries).inputStream(),poc,{ prep.prepare(it) })
+        assertEquals(listOf("Adventure"),first.worlds)
+        assertFalse(File(first.runtime,"dist").exists())
+        entries.forEach { (name,bytes) ->
+            assertArrayEquals(bytes,File(first.runtime,name.removePrefix("WurmServerLauncher/").removePrefix("dist/")).readBytes())
+        }
+        assertEquals(stockPins.getValue("server.jar"),first.jarHashes["server.jar"])
+        val manifest=Properties().apply { File(first.runtime,"wurm-preparation.properties").inputStream().use { load(it) } }
+        assertEquals(ServerRuntimePreparation.STOCK_RECIPE,manifest.getProperty("recipe"))
+        val exported=first.runtime.walkTopDown().filter { it.isFile }.associate { it.relativeTo(first.runtime).invariantSeparatorsPath to it.readBytes() }
+        val second=store.importPreparedZip(zip(exported).inputStream(),poc,{ prep.prepare(it) })
+        assertEquals(first.jarHashes,second.jarHashes)
+        assertEquals(first.worlds,second.worlds)
+    }
+    @Test fun desktopLayoutCollisionOrUnknownPairDoesNotPublish() {
+        val store=ManagedRuntimeStore(temp.newFolder()); val first=prepared(store)
+        val stockJar=zip(mapOf("stock-fixture" to byteArrayOf(4,2)))
+        val stockPins=gamePins + ("server.jar" to ManagedRuntimeStore.sha256(stockJar))
+        val prep=ServerRuntimePreparation({ jar.inputStream() },gamePins,deps,stockPins)
+        val entries=files + ("server.jar" to stockJar) + ("dist/Adventure/wurm.ini" to byteArrayOf(9))
+        fails { store.importPreparedZip(zip(entries).inputStream(),poc,{ prep.prepare(it) }) }
+        assertEquals(first,store.current())
+        fails { store.importPreparedZip(zip(entries + ("common.jar" to stockJar)).inputStream(),poc,{ prep.prepare(it) }) }
+        assertEquals(first,store.current())
+    }
 }

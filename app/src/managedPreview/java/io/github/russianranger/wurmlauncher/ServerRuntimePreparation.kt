@@ -2,19 +2,35 @@ package io.github.russianranger.wurmlauncher
 
 import java.io.File
 import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.Properties
 
 /** Versioned preparation of the verified Thor server inputs, entirely inside import staging. */
 class ServerRuntimePreparation(
     private val openAsset: (String) -> InputStream,
     private val gamePins: Map<String,String> = GAME_PINS,
-    private val dependencyPins: Map<String,String> = ProbeInputs.BASELINE
+    private val dependencyPins: Map<String,String> = ProbeInputs.BASELINE,
+    private val stockPins: Map<String,String> = STOCK_GAME_PINS
 ) {
     fun prepare(root: File, progress: (String) -> Unit = {}) {
-        gamePins.forEach { (name,hash) ->
-            require(File(root,name).isFile && ProbeInputs.sha256(File(root,name))==hash) {
-                "Unsupported $name. This recipe requires the verified Thor server files with their existing item SQLite fixes. Clean desktop server preparation is not yet qualified. Your existing installation is unchanged."
+        val selected = selectPins(root,gamePins,stockPins)
+        val stock = selected == stockPins
+        // The inspected Windows distribution keeps worlds/resources under dist/.
+        // Move only the unpublished copy and reject every collision before any move.
+        val dist=File(root,"dist")
+        if(stock && dist.exists()) {
+            require(dist.isDirectory) { "Expected a dist/ directory." }
+            val children=dist.listFiles() ?: error("Cannot read dist/.")
+            require(children.none { File(root,it.name).exists() }) {
+                "Server ZIP contains conflicting root and dist/ files; import was not activated."
             }
+            progress("Preparing desktop world and resource layout")
+            children.forEach {
+                if(Thread.currentThread().isInterrupted) throw InterruptedException("Preparation cancelled")
+                Files.move(it.toPath(),File(root,it.name).toPath(),StandardCopyOption.ATOMIC_MOVE)
+            }
+            check(dist.delete()) { "Cannot finish desktop layout preparation." }
         }
         dependencyPins.forEach { (name,hash) ->
             val output=File(root,"poc-lib/$name")
@@ -40,9 +56,9 @@ class ServerRuntimePreparation(
             }
         }
         val manifest=Properties().apply {
-            setProperty("recipe",RECIPE)
-            setProperty("scope","Verified prepared Thor server; clean desktop item patch not qualified")
-            gamePins.forEach { (name,hash) -> setProperty("sha256.$name",hash) }
+            setProperty("recipe",if(stock) STOCK_RECIPE else RECIPE)
+            setProperty("scope",if(stock) "Verified stock server; personal-server item SQL overlay at startup" else "Verified prepared Thor server")
+            selected.forEach { (name,hash) -> setProperty("sha256.$name",hash) }
             dependencyPins.forEach { (name,hash) -> setProperty("sha256.poc-lib/$name",hash) }
             setProperty("sha256.wurm-arm64-poc.jar",ManagedRuntimeStore.POC_SHA256)
             setProperty("sqlite.version","3.53.2.1")
@@ -55,9 +71,21 @@ class ServerRuntimePreparation(
 
     companion object {
         const val RECIPE="thor-prepared-sqlite-1"
+        const val STOCK_RECIPE="thor-stock-sqlite-1"
         val GAME_PINS=linkedMapOf(
             "server.jar" to "9ea2761f210e05e7080777e988ddc0bd04e6fa5221813cdf141881cfb8ec8e06",
             "common.jar" to "066fe846ac3ea3d1a85e070ed452c43e8e390cbfa112a9c0d7eaff3fbe531633"
         )
+        val STOCK_GAME_PINS=GAME_PINS + ("server.jar" to "ba5301b2e9b56dc9ab7eae9d8ac45188336835e37184e329c90128ea8ab01f64")
+        fun verifiedGamePins(root: File): Map<String,String> = selectPins(root,GAME_PINS,STOCK_GAME_PINS)
+        private fun selectPins(root: File, prepared: Map<String,String>, stock: Map<String,String>): Map<String,String> {
+            val actual=(prepared.keys+stock.keys).associateWith { name ->
+                val file=File(root,name)
+                require(file.isFile) { "Missing $name. Include the complete server runtime." }
+                ProbeInputs.sha256(file)
+            }
+            return listOf(prepared,stock).firstOrNull { it == actual }
+                ?: error("Unsupported server.jar/common.jar combination. Use the verified original WurmServerLauncher ZIP or the supported Thor export. Import was not activated.")
+        }
     }
 }
