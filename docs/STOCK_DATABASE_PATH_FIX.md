@@ -81,7 +81,16 @@ No game code/POC, native graphics/audio, ASan, GC, keyboard or SQLite version ch
   reopens that same working copy, accepts a loopback TCP connection on 3724,
   then saves/exits 0 again. The imported source stays unchanged throughout.
   No player/client session was simulated; Android play/save still needs the Thor.
-- Release CI and APK evidence are recorded in HANDOFF.md after publication.
+- [Release CI 34760103028](https://github.com/Russianranger/wurm-android/actions/runs/34760103028)
+  passed all three Android builds, unit tests and lint, required native/input
+  regressions and packaging checks. Initial host suite: 179 tests, 23 expected
+  fixture/platform skips; the later graphics suite retains one host EGL skip.
+  Private-input tests above ran locally because proprietary inputs stay out of CI.
+- The published APK independently passes its maintained contents verifier,
+  published checksum, package/version checks and v2 signature verification.
+  All 194 JRE members, POC and 39 of 40 native libraries match 0.10.41 exactly;
+  GL4ES differs only in 20 build-ID bytes and five compile-time string characters.
+  Full commit, artifact and certificate identities are recorded in HANDOFF.md.
   Proprietary JARs, databases, disassembly and server logs are never committed or
   included in CI/release assets.
 

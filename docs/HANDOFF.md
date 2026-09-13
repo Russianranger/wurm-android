@@ -2,7 +2,7 @@
 
 Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.42 stock database path fix
+## Latest release — 0.10.42 stock database path fix
 
 The user tried the untouched ZIP in 0.10.41 and reported a startup error.
 The import and overlays succeeded; the game failed in Flyway with
@@ -28,9 +28,28 @@ that was not the startup cause. Full details and support ZIP identity:
   then restart/TCP 3724 readiness and STOP, both exit 0. Flyway uses Adventure
   databases and personal mode remains true. Imported source remains unchanged.
   This is host qualification; physical Android play/save remains pending.
-- Version 0.10.42, code 56, `.stockdbfix`, planned immutable tag
-  `v0.10.42-stock-database-fix`. CI/APK publication evidence follows after success.
-  No native/graphics/audio/ASan/GC/input/POC/SQLite changes; main unchanged.
+- Released 0.10.42, code 56, `io.github.russianranger.wurmlauncher.stockdbfix`,
+  immutable tag `v0.10.42-stock-database-fix`. Implementation commit
+  `c3a43a9e1b1f3d5dd0588a9c54956d25b12c294e`, tree
+  `8488369c3f56a55862814f7be1301d2f3b2c9cba`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.42-stock-database-fix/Wurm-Server.apk),
+  68,495,973 bytes, SHA-256
+  `730a7aa1b92dd476bf18a7ae6a0292172ba375e9241a1c747cf4fce3f66bb180`.
+- [CI run 34760103028](https://github.com/Russianranger/wurm-android/actions/runs/34760103028)
+  passed: build job `103731318419`, publisher `103732590511`; unrelated
+  import/JVM publishers skipped. Initial host suite: 179 tests, 23 expected
+  fixture/platform skips. All three Android variants passed build, unit tests
+  and lint; required native/input and packaging gates passed. Host real-EGL
+  shader compilation retains its one expected unavailable-platform skip.
+- Independently downloaded APK size/checksum, version/code/package, v2 signature
+  and maintained APK verifier passed. Certificate SHA-256:
+  `ac6bad2f2aeffdc2e3151d7b66eb787a7ab6823b3d6f3e679bd4ae6817c3f5b8`.
+  All 194 JRE members, POC and 39 of 40 native libraries are byte-identical to
+  0.10.41. GL4ES differs in 25 bytes only: 20 GNU build-ID bytes and five
+  compile-time string characters. No native behavior source changed.
+  Graphics/audio/ASan/GC/input/POC/SQLite policies and versions are retained.
+- Main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`. Subsequent
+  handoff-only commits do not alter the immutable release APK.
 - Retest in fresh 0.10.42 with the same untouched server ZIP. Keep 0.10.40 and
   its complete backup. The failed 0.10.41 full backup preserves wrong DB_HOST
   and the recovery marker; do not use it for the fresh-import test. An exported
