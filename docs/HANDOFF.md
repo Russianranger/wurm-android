@@ -1,6 +1,6 @@
 # Wurm Android handoff
 
-Updated: 2026-09-13. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+Updated: 2026-09-14. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
 ## Latest release — 0.10.44 session fixes
 
@@ -8,7 +8,26 @@ The user authorized work on all three findings from the 0.10.43 extended review.
 See [CLIENT_SESSION_FIXES.md](CLIENT_SESSION_FIXES.md) for exact evidence,
 implementation and two-run Thor comparison. Work remains on mod-launcher-test.
 
-Latest device evidence: [0.10.44 comparison review](CLIENT_SESSION_FIXES_REVIEW_20260913.md).
+Latest device evidence: [37-minute on-run review](CLIENT_PERIODIC_GC_REVIEW_20260914.md).
+The 2026-09-14 export contains 37m39s of gameplay, client PID 23164/server 23022.
+Three actual World.tick requests are skipped at 00:16:46, 00:26:46 and 00:36:46Z;
+their viewer windows show only approximately 50 ms maxima. The scheduled-skip
+device check is complete. Mean viewer FPS after 30 seconds is 29.934, one reused
+3.52 MiB payload and one skipped sequence. Both runtimes exit 0; server saves
+and requested, non-forced shutdown are logged. No new fatal/audio/database error.
+One familiar startup texture-level 0x502 remains, with no later render exception.
+Five later allocation-triggered full collections still take 571–674 ms, matching
+viewer gaps up to 682.46 ms. The switch is not a cure for all GC hitches, and
+overall off/on superiority is not established. Client PSS peaks at 1,723 MiB;
+late post-GC heap is similar but PSS still trends upward (5–10-minute median
+1,489 MiB versus final-five-minute 1,707 MiB). No OOM or unbounded descriptor/
+thread growth; do not claim no leak or completely settled memory. App/server
+memory is comparatively stable. Next technical targets are texture-level error
+attribution and client allocation/retention; no need to repeat the same on test
+solely to prove it activates. Keep the setting optional and default off pending
+broader pause/memory comparison. Version 0.10.44 and its release stay unchanged.
+
+Earlier device evidence: [0.10.44 comparison review](CLIENT_SESSION_FIXES_REVIEW_20260913.md).
 The user reports off first, on second, with smoother second play. Policy markers
 confirm the order, but the retained runs cover about 18m45s off and 2m29s on.
 Off has one 326.718 ms World.tick collection matching a 350.93 ms viewer gap;
@@ -20,10 +39,9 @@ texture target 3553" near TextureLoader's error cleanup. Exact asset/format/call
 still need tracing. The previous in-play GL exception does not recur.
 On-run client PSS rises to about 1,942 MiB and direct buffers to 364 MiB before
 any periodic skip; do not claim either a leak or a GC-policy cause from this.
-Next device check is a 20–30-minute on run crossing two expected requests,
-followed by normal client/server shutdown and a support export. Keep the default
-off until the skipped-request and memory comparison is qualified. No new APK
-is needed for this check; this review preserves the published release.
+That review requested a 20–30-minute on run crossing two expected requests,
+followed by normal client/server shutdown and a support export. The September 14
+review above supplies this follow-up. Preserve this earlier comparison as history.
 
 - Guard only the inspected engine's NVIDIA/ATI memory queries using real LWJGL
   capabilities; retain other queries and the game's unknown-memory fallback.
@@ -77,10 +95,9 @@ is needed for this check; this review preserves the published release.
   `6bef5de17bf94b6515bf6eb8cef07423b895b1990790db02fa6db0ff2ad8b5ed`.
   Engine overlay SHA `a162c00ea5e5cf3819208b75a21f9c7fb6197c7fead4003deb82f3ecd843c85b`;
   World overlay SHA `e091ae0a8a67a45e68cd6cee7b878cf6b0d3e421ee6d2e43092229a3328462dc`.
-- Next gate is continued device qualification; the first comparison is above.
-  Keep the prior stopped backup and collect a longer 20–30-minute on run.
-  Confirm sound/graphics behavior and compare memory,
-  WORLD_GC_REQUEST actions and viewer gaps. The two 0x502 sites remain unresolved;
+- The extended on test is complete; preserve its pause/memory and normal shutdown
+  evidence above. Next technical work is client allocation/retention and texture
+  error attribution. The two earlier 0x502 sites remain unresolved;
   startup is narrowed to texture-level generation, while the previous in-play
   site is not reproduced. KHR messages work on this Thor but remain optional on
   other non-debug drivers. Longer soak/lifecycle,
