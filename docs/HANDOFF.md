@@ -6,7 +6,28 @@ Updated: 2026-09-14. Keep this file current when investigating, changing, or rel
 
 The user requests continued troubleshooting of the remaining findings. See
 [CLIENT_MIPMAP_ALLOCATION_TEST.md](CLIENT_MIPMAP_ALLOCATION_TEST.md) for the exact
-scope, limitations and next Thor test. Work remains on mod-launcher-test only.
+scope, limitations and original Thor test. Work remains on mod-launcher-test only.
+
+Latest device evidence: [32-minute 0.10.45 review](CLIENT_MIPMAP_ALLOCATION_REVIEW_20260914.md).
+The 13:53Z support export records 32m19s of play, clean client/server exit 0,
+completed server saves/database close, and no recurrence of the startup mipmap
+error with KHR_debug installed. Mean viewer FPS after 30 seconds is 29.937;
+four later full collections take 453–659 ms and correlate with gaps up to
+678.88 ms. Three World.tick requests are skipped as configured. Allocation
+telemetry works: Job_executor_0 supplies 59.76% of observed heap churn after
+warm-up (66.50% in complete final-five-minute windows), with a separate model
+loader burst. Thread names do not identify tasks/classes or retained memory.
+Client PSS still rises: median 1,361 MiB in minutes 5–10 versus 1,686 MiB in the
+final five minutes, peak 1,754 MiB. No descriptor/thread growth or OOM is seen;
+memory stability remains open. A login cluster contains 12 clothing warnings
+and a spawn-tile/teleport warning; no later repetition or fatal outcome is
+recorded. The server creates a new character, so verify expected world/character
+continuity if this was intended as a restore test. Storage audit was not run.
+Live Map is enabled and server mods are disabled; this is not a matched workload
+comparison with 0.10.44. Next technical target: identify the allocating work on
+Job_executor_0, separately investigate memory retention/loading bursts, and
+track clothing/spawn behavior. Do not repeat the same test solely to prove the
+skip switch activates. This review changes documentation only.
 
 - Pinned GL4ES `realize_textures` attempted generation with no base image,
   could run on another driver texture unit when the binding already matched,
@@ -22,8 +43,9 @@ scope, limitations and next Thor test. Work remains on mod-launcher-test only.
   upload; it does not prove that upload failed. The new host test reproduces the
   bad original calls against an authored driver boundary and passes patched
   behavior. Four whole patched native translation units compile on the host.
-  Device startup-error resolution and rendered texture quality remain unqualified;
-  the older in-play error has not recurred and is not declared fixed.
+  The startup error is absent in the 32-minute 0.10.45 device run linked above.
+  Rendered texture quality remains unqualified; the older in-play error has not
+  recurred and is not declared fixed.
 - Client-only allocation daemon: 30-second windows, at most 256 live IDs/counters,
   top four contributors, explicit new/reset/departed/unavailable/omitted coverage.
   Only matched live-thread deltas count; no game/thread objects, stack/heap walks,
@@ -83,12 +105,12 @@ scope, limitations and next Thor test. Work remains on mod-launcher-test only.
   for claiming this method creates a full heap frame each update.
 - Main was independently verified unchanged at
   `2e41fb091ee75a76b9116e934abecff90bc735d9`.
-- Next device check: save/stop/export a full backup in 0.10.44, install the new
-  package and restore. Enable skip periodic cleanup to match the latest long run,
-  verbose off, 30–40 minutes of similar movement/loading, then normal stops and
-  a complete support bundle. Check mipmap attribution/visual defects, allocation
-  contributors near full GC, old-gen occupancy, direct/PSS trends and save/exits.
-  The scheduled-skip activation check itself is already complete.
+- The requested 30–40-minute startup/allocation observation now has a 32-minute
+  device report (linked above). It confirms telemetry and clean saves/exits;
+  it does not verify rendered appearance or a restored-world restart. The new
+  character creation must not be treated as proof of restore loss. Continue
+  targeted executor allocation/retention investigation before another build;
+  scheduled-skip activation itself is already qualified.
 - No proprietary inputs, disassembly or raw reports are committed or published.
 
 ## Previous release — 0.10.44 session fixes
