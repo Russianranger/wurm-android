@@ -9,7 +9,7 @@ object ClientJvmPolicy {
             else -> return emptyList()
         }
         return listOf(if (collector == "serial") "-XX:+UseSerialGC" else "-XX:+UseG1GC",
-            "-Dwurm.client.expectedGc=$collector", "-Xlog:gc=info,gc+init=info,safepoint=info:stdout:utctime,pid,tid,tags")
+            "-Dwurm.client.expectedGc=$collector", "-Xlog:gc=info,gc+init=info,gc+heap=info,safepoint=info:stdout:utctime,pid,tid,tags")
     }
     fun stages(mode: String): List<String> = when (mode) {
         "memory" -> listOf("memory-g1", "memory-serial")

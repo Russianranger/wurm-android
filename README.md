@@ -2,17 +2,18 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.44 — sound, capability and periodic-GC fixes.**
+**Current branch test: 0.10.45 — mipmap correction and allocation diagnostics.**
 
-Continue on `mod-launcher-test`; main remains separate. The 35-minute 0.10.43
-session passed normal play/save/shutdown near 30 FPS. This build repairs its
-damaged missing-sound fallback, guards unsupported vendor memory queries and
-adds driver error details. An opt-in setting skips only periodic world-tick GC
-requests for a separate pause/memory comparison. Two remaining GL errors still
-need device attribution. Stock server preparation and backup/restore are available.
+Continue on `mod-launcher-test`; main remains separate. The latest 37m39s run
+completed normally and qualified skipping scheduled cleanup. This build fixes
+GL4ES automatic mipmap generation on empty images/the wrong texture unit, adds
+exact mipmap context to driver errors and records client allocation by thread.
+Startup graphics resolution needs device confirmation; ordinary GC stalls and
+rising client PSS remain under investigation. Stock preparation and backup/restore
+are available.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.44-session-fixes).
-[Fixes, limits and device comparison](docs/CLIENT_SESSION_FIXES.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.45-mipmap-allocation).
+[Changes, limits and device test](docs/CLIENT_MIPMAP_ALLOCATION_TEST.md).
 [Maintained handoff](docs/HANDOFF.md). Reports remain in Diagnostics.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

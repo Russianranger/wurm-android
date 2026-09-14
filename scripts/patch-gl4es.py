@@ -225,3 +225,59 @@ def apply_depth_precision(root: Path):
     framebuffer = framebuffer.replace(old, new)
     (gl/"texture.c").write_text(texture)
     (gl/"framebuffers.c").write_text(framebuffer)
+
+
+def patch_mipmap_realization(source: str) -> str:
+    start = source.index('void realize_textures(int drawing) {')
+    end = source.index('\n//Direct wrapper', start)
+    body = source[start:end]
+    replacements = [
+        ('int tmp = glstate->enable.texture[glstate->texture.active];',
+         'int tmp = glstate->enable.texture[i];'),
+        ('if(tex->mipmap_need && !tex->mipmap_done) {',
+         '''// An empty/default texture has no base image to generate from.
+            // Leave it pending so a later upload can still generate its mipmaps.
+            if(tex->mipmap_need && !tex->mipmap_done && tex->valid && tex->width>0 && tex->height>0) {'''),
+        ('gles_glGenerateMipmap(GL_TEXTURE_2D);',
+         '''// Binding may already match while the driver is on another unit.
+                    if(glstate->gleshard->active!=i) {
+                        glstate->gleshard->active = i;
+                        gles_glActiveTexture(GL_TEXTURE0+i);
+                    }
+                    WURM_MIPMAP_CALL(gles_glGenerateMipmap(target), target, i, tex);'''),
+    ]
+    for old, new in replacements:
+        if body.count(old) != 1: raise ValueError('Pinned GL4ES mipmap realization changed')
+        body = body.replace(old, new)
+    return source[:start] + body + source[end:]
+
+
+def apply_mipmap_realization(root: Path, native: Path):
+    # Applied after address/depth/error fixes; pins include those transformations.
+    gl = root/'src/gl'
+    pins = {
+        'texture_params.c': '3fc992afaa30f1f508cfa57e02be28f36ac077167940b36e726e24b05232b205',
+        'framebuffers.c': '07d9876d95eab78f231c13adb1b254530e217fcd4a63d24ad6a6e0353a701e48',
+        'texture_read.c': '5509cf2487b514b9603606523a482afad31c486817b36bd06b13485450398d9c',
+        'getter.c': 'e97af9270a31f6c82a27637fbc80912161f3c4d23c2b9eac375a8134df7d0178',
+    }
+    sources = {}
+    for name, digest in pins.items():
+        data = (gl/name).read_bytes()
+        if hashlib.sha256(data).hexdigest() != digest:
+            raise ValueError('Unexpected GL4ES mipmap source ' + name)
+        sources[name] = data.decode()
+    sources['texture_params.c'] = patch_mipmap_realization(sources['texture_params.c'])
+    for name, old, new in [
+        ('framebuffers.c', 'gles_glGenerateMipmap(rtarget);',
+         'WURM_MIPMAP_CALL(gles_glGenerateMipmap(rtarget), rtarget, glstate->texture.active, bound);'),
+        ('texture_read.c', 'gles_glGenerateMipmap(to_target(itarget));',
+         'WURM_MIPMAP_CALL(gles_glGenerateMipmap(to_target(itarget)), to_target(itarget), glstate->texture.active, bound);'),
+    ]:
+        if sources[name].count(old) != 1: raise ValueError('Pinned GL4ES mipmap delegate changed: '+name)
+        sources[name] = sources[name].replace(old, new)
+    for name, source in sources.items():
+        include = 'wurm_mipmap_trace.c' if name == 'getter.c' else 'wurm_mipmap_trace.h'
+        (gl/name).write_text('#include "'+include+'"\n'+source)
+    for name in ('wurm_mipmap_trace.h', 'wurm_mipmap_trace.c'):
+        (gl/name).write_bytes((native/name).read_bytes())

@@ -7,11 +7,13 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "wurm_mipmap_trace.h"
 
 typedef void (*wurm_debug_callback)(GLenum, GLenum, GLuint, GLenum, GLsizei, const char *, const void *);
 typedef void (*wurm_debug_register)(wurm_debug_callback, const void *);
 typedef void (*wurm_debug_control)(GLenum, GLenum, GLenum, GLsizei, const GLuint *, GLboolean);
 static atomic_uint wurm_driver_reports;
+static const wurm_mipmap_site *(*wurm_driver_mipmap_context)(void);
 
 static int wurm_has_extension(const char *list, const char *name) {
     if (!list || !name || !*name || strchr(name, ' ')) return 0;
@@ -40,9 +42,14 @@ static void wurm_driver_message(GLenum source, GLenum type, GLuint id, GLenum se
         }
     }
     text[n]='\0';
+    const wurm_mipmap_site *mipmap=wurm_driver_mipmap_context?wurm_driver_mipmap_context():NULL;
     struct timespec now={0}; clock_gettime(CLOCK_REALTIME,&now);
-    fprintf(stdout,"[graphics-driver] time=%lld.%03ld pid=%ld source=0x%x type=0x%x id=%u severity=0x%x message=%s\n",
+    fprintf(stdout,"[graphics-driver] time=%lld.%03ld pid=%ld source=0x%x type=0x%x id=%u severity=0x%x message=%s",
         (long long)now.tv_sec,now.tv_nsec/1000000,(long)getpid(),source,type,id,severity,text);
+    if(mipmap) fprintf(stdout," mipmapSite=%s target=0x%x texture=%u unit=%u format=0x%x size=%dx%d valid=%d compressed=%d",
+        mipmap->site,mipmap->target,mipmap->texture,mipmap->unit,mipmap->format,
+        mipmap->width,mipmap->height,mipmap->valid,mipmap->compressed);
+    fputc('\n',stdout);
     if(report==63) fputs("[graphics-driver] DETAIL_LIMIT errors=64; original GL error state untouched\n",stdout);
     fflush(stdout);
 }

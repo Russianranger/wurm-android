@@ -82,6 +82,7 @@ JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_open(JNIEnv *env, jclass typ
     driver = dlopen(gles_name != NULL ? gles_name : "libGLESv2.so", RTLD_NOW | RTLD_LOCAL);
     driver_error = driver != NULL ? (GLenum (*)(void))dlsym(driver, "glGetError") : NULL;
     if (driver_error == NULL) { fail(env, "GLES error function lookup failed"); cleanup(); return; }
+    wurm_driver_mipmap_context = (const wurm_mipmap_site *(*)(void))dlsym(backend, "wurm_mipmap_current");
     wurm_install_driver_debug(driver);
     printf("[graphics] EGL_CONTEXT_READY version=%d.%d size=%dx%d renderer=%s gles=%s\n",
         major, minor, w, h, glGetString(GL_RENDERER), glGetString(GL_VERSION));

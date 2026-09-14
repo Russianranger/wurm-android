@@ -1,3 +1,26 @@
+# 0.10.45 — mipmap correction and allocation diagnostics
+
+Corrects GL4ES automatic mipmap generation before a base image exists and on
+the wrong texture unit/target. Adds exact mipmap-call context to supported GLES
+driver error messages. The host regression passes; the startup warning's
+resolution and rendered textures still need a Thor test.
+
+Adds lightweight client allocation counters by thread every 30 seconds and GC
+heap-occupancy logging. These records survive console rotation in the bounded
+observation history. Ordinary GC stalls and rising PSS remain under investigation;
+this release does not claim to fix them. Existing heap/collector settings and
+optional periodic-cleanup policy are retained.
+
+Save/stop both runtimes in 0.10.44 and export a complete backup. Keep that working
+app, install the separate `.mipmaptest` package and restore. Enable **Skip periodic
+client cleanup (test)** to match the last run, leave verbose off, and play for
+30–40 minutes. Note texture defects/stalls, stop both runtimes normally and export
+a full support bundle. No stock-server reimport is needed.
+
+See CLIENT_MIPMAP_ALLOCATION_TEST.md for evidence, limitations and test details.
+
+---
+
 # 0.10.44 — sound, capability and pause fixes
 
 Repairs the known-corrupt missing-sound fallback using a generated silent WAV

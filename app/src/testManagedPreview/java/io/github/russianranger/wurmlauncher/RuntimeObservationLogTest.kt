@@ -25,6 +25,11 @@ class RuntimeObservationLogTest {
             log.observe("[client-gc] time WORLD_GC_REQUEST action=skipped")
             log.observe("[client-audio] time SOUND_FALLBACK_PREPARED")
             log.observe("[graphics-capability] time GPU_MEMORY_QUERY_UNAVAILABLE")
+            log.observe("[client-allocation] time observedAllocatedBytes=8388608 thread[1,main]=8388608")
+            log.observe("[2026-09-14T01:00:00.000+0000][42][43][gc,heap  ] GC(7) Tenured: 800M->607M(989M)")
+            log.observe("[2026-09-14T01:00:00.000+0000][42][43][gc       ] GC(7) Pause Full (Allocation Failure) 600ms")
+            log.observe("[2026-09-14T01:00:00.000+0000][42][43][safepoint] Safepoint total=600ms")
+            log.observe("[graphics] lookup name=not-evidence GC(7)")
             assertTrue(file.length() <= 2 * 1024 * 1024 + 4001)
             val saved = RuntimeObservationLog(file).read()
             assertFalse(saved.contains("frame="))
@@ -41,6 +46,11 @@ class RuntimeObservationLogTest {
             assertTrue(saved.contains("WORLD_GC_REQUEST action=skipped"))
             assertTrue(saved.contains("SOUND_FALLBACK_PREPARED"))
             assertTrue(saved.contains("GPU_MEMORY_QUERY_UNAVAILABLE"))
+            assertTrue(saved.contains("observedAllocatedBytes=8388608"))
+            assertTrue(saved.contains("Tenured: 800M->607M"))
+            assertTrue(saved.contains("Pause Full (Allocation Failure)"))
+            assertTrue(saved.contains("Safepoint total=600ms"))
+            assertFalse(saved.contains("not-evidence"))
         } finally { home.deleteRecursively() }
     }
 }

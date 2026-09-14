@@ -21,7 +21,7 @@ public final class ClientBootstrap {
             switch (mode) {
                 case "inventory" -> inventory();
                 case "graphics" -> graphics();
-                case "entry" -> { probe.RuntimeMeasurements.start("client"); entry(); }
+                case "entry" -> { probe.RuntimeMeasurements.start("client"); ClientAllocationMeasurements.start(); entry(); }
                 case "compat" -> DirectClientLaunch.compatibilityProbe();
                 case "prepare-graphics" -> ClientGraphicsPatch.prepare();
                 case "buffers" -> { ClientGraphicsPatch.verifySelected(); ClientBuffers.preflight(); }

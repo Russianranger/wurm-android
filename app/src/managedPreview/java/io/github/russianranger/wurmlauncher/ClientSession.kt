@@ -65,7 +65,7 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.44\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.45\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
             "Gate status: 0.10.43 passed approximately 35 minutes of user play. This build guards vendor GPU-memory queries, replaces the damaged missing-sound fallback, adds driver error detail and offers an opt-in periodic-GC comparison. Remaining GL errors and longer qualification need device reports; heaps and collectors are retained.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +

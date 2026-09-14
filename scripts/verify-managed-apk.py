@@ -54,6 +54,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
         assert b"res/wurm-android-missing-sound.wav" in helper.read("client/ClientSoundResources.class")
         assert b"wurm.client.skipPeriodicGc" in helper.read("client/ClientWorldGc.class")
+        for name in ("ClientAllocationMeasurements", "ClientAllocationMeasurements$Window", "ClientAllocationMeasurements$Sample", "ClientAllocationMeasurements$Allocation"):
+            assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
+        assert b"client/ClientAllocationMeasurements" in helper.read("client/ClientBootstrap.class")
+        assert b"observedAllocatedBytes" in helper.read("client/ClientAllocationMeasurements.class")
         assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/client-compat.jar"))) as compat:
         classes = {n for n in compat.namelist() if n.endswith(".class")}
@@ -82,6 +86,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert "program-cache-cleanup" in graphics["gl4esPatches"]
     assert "error-origin-breadcrumbs" in graphics["gl4esPatches"]
     assert "supported-depth24" in graphics["gl4esPatches"]
+    assert "mipmap-base-image-and-unit" in graphics["gl4esPatches"]
+    assert "synchronous-mipmap-error-context" in graphics["gl4esPatches"]
+    assert b"wurm_mipmap_current" in apk.read("lib/arm64-v8a/libgl4es.so")
+    assert b"mipmapSite=" in apk.read("lib/arm64-v8a/libwurm_graphics.so")
     assert b"recent-errorGL-sites-not-proof" in apk.read("lib/arm64-v8a/libgl4es.so")
     assert "legacy-openal-context-lifecycle" in graphics["lwjglPatches"]
     for name, digest in graphics["nativeSha256"].items():

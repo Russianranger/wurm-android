@@ -2,7 +2,56 @@
 
 Updated: 2026-09-14. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.44 session fixes
+## Candidate — 0.10.45 mipmap and allocation diagnostics
+
+The user requests continued troubleshooting of the remaining findings. See
+[CLIENT_MIPMAP_ALLOCATION_TEST.md](CLIENT_MIPMAP_ALLOCATION_TEST.md) for the exact
+scope, limitations and next Thor test. Work remains on mod-launcher-test only.
+
+- Pinned GL4ES `realize_textures` attempted generation with no base image,
+  could run on another driver texture unit when the binding already matched,
+  used the caller's active-unit target for every iteration, and hardcoded the
+  generation target. Correct those conditions; retain pending work until upload.
+  Preserve compression/NPOT/automipmap/no-draw exclusions and explicit calls.
+- Three direct GLES mipmap delegates expose fixed TLS context only during their
+  calls. The synchronous KHR callback reads it through an exported GL4ES accessor,
+  with site/target/texture/unit/format/size/valid/compressed fields. No extra GL
+  queries, error consumption, texture bytes or path logging. Existing limits and
+  optional-driver behavior remain. Other callback threads see no TLS context.
+- The private TextureLoader warning drains an earlier error before a compressed
+  upload; it does not prove that upload failed. The new host test reproduces the
+  bad original calls against an authored driver boundary and passes patched
+  behavior. Four whole patched native translation units compile on the host.
+  Device startup-error resolution and rendered texture quality remain unqualified;
+  the older in-play error has not recurred and is not declared fixed.
+- Client-only allocation daemon: 30-second windows, at most 256 live IDs/counters,
+  top four contributors, explicit new/reset/departed/unavailable/omitted coverage.
+  Only matched live-thread deltas count; no game/thread objects, stack/heap walks,
+  GC requests or retained-memory inference. Missing facilities cannot block play.
+  Actual JVM churn attribution and counter reset/removal/lifetime tests pass.
+- Enable client `gc+heap=info`; retain allocation/GC/safepoint evidence in bounded
+  observations through console rotation. No client/server heap or collector
+  change, no buffer-ownership change, no global GC suppression. Automatic stalls
+  and rising PSS are still being investigated. The raw producer already reuses
+  its direct image buffer; small per-frame wrappers are not evidence of a full
+  heap-frame allocation. Do not speculate that a producer rewrite cures the GC.
+- Local host suite: 190 tests, 20 expected fixture/platform skips. It includes
+  actual private client overlay checks and pinned public GL4ES/LWJGL fixtures.
+  All 100 Android/test Kotlin sources compile; four focused Kotlin/JUnit checks
+  pass. Android CI and published APK verification are pending.
+- Candidate identity: 0.10.45/code 59, package
+  `io.github.russianranger.wurmlauncher.mipmaptest`, intended immutable tag
+  `v0.10.45-mipmap-allocation`. Separate package preserves the prior working app
+  while persistent signing remains pending. Do not mutate main or old releases.
+- Next device check: save/stop/export a full backup in 0.10.44, install the new
+  package and restore. Enable skip periodic cleanup to match the latest long run,
+  verbose off, 30–40 minutes of similar movement/loading, then normal stops and
+  a complete support bundle. Check mipmap attribution/visual defects, allocation
+  contributors near full GC, old-gen occupancy, direct/PSS trends and save/exits.
+  The scheduled-skip activation check itself is already complete.
+- No proprietary inputs, disassembly or raw reports are committed or published.
+
+## Previous release — 0.10.44 session fixes
 
 The user authorized work on all three findings from the 0.10.43 extended review.
 See [CLIENT_SESSION_FIXES.md](CLIENT_SESSION_FIXES.md) for exact evidence,
