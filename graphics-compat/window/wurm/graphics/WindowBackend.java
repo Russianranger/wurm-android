@@ -31,6 +31,7 @@ public final class WindowBackend {
         pointer = new WindowInput(w, h);
         statsStart = System.nanoTime();
         pacer = new FramePacer(Integer.getInteger("wurm.graphics.fps", 30));
+        reportFps();
         Thread input = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
@@ -51,6 +52,9 @@ public final class WindowBackend {
     }
     private static void owned() {
         if (owner != Thread.currentThread()) throw new IllegalStateException("EGL window must be used on its owning game thread");
+    }
+    private static void reportFps() {
+        System.out.println("[client-ui] FPS_APPLIED target="+pacer.fps()+" time="+java.time.Instant.now()+" pid="+ProcessHandle.current().pid());
     }
     public static long current() { return owner == Thread.currentThread() ? 1 : 0; }
     public static void makeCurrent(long window) {
@@ -83,7 +87,14 @@ public final class WindowBackend {
                 if (!pointer.canApply(line)) break;
                 events.poll();
                 try {
-                    if (line.startsWith("FPS ")) pacer.setFps(Integer.parseInt(line.substring(4)));
+                    if (line.startsWith("FPS ")) {
+                        pacer.setFps(Integer.parseInt(line.substring(4)));
+                        reportFps();
+                    }
+                    else if (line.equals("MEMORY start") || line.equals("MEMORY stop")) {
+                        try { Class.forName("client.ClientJobProfiler").getMethod("command",String.class).invoke(null,line.substring(7)); }
+                        catch (ReflectiveOperationException failure) { System.out.println("[client-memory-test] UNAVAILABLE command-dispatch="+failure.getClass().getSimpleName()); }
+                    }
                     else if (line.equals("HUD restore-focus") || line.equals("HUD restore-button")) hud(line.substring(4));
                     else if (line.startsWith("VISUAL ")) {
                         String preset=line.substring(7);

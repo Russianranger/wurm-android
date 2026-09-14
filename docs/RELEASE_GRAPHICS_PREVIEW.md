@@ -1,3 +1,28 @@
+# 0.10.46 — job memory recording and FPS targets
+
+Adds 40, 50 and 60 FPS targets alongside default 30 and existing 15 FPS, with
+saved/live controls and runtime confirmation. Actual rates depend on the scene,
+resolution and device; higher targets can increase heat and GC pressure.
+
+Adds optional job profiling and a cancellable five-minute memory recording.
+Enable job profiling in Diagnostics before client launch, then start recording
+from the gear menu or Diagnostics during play. It records completed-job heap
+allocations and memory use, without forced GC, heap dumps or synthetic game load.
+It stops automatically. The default normal-play executor path remains unchanged.
+
+Inspection confirms worker zero is tried first by Wurm's scheduler. Its high
+allocation share alone is not a worker defect. The new data is needed to locate
+the allocating jobs before an evidence-based fix; no GC/leak cure is claimed.
+
+Save/stop both runtimes, export a full backup from 0.10.45, and restore it into
+the separate `.jobprofiletest` app. Keep the working app. Record comparable
+five-minute routes at 30 FPS first, then test higher FPS separately. Export the
+support bundle. The user-confirmed new character in the prior run was intentional.
+
+See CLIENT_JOB_MEMORY_FPS_TEST.md for validation, boundaries and test details.
+
+---
+
 # 0.10.45 — mipmap correction and allocation diagnostics
 
 Corrects GL4ES automatic mipmap generation before a base image exists and on

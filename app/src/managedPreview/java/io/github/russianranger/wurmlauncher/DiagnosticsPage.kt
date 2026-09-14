@@ -20,6 +20,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val serverLogs: TextView
     private val verbose: CheckBox
     private val periodicGc: CheckBox
+    private val jobProfiling: CheckBox
     private fun label(text: String)=TextView(activity).apply { this.text=text; setPadding(0,8,0,8); target.addView(this) }
     private fun button(text: String, action: () -> Unit)=Button(activity).apply {
         this.text=text; setOnClickListener { action() }; target.addView(this)
@@ -45,6 +46,13 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
             setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("skip-periodic-gc",checked).apply() }
         }
         label("Compare brief pauses with this off, then on. Applies on the next client start. Normal memory collection and shutdown cleanup continue; watch memory use during longer play.")
+        jobProfiling=CheckBox(activity).apply {
+            text="Enable job profiling · next client start"; isChecked=prefs.getBoolean("job-profiling",false)
+            target.addView(this)
+            setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("job-profiling",checked).apply() }
+        }
+        label("Optional. During play, start a five-minute memory recording here or in the gear menu. Records allocation by job type; normal cleanup continues.")
+        button("Client memory recording") { ClientMemoryDialog.show(activity) }
         target=LauncherUi.section(view,"Individual reports")
         button("Export Client Report") { export(ManagedActivity.EXPORT_CLIENT,"wurm-client-report.txt") }
         button("Export Server Report") { export(ManagedActivity.EXPORT_REPORT,"wurm-server-report.txt") }
@@ -91,6 +99,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         val server=ManagedSession.snapshot()
         verbose.isEnabled=!client.busy
         periodicGc.isEnabled=!client.busy
+        jobProfiling.isEnabled=!client.busy
         status.updateText("Client: ${client.phase} · ${client.detail}\nServer: ${server.phase} · ${server.detail}")
         clientTests.forEach { it.isEnabled=!client.busy }
         serverTests.forEach { it.isEnabled=!server.busy }

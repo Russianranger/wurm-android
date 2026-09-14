@@ -33,7 +33,7 @@ public final class RuntimeMeasurements {
         }
     }
 
-    static String sample(String role, Path proc) {
+    public static String sample(String role, Path proc) {
         MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
         MemoryUsage heap = memory.getHeapMemoryUsage(), nonHeap = memory.getNonHeapMemoryUsage();
         StringBuilder line = new StringBuilder("[runtime-memory] ").append(Instant.now())

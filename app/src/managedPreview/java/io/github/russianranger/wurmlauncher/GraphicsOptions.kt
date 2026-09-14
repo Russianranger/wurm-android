@@ -58,6 +58,9 @@ object GraphicsOptions {
         Option("useCompressedTextureS3TC", "S3TC compression (if supported)", onOff, 0, true)
     )
     const val DEFAULT_RESOLUTION = "1280x720"
+    val frameTargets = listOf(30, 40, 50, 60, 15)
+    fun frameTarget(saved: Int) = saved.takeIf { it in frameTargets } ?: 30
+    fun viewerPollMs(target: Int) = if (frameTarget(target) > 30) 8L else 16L
     fun resolution(saved: String?) = saved?.takeIf { it in resolutions } ?: DEFAULT_RESOLUTION
     val resolutions = listOf("800x480", "960x540", "1280x720")
     fun command(preset: String, values: List<Int>): String {

@@ -229,7 +229,7 @@ class GraphicsTestActivity : Activity() {
                 recordTimings(now,"periodic")
                 statsAt=now; displayed=0
             }
-            handler.postDelayed(this, 16)
+            handler.postDelayed(this, GraphicsOptions.viewerPollMs(ClientSession.activeFrameTarget))
         }
     }
     private fun recordTimings(now: Long, reason: String) {
@@ -263,12 +263,13 @@ class GraphicsTestActivity : Activity() {
         fun label(value: String, size: Float = 14f) = TextView(this).apply {
             text=value; textSize=size; setTextColor(Color.WHITE); column.addView(this)
         }
-        label(if (mode == "render") "JVM Graphics Test · 0.10.45" else "Game controls · 0.10.45",20f)
+        label(if (mode == "render") "JVM Graphics Test · 0.10.46" else "Game controls · 0.10.46",20f)
         fun button(label: String, action: () -> Unit) = Button(this).apply {
             text=label; setOnClickListener { action() }; column.addView(this,LinearLayout.LayoutParams(-1,-2))
         }
         button("Resume game") { showPanel(false) }
         if (mode in listOf("start","local")) button("Graphics") { showGraphicsSettings() }
+        if (mode in listOf("start","local")) button("Memory recording") { ClientMemoryDialog.show(this) }
         if(mode!="render") {
             keyboardButton=button("Show keyboard") { setKeyboard(!keyboardOpen) }
             button("Controls") {

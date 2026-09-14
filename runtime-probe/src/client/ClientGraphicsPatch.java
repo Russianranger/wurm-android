@@ -88,6 +88,11 @@ public final class ClientGraphicsPatch {
         URL world = ClientGraphicsPatch.class.getClassLoader().getResource(ClientWorldGc.WORLD);
         if (world == null) throw new IOException("CLIENT_WORLD_CLASS_MISSING");
         classes.put(ClientWorldGc.WORLD, ClientWorldGc.prepare(read(world.openStream())));
+        if (ClientJobProfiler.enabled()) {
+            URL executor = ClientGraphicsPatch.class.getClassLoader().getResource(ClientJobPatch.EXECUTOR);
+            if (executor == null) throw new IOException("CLIENT_EXECUTOR_MISSING");
+            classes.put(ClientJobPatch.EXECUTOR, ClientJobPatch.prepare(read(executor.openStream())));
+        }
         URL sound = ClientGraphicsPatch.class.getClassLoader().getResource(ClientSoundResources.PREFIX+ClientSoundResources.OLD);
         URL mappings = ClientGraphicsPatch.class.getClassLoader().getResource(ClientSoundResources.MAPPINGS);
         if (sound == null || mappings == null) throw new IOException("CLIENT_SOUND_FALLBACK_MISSING");
@@ -130,6 +135,7 @@ public final class ClientGraphicsPatch {
         try (var jar = new JarFile(path)) {
             var names = new java.util.TreeSet<>(ClientBuffers.ORIGINALS.keySet()); names.add(ENGINE);
             names.add(ClientWorldGc.WORLD); names.add(ClientSoundResources.RESOURCE); names.add(ClientSoundResources.MAPPINGS);
+            if (ClientJobProfiler.enabled()) names.add(ClientJobPatch.EXECUTOR);
             names.addAll(ClientShaderResources.ORIGINALS.keySet());
             names.add(ClientSettingsPatch.HUD);
             if (jar.size() != names.size()) throw new IOException("Invalid client overlay size");
@@ -147,7 +153,8 @@ public final class ClientGraphicsPatch {
         for (var item : classes.entrySet()) {
             String name = item.getKey(); byte[] bytes = item.getValue();
             boolean shader = ClientShaderResources.ORIGINALS.containsKey(name);
-            if (name.equals(ClientWorldGc.WORLD)) ClientWorldGc.verify(bytes);
+            if (name.equals(ClientJobPatch.EXECUTOR)) ClientJobPatch.verify(bytes);
+            else if (name.equals(ClientWorldGc.WORLD)) ClientWorldGc.verify(bytes);
             else if (name.equals(ClientSoundResources.MAPPINGS)) ClientSoundResources.verifyMappings(bytes);
             else if (name.equals(ClientSoundResources.RESOURCE)) ClientSoundResources.verify(bytes);
             else if (name.equals(ClientSettingsPatch.HUD)) ClientSettingsPatch.verify(bytes);
@@ -156,7 +163,7 @@ public final class ClientGraphicsPatch {
             URL selected = ClientGraphicsPatch.class.getClassLoader().getResource(name);
             if (selected == null || !sha(read(selected.openStream())).equals(sha(bytes)))
                 throw new IOException("CLIENT_GRAPHICS_PATCH_NOT_SELECTED: classpath order mismatch " + name);
-            log((name.equals(ClientWorldGc.WORLD) ? "WORLD_GC_PATCH_ACTIVE" : name.equals(ClientSoundResources.RESOURCE) || name.equals(ClientSoundResources.MAPPINGS) ? "SOUND_FALLBACK_ACTIVE" : name.equals(ClientSettingsPatch.HUD) ? "SETTINGS_PATCH_ACTIVE" : shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
+            log((name.equals(ClientJobPatch.EXECUTOR) ? "JOB_PROFILING_PATCH_ACTIVE" : name.equals(ClientWorldGc.WORLD) ? "WORLD_GC_PATCH_ACTIVE" : name.equals(ClientSoundResources.RESOURCE) || name.equals(ClientSoundResources.MAPPINGS) ? "SOUND_FALLBACK_ACTIVE" : name.equals(ClientSettingsPatch.HUD) ? "SETTINGS_PATCH_ACTIVE" : shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
         }
     }
 }

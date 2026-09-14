@@ -8,6 +8,7 @@ class RuntimeObservationLog(private val file: File) {
         if (!line.startsWith("[runtime-memory] ") && !line.startsWith("[graphics-error] ") && !line.startsWith("[graphics-depth] ") &&
             !line.startsWith("[graphics-driver] ") && !line.startsWith("[graphics-capability] ") &&
             !line.startsWith("[client-gc] ") && !line.startsWith("[client-audio] ") && !line.startsWith("[client-allocation] ") &&
+            !line.startsWith("[client-memory-test] ") && !line.startsWith("[client-ui] FPS_APPLIED ") &&
             !line.contains(" TCP_PROBE_POLICY ") && !line.contains(" TCP_PROBE_SUMMARY ") && !line.startsWith("[mods] ") &&
             !line.startsWith("[window] FRAME_TIMING ") && !(line.startsWith("[graphics-ui] ") &&
                 (line.contains(" UI_TIMING ") || line.contains(" FRAME_READ_ERROR ") || line.contains(" FRAME_COPY_ERROR "))) &&

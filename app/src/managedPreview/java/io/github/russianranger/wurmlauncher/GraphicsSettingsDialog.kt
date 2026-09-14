@@ -24,8 +24,12 @@ object GraphicsSettingsDialog {
         val resolution=choice("Render resolution (after client restart)",
             listOf("800 × 480 — faster", "960 × 540", "1280 × 720 — HD"),
             GraphicsOptions.resolutions.indexOf(GraphicsOptions.resolution(prefs.getString("resolution",null))))
-        val fps=choice("Frame target",listOf("30 FPS — smoother", "15 FPS — lower load"),
-            if (prefs.getInt("frame-fps",30) == 15) 1 else 0)
+        val fps=choice("Frame target",GraphicsOptions.frameTargets.map { when(it) {
+            30 -> "30 FPS · Default"; 15 -> "15 FPS · Lower load"; else -> "$it FPS"
+        } },GraphicsOptions.frameTargets.indexOf(GraphicsOptions.frameTarget(prefs.getInt("frame-fps",30))))
+        column.addView(TextView(activity).apply {
+            text="Higher targets use more power and may increase heat and memory churn. Actual FPS depends on the scene, resolution and device."
+        })
         column.addView(TextView(activity).apply {
             text="Individual choices override the base preset. Settings marked restart apply on the next client launch; other settings apply during play. Higher resolution, longer distances and extra effects can reduce speed. Fullscreen and panel opacity are in the gear menu."
         })
@@ -80,7 +84,7 @@ object GraphicsSettingsDialog {
         dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val name=if (preset.selectedItemPosition == 0) "performance" else "imported"
                 val size=GraphicsOptions.resolutions[resolution.selectedItemPosition]
-                val rate=if (fps.selectedItemPosition == 0) 30 else 15
+                val rate=GraphicsOptions.frameTargets[fps.selectedItemPosition]
                 val values=controls.mapIndexed { i, control ->
                     if (control.selectedItemPosition == 0) -1 else control.selectedItemPosition-1+GraphicsOptions.options[i].minimum
                 }
@@ -88,6 +92,7 @@ object GraphicsSettingsDialog {
                 GraphicsOptions.options.forEachIndexed { i, option -> edit.putInt("graphics-option-${option.field}",values[i]) }
                 edit.apply()
                 val before=ClientSession.graphicsAcknowledgment
+                val beforeFps=ClientSession.frameTargetAcknowledgment
                 val requested=live && ClientSession.inputReady() && ClientSession.send("VISUAL ${GraphicsOptions.command(name,values)}") && ClientSession.send("FPS $rate")
                 savedStatus.text=if(requested) "Saved · waiting for live application. Restart-only choices apply next launch." else "Saved · applies on next client launch."
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=!requested
@@ -96,8 +101,8 @@ object GraphicsSettingsDialog {
                     val deadline=android.os.SystemClock.elapsedRealtime()+5000
                     poll=object: Runnable { override fun run() {
                         if(!dialog.isShowing) return
-                        if(ClientSession.graphicsAcknowledgment!=before) {
-                            savedStatus.text=ClientSession.graphicsNotice; dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=true
+                        if(ClientSession.graphicsAcknowledgment!=before && ClientSession.frameTargetAcknowledgment!=beforeFps && ClientSession.activeFrameTarget==rate) {
+                            savedStatus.text="${ClientSession.graphicsNotice} Frame target: $rate FPS."; dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=true
                         } else if(android.os.SystemClock.elapsedRealtime()>=deadline) {
                             savedStatus.text="Saved · live application not confirmed. Restart the client to apply saved choices."
                             dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=true

@@ -6,7 +6,8 @@ public final class FramePacer {
     private int fps;
     public FramePacer(int fps) { setFps(fps); }
     public void setFps(int value) {
-        if (value != 15 && value != 30) throw new IllegalArgumentException("Frame target must be 15 or 30");
+        if (value != 15 && value != 30 && value != 40 && value != 50 && value != 60)
+            throw new IllegalArgumentException("Frame target must be 15, 30, 40, 50 or 60");
         fps=value; interval=1_000_000_000L/value; next=0;
     }
     public int fps() { return fps; }

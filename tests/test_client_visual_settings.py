@@ -237,8 +237,16 @@ public class PacerCheck {
   now+=interval; p.presented(now); eq(p.delay(now+20_000_000L),interval-20_000_000L);
   now+=10*interval; eq(p.delay(now),0); p.presented(now); eq(p.delay(now),interval);
   p.setFps(15); eq(p.delay(now),0); p.presented(now); eq(p.delay(now+20_000_000L),1_000_000_000L/15-20_000_000L);
-  try {p.setFps(60);throw new AssertionError();}catch(IllegalArgumentException expected) {}
-  eq(p.fps(),15);
+  for(int fps:new int[]{30,40,50,60,15}) {
+   p.setFps(fps); eq(p.fps(),fps); eq(p.delay(now),0);
+   long period=1_000_000_000L/fps; p.presented(now);
+   eq(p.delay(now+5_000_000L),period-5_000_000L);
+   now+=period*20; eq(p.delay(now),0); p.presented(now); eq(p.delay(now),period);
+  }
+  for(int invalid:new int[]{0,-1,25,45,59,61,120}) {
+   try {p.setFps(invalid);throw new AssertionError();}catch(IllegalArgumentException expected) {}
+   eq(p.fps(),15);
+  }
  }
 }''')
             subprocess.run(['java','com.sun.tools.javac.Main','--release','17','-d',temp,str(source),

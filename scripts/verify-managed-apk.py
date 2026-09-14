@@ -11,7 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 with zipfile.ZipFile(sys.argv[1]) as apk:
     dex=b"".join(apk.read(n) for n in apk.namelist() if n.endswith(".dex"))
-    for name in ("ServerDatabaseLayout", "ServerRuntimePreparation", "FrameBuffers", "FrameBuffers$Lease", "FrameTimingStats"):
+    for name in ("ServerDatabaseLayout", "ServerRuntimePreparation", "FrameBuffers", "FrameBuffers$Lease", "FrameTimingStats", "ClientMemoryDialog"):
         assert ("Lio/github/russianranger/wurmlauncher/"+name+";").encode() in dex, name
     for name, checksum in {
         "sqlite-jdbc-3.53.2.1.jar": "f55e405ed96d5ffe629e05b7b51b059e1c7d64527c0cc90a972fbac06730ccc1",
@@ -58,6 +58,10 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
         assert b"client/ClientAllocationMeasurements" in helper.read("client/ClientBootstrap.class")
         assert b"observedAllocatedBytes" in helper.read("client/ClientAllocationMeasurements.class")
+        for name in ("ClientJobPatch", "ClientJobProfiler", "ClientJobProfiler$Capture", "ClientJobProfiler$Row", "ClientJobProfiler$Snapshot"):
+            assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
+        assert b"wurm.client.jobProfiling" in helper.read("client/ClientJobProfiler.class")
+        assert b"client/ClientJobProfiler" in helper.read("client/ClientBootstrap.class")
         assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/client-compat.jar"))) as compat:
         classes = {n for n in compat.namelist() if n.endswith(".class")}
@@ -113,6 +117,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
+        assert b"FPS_APPLIED target=" in window.read("wurm/graphics/WindowBackend.class")
+        assert b"MEMORY start" in window.read("wurm/graphics/WindowBackend.class")
         assert b"canApply" in window.read("wurm/graphics/WindowBackend.class")
         assert b"KEYCHAR" in window.read("wurm/graphics/WindowInput.class")
         assert b"TEXT" in window.read("wurm/graphics/WindowInput.class")

@@ -160,6 +160,10 @@ should be tracked as appearance/spawn warnings, not declared harmless or a
 proven asset defect without reproducing the visible behavior. The report alone
 does not establish whether the two warnings share a cause.
 
+User follow-up: the new character was created intentionally to test that path.
+This is not evidence of a restore failure. The appearance/spawn warnings remain
+observations to track.
+
 The server explicitly records successful creation of a new character. If the
 user intended a fresh character, this is expected. If an existing character
 was expected, first verify the selected world, account/character and restored

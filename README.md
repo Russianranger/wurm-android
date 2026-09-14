@@ -2,18 +2,16 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.45 — mipmap correction and allocation diagnostics.**
+**Current branch test: 0.10.46 — job memory recording and FPS targets.**
 
-Continue on `mod-launcher-test`; main remains separate. The latest 37m39s run
-completed normally and qualified skipping scheduled cleanup. This build fixes
-GL4ES automatic mipmap generation on empty images/the wrong texture unit, adds
-exact mipmap context to driver errors and records client allocation by thread.
-Startup graphics resolution needs device confirmation; ordinary GC stalls and
-rising client PSS remain under investigation. Stock preparation and backup/restore
-are available.
+Continue on `mod-launcher-test`. The 0.10.45 device run completed 32 minutes
+with clean saves/exits and no startup mipmap error. GC pauses and rising client
+memory remain under investigation. This build adds opt-in five-minute recordings
+to identify which jobs allocate, plus selectable 30/40/50/60 FPS targets and the
+existing 15 FPS option. It does not claim a GC or memory-leak fix.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.45-mipmap-allocation).
-[Changes, limits and device test](docs/CLIENT_MIPMAP_ALLOCATION_TEST.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.46-job-memory-fps).
+[Changes, limits and device test](docs/CLIENT_JOB_MEMORY_FPS_TEST.md).
 [Maintained handoff](docs/HANDOFF.md). Reports remain in Diagnostics.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

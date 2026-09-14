@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class GraphicsOptionsTest {
+    @Test fun frameTargetsKeepSavedValuesAndBoundViewerPolling() {
+        for(target in listOf(15,30,40,50,60)) {
+            assertEquals(target,GraphicsOptions.frameTarget(target))
+            assertEquals(if(target>30) 8L else 16L,GraphicsOptions.viewerPollMs(target))
+        }
+        for(invalid in listOf(-1,0,25,45,120)) assertEquals(30,GraphicsOptions.frameTarget(invalid))
+    }
     @Test fun commandsRemainWithinInputLimitWithExplicitInheritedValues() {
         val inherited=List(GraphicsOptions.options.size) { -1 }
         assertEquals("performance:"+List(47) { "-1" }.joinToString(","),GraphicsOptions.command("performance",inherited))

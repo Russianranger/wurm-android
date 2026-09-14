@@ -28,6 +28,16 @@ object ClientSession {
         private set
     @Volatile var graphicsNotice = ""
         private set
+    @Volatile var activeFrameTarget = 30
+        private set
+    @Volatile var frameTargetAcknowledgment = 0L
+        private set
+    @Volatile var memoryRecordingAvailable = false
+        private set
+    @Volatile var memoryRecording = false
+        private set
+    @Volatile var memoryRecordingNotice = "Enable job profiling before the next client start."
+        private set
     private val queue = LinkedBlockingQueue<String>(512)
     private var file: File? = null
     private var observations: RuntimeObservationLog? = null
@@ -65,9 +75,9 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.45\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.46\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.43 passed approximately 35 minutes of user play. This build guards vendor GPU-memory queries, replaces the damaged missing-sound fallback, adds driver error detail and offers an opt-in periodic-GC comparison. Remaining GL errors and longer qualification need device reports; heaps and collectors are retained.\n\n" +
+            "Gate status: 0.10.45 passed 32 minutes with clean saves/exits and no startup mipmap error. This build adds optional bounded job/memory recording and 40/50/60 FPS targets. GC stalls, rising PSS and higher frame targets still need device qualification.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -112,6 +122,9 @@ object ClientSession {
     @Synchronized fun start(context: Context, mode: String, uri: Uri?, done: () -> Unit): Boolean {
         if (state.busy || !OperationGate.enter()) return false
         initialize(context); loadedMods=emptySet(); activeMode=mode; cancelled = false; queue.clear()
+        memoryRecordingAvailable=false; memoryRecording=false
+        memoryRecordingNotice="No memory recording is active."
+        activeFrameTarget=30
         nativeDrawTrace(context).delete()
         status("Preparing", "Client operation: $mode")
         worker = Thread({
@@ -155,6 +168,7 @@ object ClientSession {
             log("[client] OWNED_CHILD_REAPED code=${process.exitValue()} cancelled=$cancelled")
         }
         child = null; inputReady = false
+        memoryRecordingAvailable=false; memoryRecording=false
     }
     fun send(event: String): Boolean {
         if (!inputReady()) return false
@@ -208,6 +222,7 @@ object ClientSession {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val verbose = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("verbose-diagnostics", false)
         val skipPeriodicGc = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("skip-periodic-gc", false)
+        val jobProfiling = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("job-profiling", false)
         log("[diagnostics] ${Instant.now()} CLIENT_LOG_MODE ${if (verbose) "verbose" else "normal"}; errors, compile/link breadcrumbs, native crash capture and periodic measurements retained")
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
         if(installed!=null && mode in listOf("start","local")) {
@@ -273,7 +288,7 @@ object ClientSession {
                 visual.getInt("graphics-option-${option.field}",-1).takeIf(option::valid) ?: -1
             })
             val resolution = GraphicsOptions.resolution(visual.getString("resolution", null))
-            val frameFps = visual.getInt("frame-fps", 30).takeIf { it in listOf(15,30) } ?: 30
+            val frameFps = GraphicsOptions.frameTarget(visual.getInt("frame-fps", 30))
             require(mode == "memory" || player.matches(Regex("[A-Za-z][A-Za-z0-9]{2,19}"))) { "Save a valid local player name" }
             val results = linkedMapOf<String, Int>()
             val connectionState = ClientConnectionState()
@@ -299,6 +314,7 @@ object ClientSession {
                     "-Djava.home=$home", "-Djava.io.tmpdir=$tmp", "-Duser.home=$user", "-Djava.awt.headless=true",
                     "-Dwurm.diagnostics.verbose=$verbose",
                     "-Dwurm.client.skipPeriodicGc=$skipPeriodicGc",
+                    "-Dwurm.client.jobProfiling=$jobProfiling",
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",
@@ -350,6 +366,19 @@ object ClientSession {
                     try { RootServerController.consumeLines(process.inputStream) { line ->
                         evidence.observe(line); log(line)
                         if (stage == "entry" && line == "[client-ui] OPEN_GRAPHICS_SETTINGS") settingsRequests++
+                        if (line.startsWith("[client-ui] FPS_APPLIED target=")) {
+                            line.substringAfter("target=").substringBefore(' ').toIntOrNull()?.takeIf { it in GraphicsOptions.frameTargets }?.let {
+                                activeFrameTarget=it; frameTargetAcknowledgment++
+                            }
+                        }
+                        if (stage == "entry" && line.startsWith("[client-memory-test] ")) {
+                            when {
+                                line.contains(" READY ") -> { memoryRecordingAvailable=line.contains("counters=true"); memoryRecordingNotice=if(memoryRecordingAvailable) "Ready to record five minutes of client memory." else "Job allocation counters are unavailable." }
+                                line.contains(" BEGIN ") -> { memoryRecording=true; memoryRecordingNotice="Recording client memory · stops automatically after five minutes." }
+                                line.contains(" END ") -> { memoryRecording=false; memoryRecordingNotice="Memory recording ended. Export the support bundle." }
+                                line.contains("UNAVAILABLE") -> { memoryRecording=false; memoryRecordingNotice="Memory recording unavailable. Export the support bundle for details." }
+                            }
+                        }
                         if (line.startsWith("[client-ui] GRAPHICS_APPLIED ")) { graphicsNotice = "Live graphics applied; restart-only choices remain saved for next launch."; graphicsAcknowledgment++ }
                         if (line.startsWith("[client-ui] GRAPHICS_FAILED ")) { graphicsNotice = "Live graphics failed. Settings are saved; export the client report."; graphicsAcknowledgment++ }
                         if (line.startsWith("[memory] MEMORY_PROBE_PASS collector=${if (stage == "memory-g1") "g1" else "serial"} ")) memoryPassed.set(true)

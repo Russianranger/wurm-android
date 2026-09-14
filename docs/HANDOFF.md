@@ -2,7 +2,54 @@
 
 Updated: 2026-09-14. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.45 mipmap and allocation diagnostics
+## Current work — 0.10.46 job memory recording and FPS targets
+
+User confirms the new character in the last bundle was intentional. No restore
+failure is indicated by that creation. User requests Job_executor_0 investigation,
+a safe memory-testing path and selectable 40/50/60 FPS alongside 30.
+
+See [CLIENT_JOB_MEMORY_FPS_TEST.md](CLIENT_JOB_MEMORY_FPS_TEST.md). Work stays on
+mod-launcher-test. The exact private client was recovered and SHA-verified.
+The scheduler scans from worker zero; its high allocation share is not proof of
+a broken worker. Multiple rendering/animation jobs use this executor. Do not
+claim a job allocation fix before observing which jobs allocate during play.
+
+- Optional Diagnostics job-profiling setting defaults off and applies next start.
+  Off retains the existing nine-entry private overlay. On adds the verified
+  Executor call adapter, reversed to the exact original SHA during verification.
+  Only Job.execute dispatch is observed; callback, scheduling, argument ownership
+  and exception propagation are preserved. No proprietary bytes are published.
+- Gear/Diagnostics memory dialog starts/stops a five-minute bounded recording:
+  at most 128 primitive/text thread-job entries, top 12 each 30 seconds, five-second
+  memory samples on a daemon. No forced GC, heap dump, stack sampling, workload
+  stress, server command or references to jobs, arguments or game threads. Missing counters
+  disable recording. Existing normal pressure/shutdown cleanup and ASan remain.
+- Record allocations, natural post-GC heap and direct/PSS separately. Job counters
+  cannot establish retained memory or native leaks; callback/incomplete/non-job
+  work is excluded and elapsed job time includes waits/GC. Runtime observations
+  retain recording and frame-target events with PID/time. Targeted diagnosis,
+  not a claimed memory cure.
+- Graphics offers 30/40/50/60 and legacy 15 FPS; default 30, persisted/live with
+  acceptance feedback. Higher targets use 8 ms viewer polling, existing bounded
+  frame reuse and single in-flight read. No catch-up bursts after stalled frames.
+  Actual FPS/temperature and device profiling overhead remain unqualified.
+- Local host suite: 194 tests passed, 37 unavailable fixture/platform skips;
+  later focused job suite adds full optional overlay and overhead qualification.
+  All six job tests pass, including real private manager/executor callbacks and
+  shutdown, exact reverse, object weak-reference release, expiry/cancel/restart.
+  Warmed host hook cost for 100,000 no-op calls: inactive 0 heap bytes, active
+  128 bytes total; 31/164 ns per call in that run, not Android performance.
+  All 101 Kotlin application/test sources compile; 13 focused graphics/frame
+  JUnit tests pass. Build/release verification is pending below.
+- Planned version 0.10.46/code 60, separate package
+  io.github.russianranger.wurmlauncher.jobprofiletest; immutable new release tag
+  v0.10.46-job-memory-fps. Keep prior apps/data/releases and main unchanged.
+- Next device test: save/stop and export a full backup in 0.10.45, install/restore
+  the new package, keep 30 FPS and other settings constant, enable profiling
+  before launch. Record five-minute stationary/repeated-route segments, export
+  support, then compare higher FPS separately. No new character is required.
+
+## Previous release — 0.10.45 mipmap and allocation diagnostics
 
 The user requests continued troubleshooting of the remaining findings. See
 [CLIENT_MIPMAP_ALLOCATION_TEST.md](CLIENT_MIPMAP_ALLOCATION_TEST.md) for the exact
