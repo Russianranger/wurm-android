@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.46 job memory recording and FPS targets
+## Latest release — 0.10.46 job memory recording and FPS targets
 
 User confirms the new character in the last bundle was intentional. No restore
 failure is indicated by that creation. User requests Job_executor_0 investigation,
@@ -40,10 +40,43 @@ claim a job allocation fix before observing which jobs allocate during play.
   Warmed host hook cost for 100,000 no-op calls: inactive 0 heap bytes, active
   128 bytes total; 31/164 ns per call in that run, not Android performance.
   All 101 Kotlin application/test sources compile; 13 focused graphics/frame
-  JUnit tests pass. Build/release verification is pending below.
-- Planned version 0.10.46/code 60, separate package
-  io.github.russianranger.wurmlauncher.jobprofiletest; immutable new release tag
-  v0.10.46-job-memory-fps. Keep prior apps/data/releases and main unchanged.
+  JUnit tests pass. CI and published-APK verification also passed below.
+- Released 0.10.46/code 60, separate package
+  `io.github.russianranger.wurmlauncher.jobprofiletest`, version name
+  `0.10.46-managed-preview`; immutable release tag `v0.10.46-job-memory-fps`.
+  Implementation commit `9e72f45c780a07dbc02cea1430a03b29ee29370b`, source tree
+  `d54f0c905e6930676d3295193a915ff104e81bef`. Keep prior apps/data/releases.
+  Main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.46-job-memory-fps/Wurm-Server.apk),
+  68,569,113 bytes, SHA-256
+  `5bbb32418bcd093a223a44a3c220d35941a70561d0ea2f8f49b196b847996c75`.
+  Published 2026-09-14T17:13:16Z as a prerelease with 57 assets. Independently
+  downloaded APK and guide match SHA256SUMS and GitHub asset digests; the guide
+  also matches the committed source. Package/version, v2 signature and managed
+  APK packaging checks pass. Certificate SHA-256:
+  `822c9e52f69895a0519502531ca3b5e8a5d03c532cede04dcc0b257f2b80b94a`.
+- [CI run 34872265992](https://github.com/Russianranger/wurm-android/actions/runs/34872265992)
+  passed: build `104070799815`, managed publisher `104074409027`; unrelated
+  publishers skipped. Host suite: 196 tests, 27 expected unavailable/private/
+  platform skips. All three Android variants pass builds, unit tests and lint.
+  Required native/input and packaging gates pass; one expected unavailable-host-
+  EGL check is skipped.
+- Independent comparison with 0.10.45: all 194 JRE members, LWJGL API,
+  compatibility and graphics-probe JAR members are byte-identical. Of 40 native
+  libraries, 39 are byte-identical; libgl4es differs only in its 20-byte GNU
+  build ID and six compilation-time digits. Runtime-probe changes exactly three
+  existing classes and adds six job helper classes; server/persistence classes
+  are unchanged. Window JAR changes only FramePacer and WindowBackend.
+- Executed the published runtime-probe bytes against the exact private client:
+  all six job tests pass, including complete optional overlay selection, real
+  manager/executor callbacks and shutdown, reverse-byte verification, lifetime,
+  bounds, expiry, cancellation and restart. The published FramePacer passes all
+  five targets and stalled-deadline recovery. Warmed published helper overhead:
+  inactive 0 heap bytes and active 128 bytes total across 100,000 no-op calls;
+  approximately 30/144 ns per call, host only. Runtime-probe SHA-256:
+  `8e2170a8207227ddca5e88d52f1e0503fed650cacc56ef49188a1ebe9b1ed9ae`.
+  Device profiling overhead, job attribution, retained memory and higher FPS
+  remain to be qualified; no allocation or memory-leak fix is claimed.
 - Next device test: save/stop and export a full backup in 0.10.45, install/restore
   the new package, keep 30 FPS and other settings constant, enable profiling
   before launch. Record five-minute stationary/repeated-route segments, export
