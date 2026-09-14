@@ -2,7 +2,7 @@
 
 Updated: 2026-09-14. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Candidate — 0.10.45 mipmap and allocation diagnostics
+## Latest release — 0.10.45 mipmap and allocation diagnostics
 
 The user requests continued troubleshooting of the remaining findings. See
 [CLIENT_MIPMAP_ALLOCATION_TEST.md](CLIENT_MIPMAP_ALLOCATION_TEST.md) for the exact
@@ -38,11 +38,51 @@ scope, limitations and next Thor test. Work remains on mod-launcher-test only.
 - Local host suite: 190 tests, 20 expected fixture/platform skips. It includes
   actual private client overlay checks and pinned public GL4ES/LWJGL fixtures.
   All 100 Android/test Kotlin sources compile; four focused Kotlin/JUnit checks
-  pass. Android CI and published APK verification are pending.
-- Candidate identity: 0.10.45/code 59, package
-  `io.github.russianranger.wurmlauncher.mipmaptest`, intended immutable tag
-  `v0.10.45-mipmap-allocation`. Separate package preserves the prior working app
-  while persistent signing remains pending. Do not mutate main or old releases.
+  pass. CI and independent published-APK verification also passed (below).
+- Released 0.10.45/code 59, package
+  `io.github.russianranger.wurmlauncher.mipmaptest`, immutable tag
+  `v0.10.45-mipmap-allocation`. Implementation commit
+  `4aa6747cddc76353f35ae0a9262d1dcc4c54db82`, source tree
+  `ec4ce399d2c02bd2f24f5f83f1e78bb2ce53dd7a`.
+  Separate package preserves the prior working app while persistent signing
+  remains pending. Do not mutate main or old releases.
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.45-mipmap-allocation/Wurm-Server.apk),
+  68,542,961 bytes, SHA-256
+  `72e49dccf4c83d1be5e8123cbbb9b2d97f825830f1c259e164b7d760ce3df8fd`.
+  Published 2026-09-14T01:37:38Z with 56 assets. Independently downloaded APK and
+  new guide match SHA256SUMS and GitHub asset digests. Version/package and v2
+  signature pass; CI certificate SHA-256
+  `493388c77d3541a947c591644f1c0ff0909acaccfc9341201dffc0f5053b85a7`.
+- [CI run 34796043544](https://github.com/Russianranger/wurm-android/actions/runs/34796043544)
+  passed: build `103829226414`, managed publisher `103830561464`; unrelated
+  publishers skipped. Initial host suite: 190 tests, 25 expected fixture/platform
+  skips. All three Android variants passed builds, unit tests and lint. Required
+  subsequent native/input gates include the new pinned mipmap regression and
+  pass; one expected unavailable-host-EGL shader check is skipped. Native source,
+  ASan and managed APK packaging checks pass.
+- Independent comparison with 0.10.44: all 194 JRE members, all 17 server/persistence
+  classes, all 27 window-JAR members, POC, LWJGL API and compatibility JARs are
+  byte-identical. Two window notice ZIP timestamps differ. Of 40 native libraries,
+  only libgl4es and libwurm_graphics change, as expected; the mipmap accessor is
+  exported in the actual ARM64 dynamic symbol table. The only changed preexisting
+  runtime helper is ClientBootstrap; exactly four allocation helper classes are new.
+- Executed the published runtime-probe JAR against the exact private client:
+  all nine overlay entries and real InternalPack mapping/WAV selection pass;
+  replacement decodes to 8,820 silent PCM bytes at 44,100 Hz/one channel. Overlay
+  content hashes remain the 0.10.44 values. Packaged allocation fixture attributes
+  8,390,720 heap bytes to its controlled worker, passes resets/lifetime checks,
+  and emits automatic GC/heap occupancy with no System.gc request. These are host
+  executions of the packaged Java code, not device gameplay qualification.
+  Runtime-probe SHA-256:
+  `8c6a702167d32dfef77a1f6fe91836c949802bf3c01b2e7fbd27ce94905c475e`.
+- Additional host allocation measurement of unchanged FrameFile.writeRgba:
+  persistent 1280x720 direct buffer, 100 warm-up and 300 measured atomic writes,
+  518,400 heap bytes total = 1,728 bytes/frame (51,840 bytes/s at 30 FPS), using
+  LinuxFileSystemProvider. This isolates the publication method, excludes other
+  render work and is not an Android allocation measurement. It supplies no basis
+  for claiming this method creates a full heap frame each update.
+- Main was independently verified unchanged at
+  `2e41fb091ee75a76b9116e934abecff90bc735d9`.
 - Next device check: save/stop/export a full backup in 0.10.44, install the new
   package and restore. Enable skip periodic cleanup to match the latest long run,
   verbose off, 30–40 minutes of similar movement/loading, then normal stops and
