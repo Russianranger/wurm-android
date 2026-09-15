@@ -74,6 +74,7 @@ public final class ClientJobProfiler {
                 // Proc/management observations are performed on this daemon, never on a game worker.
                 log("SAMPLE recordingMs="+((System.nanoTime()-capture.started)/1_000_000));
                 System.out.println(probe.RuntimeMeasurements.sample("client-recording",Path.of("/proc/self")));
+                System.out.println(ClientTextBuffers.sample());
                 if(samples++%6==0) emit(capture,false);
                 long remaining=capture.budget-(System.nanoTime()-capture.started);
                 if(remaining>0) Thread.sleep(Math.min(5_000,Math.max(1,remaining/1_000_000)));

@@ -75,7 +75,7 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.46\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.47\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
             "Gate status: 0.10.45 passed 32 minutes with clean saves/exits and no startup mipmap error. This build adds optional bounded job/memory recording and 40/50/60 FPS targets. GC stalls, rising PSS and higher frame targets still need device qualification.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
@@ -222,6 +222,7 @@ object ClientSession {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val verbose = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("verbose-diagnostics", false)
         val skipPeriodicGc = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("skip-periodic-gc", false)
+        val reuseTextBuffers = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("reuse-text-buffers", true)
         val jobProfiling = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("job-profiling", false)
         log("[diagnostics] ${Instant.now()} CLIENT_LOG_MODE ${if (verbose) "verbose" else "normal"}; errors, compile/link breadcrumbs, native crash capture and periodic measurements retained")
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
@@ -315,6 +316,7 @@ object ClientSession {
                     "-Dwurm.diagnostics.verbose=$verbose",
                     "-Dwurm.client.skipPeriodicGc=$skipPeriodicGc",
                     "-Dwurm.client.jobProfiling=$jobProfiling",
+                    "-Dwurm.client.reuseTextBuffers=$reuseTextBuffers",
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",

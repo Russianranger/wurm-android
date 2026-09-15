@@ -1,3 +1,32 @@
+# 0.10.47 — bounded text buffer reuse
+
+Reuses exact-size text vertex buffers after the original draw queue releases
+them. The pool has a 256-entry / 4 MiB system-storage limit, including buffers
+still in use, with at most another 4 MiB of GPU payload. Ineligible buffers use
+the original allocation/deletion path. Original glyph generation, draw ordering
+and normal GC remain intact.
+
+Diagnostics adds **Reuse text buffers · next client start**, enabled by default
+in this test. Turning it off removes the three new private overlay classes on
+the next launch. Logs include reuse, creation, active/idle capacity and approximate
+engine buffer accounting. The existing five-minute recording can measure the
+change in GUI job allocations alongside direct buffers, PSS and GC pauses.
+
+The exact imported client passes host checks for text geometry, queue ownership,
+GPU upload/VAO reuse, deferred deletion and bounded concurrent reuse. A warmed
+16,000-draw host buffer workload allocates about 5.13 MiB without reuse and 72
+bytes with reuse. This is a focused host result, not an Android FPS or leak fix.
+
+Save/stop both runtimes in 0.10.46, export a full backup and restore it into the
+separate `.textbuffertest` app. Keep the working app. At 30 FPS, leave reuse on,
+enable job profiling before launch, and record five minutes on a similar route.
+Check chat, inventory, changing labels and non-ASCII text; then stop normally
+and export support. Match the prior cleanup setting (off in support bundle 5).
+
+See CLIENT_TEXT_BUFFER_REUSE_TEST.md for evidence, limits and comparison steps.
+
+---
+
 # 0.10.46 — job memory recording and FPS targets
 
 Adds 40, 50 and 60 FPS targets alongside default 30 and existing 15 FPS, with

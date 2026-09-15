@@ -24,6 +24,7 @@ public final class ClientAllocationMeasurements {
                 try {
                     while (!Thread.currentThread().isInterrupted()) {
                         System.out.println(sample(bean, window));
+                        System.out.println(ClientTextBuffers.sample());
                         Thread.sleep(30_000);
                     }
                 } catch (InterruptedException stop) { Thread.currentThread().interrupt(); }

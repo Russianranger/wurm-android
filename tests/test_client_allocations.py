@@ -62,7 +62,8 @@ class AllocationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             source=Path(tmp)/'Allocations.java';source.write_text(FIXTURE)
             subprocess.run(['java','com.sun.tools.javac.Main','--release','17','-d',tmp,str(source),
-                str(ROOT/'runtime-probe/src/client/ClientAllocationMeasurements.java')],check=True)
+                *map(str,(ROOT/'runtime-probe/src/client').glob('*.java')),
+                str(ROOT/'runtime-probe/src/probe/RuntimeMeasurements.java')],check=True)
             result=subprocess.run(['java','-Xms32m','-Xmx128m','-XX:+UseSerialGC',
                 '-Xlog:gc=info,gc+heap=info:stdout:utctime,pid,tid,tags','-cp',tmp,'client.Allocations'],capture_output=True,text=True,timeout=15)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)

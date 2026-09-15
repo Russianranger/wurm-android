@@ -60,6 +60,14 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"observedAllocatedBytes" in helper.read("client/ClientAllocationMeasurements.class")
         for name in ("ClientJobPatch", "ClientJobProfiler", "ClientJobProfiler$Capture", "ClientJobProfiler$Row", "ClientJobProfiler$Snapshot"):
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
+        for name in ("ClientTextBuffers", "ClientTextPatch", "ClientTextPatch$File", "ClientTextPatch$Entry", "ClientTextPatch$Attribute", "ClientTextPatch$Member"):
+            assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
+        assert b"wurm.client.reuseTextBuffers" in helper.read("client/ClientTextBuffers.class")
+        assert b"[client-text-buffers]" in helper.read("client/ClientTextBuffers.class")
+        assert b"client/ClientTextBuffers" in helper.read("client/ClientGraphicsPatch.class")
+        assert b"client/ClientTextBuffers" in helper.read("client/ClientJobProfiler.class")
+        assert b"client/ClientTextBuffers" in helper.read("client/ClientAllocationMeasurements.class")
+        assert b"reuse-text-buffers" in dex
         assert b"wurm.client.jobProfiling" in helper.read("client/ClientJobProfiler.class")
         assert b"client/ClientJobProfiler" in helper.read("client/ClientBootstrap.class")
         assert not any(n.startswith(("SteamJni/Steam_api", "com/wurmonline/client/")) for n in helper.namelist())

@@ -2,17 +2,17 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.46 — job memory recording and FPS targets.**
+**Current branch test: 0.10.47 — bounded text buffer reuse.**
 
-Continue on `mod-launcher-test`. The 0.10.45 device run completed 32 minutes
-with clean saves/exits and no startup mipmap error. GC pauses and rising client
-memory remain under investigation. This build adds opt-in five-minute recordings
-to identify which jobs allocate, plus selectable 30/40/50/60 FPS targets and the
-existing 15 FPS option. It does not claim a GC or memory-leak fix.
+The five-minute 0.10.46 recording identifies GUI rendering as the largest
+measured job allocation source. This test reuses completed text vertex buffers
+within a fixed limit and adds reuse/accounting counters to support logs. The
+existing FPS controls and memory recorder remain available. Device performance
+and long-run retained memory still need qualification.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.46-job-memory-fps).
-[Changes, limits and device test](docs/CLIENT_JOB_MEMORY_FPS_TEST.md).
-[Maintained handoff](docs/HANDOFF.md). Reports remain in Diagnostics.
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.47-text-buffer-reuse).
+[Changes, limits and device test](docs/CLIENT_TEXT_BUFFER_REUSE_TEST.md).
+[Maintained handoff](docs/HANDOFF.md). Work stays on `mod-launcher-test`.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed
 approximately 36 minutes on 0.10.31 with normal client/server exits and about

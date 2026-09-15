@@ -21,6 +21,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val verbose: CheckBox
     private val periodicGc: CheckBox
     private val jobProfiling: CheckBox
+    private val textBuffers: CheckBox
     private fun label(text: String)=TextView(activity).apply { this.text=text; setPadding(0,8,0,8); target.addView(this) }
     private fun button(text: String, action: () -> Unit)=Button(activity).apply {
         this.text=text; setOnClickListener { action() }; target.addView(this)
@@ -46,6 +47,12 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
             setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("skip-periodic-gc",checked).apply() }
         }
         label("Compare brief pauses with this off, then on. Applies on the next client start. Normal memory collection and shutdown cleanup continue; watch memory use during longer play.")
+        textBuffers=CheckBox(activity).apply {
+            text="Reuse text buffers · next client start"; isChecked=prefs.getBoolean("reuse-text-buffers",true)
+            target.addView(this)
+            setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("reuse-text-buffers",checked).apply() }
+        }
+        label("Reuses completed text draws within a fixed memory limit. Turn off for a comparison or if text looks incorrect.")
         jobProfiling=CheckBox(activity).apply {
             text="Enable job profiling · next client start"; isChecked=prefs.getBoolean("job-profiling",false)
             target.addView(this)
@@ -100,6 +107,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         verbose.isEnabled=!client.busy
         periodicGc.isEnabled=!client.busy
         jobProfiling.isEnabled=!client.busy
+        textBuffers.isEnabled=!client.busy
         status.updateText("Client: ${client.phase} · ${client.detail}\nServer: ${server.phase} · ${server.detail}")
         clientTests.forEach { it.isEnabled=!client.busy }
         serverTests.forEach { it.isEnabled=!server.busy }

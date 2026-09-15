@@ -2,7 +2,46 @@
 
 Updated: 2026-09-15. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.46 job memory recording and FPS targets
+## Current work — 0.10.47 bounded text buffer reuse
+
+User authorized the next steps after the completed 0.10.46 memory review. Stay
+on mod-launcher-test; keep main and prior working releases/data. See
+[CLIENT_TEXT_BUFFER_REUSE_TEST.md](CLIENT_TEXT_BUFFER_REUSE_TEST.md) for scope,
+ownership, limits, host evidence and a short 30 FPS device recording.
+
+The exact private client was recovered again and SHA-verified:
+`79e7a5c822a4b744e56fb3aeef3a4f58d2943307163f3cd9fd4d6e9f7ea71a19`.
+SimpleTextFont creates and releases one VertexBuffer per string. Authored
+ClientTextPatch adapters preserve original instruction bodies and prove byte-exact
+reverse hashes of SimpleTextFont, Queue and VertexBuffer. ClientTextBuffers
+reuses exact-size eligible buffers only after their original release point.
+It caps registered active+idle entries at 256 / 4 MiB system capacity; GPU logical
+payload can add up to 4 MiB (driver/deferred/native residency is separate).
+Idle expiry is lazy after 30 seconds. Original cleanup handles eviction and
+ineligible/shared/locked/bound/incompatible buffers. No scheduler/collector/native
+or server changes. The final VertexBuffer factory boolean is unused: GPU mode
+comes from useVBO and is checked explicitly; do not assume CPU-only storage.
+
+Reuse defaults on through the Diagnostics preference; off removes the three
+text overlay classes next start. Existing job recorder/FPS options remain.
+Counters are retained in runtime observations and memory recordings. Approximate
+engine buffer accounting is not retained memory. Nine focused tests pass,
+including exact private text geometry, GPU upload/VAO/deferred-deletion boundaries,
+queue lifetime, full optional overlay combinations, concurrency and limits.
+A warmed 16,000-draw buffer workload allocates 5,376,880 bytes without reuse versus
+72 with it; this does not establish whole-game or Android improvement. The native
+driver/glyph atlas are authored host boundaries, not a real game render.
+
+Planned release identity: 0.10.47/code 61, package
+`io.github.russianranger.wurmlauncher.textbuffertest`, tag
+`v0.10.47-text-buffer-reuse`. Local host suite: 205 tests, 37 expected unavailable fixture/platform skips,
+no failures. CI and published APK verification are pending at this implementation
+checkpoint. Record exact commit/tree, run, APK,
+signature and asset comparison after the release passes. No device confirmation
+or long-run leak fix is claimed. Request one normal five-minute recording with
+reuse on, profiling on, 30 FPS and cleanup off to match support bundle 5.
+
+## Previous release — 0.10.46 job memory recording and FPS targets
 
 User confirms the new character in the last bundle was intentional. No restore
 failure is indicated by that creation. User requests Job_executor_0 investigation,
