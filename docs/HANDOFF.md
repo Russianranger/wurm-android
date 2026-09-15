@@ -1,6 +1,6 @@
 # Wurm Android handoff
 
-Updated: 2026-09-14. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+Updated: 2026-09-15. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
 ## Latest release — 0.10.46 job memory recording and FPS targets
 
@@ -13,6 +13,35 @@ mod-launcher-test. The exact private client was recovered and SHA-verified.
 The scheduler scans from worker zero; its high allocation share is not proof of
 a broken worker. Multiple rendering/animation jobs use this executor. Do not
 claim a job allocation fix before observing which jobs allocate during play.
+
+Latest device evidence: [0.10.46 job memory/FPS review](CLIENT_JOB_MEMORY_FPS_REVIEW_20260915.md).
+The 00:15Z support export contains about 6m48s at 30 FPS and 1m07s at a 60 FPS
+target, with clean client exits and requested, non-forced server exit 0 after
+completed saves/database close. Mean displayed FPS after initial warm-up is
+29.855 and 56.171 respectively. User reports FPS controls worked; retained
+timing/acceptance evidence covers 30 and 60, not 40/50. No crash, OOM, GL error,
+ASan error or recurrence of the prior clothing/spawn cluster was found.
+
+The 30 FPS job recording completes automatically after 300,044 ms. It attributes
+at least 77.688% of 225.179 MiB observed completed-job allocations to
+com.wurmonline.client.renderer.gui.Renderer (174.937 MiB, about 20.4 KiB per
+listed call); 119.038 MiB of those bytes run on Job_executor_0. This is now a
+concrete GUI rendering/callee inspection target, not a scheduler fix or proof
+of a particular allocated object/leak. The 128-pair cap omits attribution for
+2.359% of calls but their bytes still enter totals; all printed rows have zero
+failures and allocation counters are available. Top-pair figures are lower
+bounds and the 77.688% share is not a share of all client/native memory.
+
+Client PSS during recording rises from 1,201 MiB to a 2,323 MiB peak, then ends
+at 1,922 MiB; direct buffers go 159 -> 489 -> 278 MiB at those samples. Natural
+collection reclaims some memory, but long-run retention remains unresolved.
+The largest 30 FPS viewer gap is 412.42 ms alongside a young+full collection.
+There is no later in-play full collection to establish a settled heap floor.
+Recorder expiry removes its thread. Both launches have skipPeriodic=false and
+end before the ten-minute request; do not compare this with the prior long
+on-run as proof of a regression or improvement. Next inspect the exact GUI
+Renderer/callees and direct/resource buffer lifetimes; do not ask for another
+identical attribution test before that inspection. This review is docs only.
 
 - Optional Diagnostics job-profiling setting defaults off and applies next start.
   Off retains the existing nine-entry private overlay. On adds the verified
@@ -75,12 +104,13 @@ claim a job allocation fix before observing which jobs allocate during play.
   inactive 0 heap bytes and active 128 bytes total across 100,000 no-op calls;
   approximately 30/144 ns per call, host only. Runtime-probe SHA-256:
   `8e2170a8207227ddca5e88d52f1e0503fed650cacc56ef49188a1ebe9b1ed9ae`.
-  Device profiling overhead, job attribution, retained memory and higher FPS
-  remain to be qualified; no allocation or memory-leak fix is claimed.
-- Next device test: save/stop and export a full backup in 0.10.45, install/restore
-  the new package, keep 30 FPS and other settings constant, enable profiling
-  before launch. Record five-minute stationary/repeated-route segments, export
-  support, then compare higher FPS separately. No new character is required.
+  Device profiling overhead and retained memory remain to be qualified; no
+  allocation or memory-leak fix is claimed. The review above now supplies job
+  attribution and short 30/60 FPS observations.
+- The requested five-minute recording is received and reviewed above. Continue
+  with the identified GUI allocation and direct-memory investigation. Future
+  comparisons should keep world, route, FPS, mods and cleanup policy matched.
+  Keep the prior working apps and backups; no new character is required.
 
 ## Previous release — 0.10.45 mipmap and allocation diagnostics
 
