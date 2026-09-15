@@ -2,7 +2,7 @@
 
 Updated: 2026-09-15. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.47 bounded text buffer reuse
+## Latest release — 0.10.47 bounded text buffer reuse
 
 User authorized the next steps after the completed 0.10.46 memory review. Stay
 on mod-launcher-test; keep main and prior working releases/data. See
@@ -32,14 +32,57 @@ A warmed 16,000-draw buffer workload allocates 5,376,880 bytes without reuse ver
 72 with it; this does not establish whole-game or Android improvement. The native
 driver/glyph atlas are authored host boundaries, not a real game render.
 
-Planned release identity: 0.10.47/code 61, package
-`io.github.russianranger.wurmlauncher.textbuffertest`, tag
-`v0.10.47-text-buffer-reuse`. Local host suite: 205 tests, 37 expected unavailable fixture/platform skips,
-no failures. CI and published APK verification are pending at this implementation
-checkpoint. Record exact commit/tree, run, APK,
-signature and asset comparison after the release passes. No device confirmation
-or long-run leak fix is claimed. Request one normal five-minute recording with
-reuse on, profiling on, 30 FPS and cleanup off to match support bundle 5.
+Released 0.10.47/code 61, version `0.10.47-managed-preview`, separate package
+`io.github.russianranger.wurmlauncher.textbuffertest`, immutable tag
+`v0.10.47-text-buffer-reuse`. Implementation commit
+`3b0320c543c42860536f4d1758878af9e6425b54`, tree
+`8e07d8c01256346b8cc1313275836743c477d8d1`. This later handoff-only commit does
+not change the APK. Main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- [Download APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.47-text-buffer-reuse/Wurm-Server.apk),
+  68,583,905 bytes; SHA-256
+  `22330e543d6aad28d3f61bbdbfece72a90f63bc689dcb0baf4727ce7cc48d4b7`.
+  Published 2026-09-15T01:12:50Z as a prerelease with 58 assets. Independently
+  downloaded APK and test guide match SHA256SUMS/GitHub digests; the guide also
+  matches the release source. Package/version, managed packaging and APK v2
+  signature checks pass. Certificate SHA-256:
+  `986e7abc268f8b5afea67223977e7ea90613444c5f71d1dc0a9cc7482a142bdb`.
+- [CI run 34915652141](https://github.com/Russianranger/wurm-android/actions/runs/34915652141)
+  passes on the implementation commit. Build job `104212569991`, managed publisher
+  `104214634070`; unrelated publishers skipped. CI host suite: 205 tests with 31
+  expected unavailable/private/platform skips. All three Android variants pass
+  builds, unit tests and lint. Required native/input, signature, source and package
+  gates pass; one expected unavailable-host-EGL check is skipped. Local suite:
+  205 tests, 37 expected unavailable fixture/platform skips, no failures.
+- Independently compared with 0.10.46: all 194 JRE data members and all members
+  of the LWJGL API, client compatibility, graphics-probe and window JARs are
+  byte-identical. Of 40 native libraries, 39 are identical; GL4ES differs only
+  in the 20-byte GNU build ID and six compile-date/time digits. Runtime-probe
+  adds six authored text helper classes, changes three existing top-level client
+  classes, and changes only source line numbers in six nested diagnostic classes.
+  The nested classes were compared using normalized verbose javap output; their
+  instructions/constants are unchanged. Server/persistence classes are unchanged.
+- Executed the downloaded runtime-probe bytes against the exact private client:
+  all 15 focused text-reuse and job-recorder tests pass. Class-load logs confirm
+  helper classes came from the published JAR, not host compilation. Geometry
+  remains byte-identical, GPU upload/VAO/deferred deletion and original queue
+  release pass, all four optional overlay combinations pass, and recorder expiry,
+  cancellation, reference release and real executor callbacks/shutdown pass.
+  Published helper SHA-256:
+  `6e0aba9ef4438e23de15d0ebbf4b5eb58f808b52c5ef553f548499f860e2adf3`.
+  Its warmed 16,000-draw buffer workload measured 5,377,904 heap bytes without
+  reuse and zero with reuse in that run (JIT/host dependent). GPU/glyph boundaries
+  are authored fixtures, not a real device rendering qualification.
+
+Device confirmation and long-run memory qualification remain. Request one normal
+five-minute recording with reuse on, profiling on, 30 FPS and cleanup off to
+match support bundle 5. Check chat/inventory/changing/Unicode text, save/stop
+normally, export support. Use the same-build reuse-off fallback if defects appear.
+Keep prior apps/backups. Compare per-call GUI allocations and pool hit/capacity
+counters separately from direct buffers, PSS and natural post-GC heap floors.
+A fixed-function rendering path can conservatively bypass reuse because the
+engine keeps its bound-buffer flag set; diagnose the measured counters before
+changing that guard. No device improvement or memory-leak cure is claimed.
 
 ## Previous release — 0.10.46 job memory recording and FPS targets
 
