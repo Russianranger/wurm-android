@@ -2,7 +2,48 @@
 
 Updated: 2026-09-15. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.47 bounded text buffer reuse
+## Current work — 0.10.48 completed text buffer release fix
+
+User authorized “Work on the next fix” after the 0.10.47 review. Implementation
+and tests are complete; release/CI verification is pending. The full host suite
+passes 208 tests with 37 expected unavailable fixture/platform skips, no failures.
+Stay on `mod-launcher-test`, keep main and prior releases/data. Version 0.10.48,
+code 62, separate package `io.github.russianranger.wurmlauncher.textreleasefix`,
+planned immutable tag `v0.10.48-text-release-fix`.
+See [CLIENT_TEXT_BUFFER_RELEASE_FIX.md](CLIENT_TEXT_BUFFER_RELEASE_FIX.md).
+
+The exact client was recovered and SHA-verified again. Original legacy VBO
+bind leaves `boundBufferObject` true; it records pointer layout, not ownership.
+Renderer completion waits for jobs, flushes the pipeline and clears the HUD
+queue. The regression now runs original SimpleTextFont, Queue sort/render/clear
+and VertexBuffer against authored glyph/GL boundaries. Sort is required even
+with sorting disabled to initialize draw indices. Before correction all 120
+rendered returns were rejected; only 19 undrawn fallback reuses survived.
+After correction: 120 VBO-layout returns, 133 total reuses, zero rejected returns,
+zero evictions; all geometry and 120 draw submissions match reuse-off data/order.
+These are host boundaries, not a real Android GL context.
+
+The helper no longer rejects the saved layout and does not reset it or change
+GL state. Reference/lock/size/GPU-mode/direct-storage/duplicate/disabled checks
+remain. New fixed counters classify first rejection reasons at release/borrow,
+and count accepted VBO-layout returns. No per-call log records/diagnostic objects.
+The existing capacity, zeroing, expiry and original upload/deletion paths remain.
+Only ClientTextBuffers changes production JVM behavior; adapters are unchanged.
+ClientSession's stale generic gate status is refreshed. Twelve focused tests
+pass, including exact private legacy drawing, GPU upload/VAO/deferred deletion,
+all rejection guards, bounded/exclusive lifetime and full optional overlays.
+Host success workload: 5,376,880 versus 72 allocated heap bytes; forced shared
+reference rejection: 5,376,000 original versus 5,376,880 adapter bytes for 16,000
+measured iterations. These figures are not device GUI-job or PSS predictions.
+
+Next finish CI/published-APK verification, then request a five-minute ordinary
+30 FPS recording. Explicitly enable reuse and job profiling before launch;
+restored reuse may be off. Keep skip-periodic-cleanup off to match the last
+recording. First confirm increasing reuse/returns and inspect rejection reasons,
+then compare job bytes per call and natural GC/direct/PSS behavior. Device
+qualification is still pending. Do not claim the overall memory problem is fixed.
+
+## Previous release — 0.10.47 bounded text buffer reuse
 
 Latest device evidence: [0.10.47 reuse review](CLIENT_TEXT_BUFFER_REUSE_REVIEW_20260915.md).
 User confirms legible text with no visible degradation. The 13:52Z support export

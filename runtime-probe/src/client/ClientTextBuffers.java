@@ -18,6 +18,9 @@ public final class ClientTextBuffers {
     private static Object gui;
     private static int entries,bytes;
     private static long calls,created,reused,releases,bypassed,evicted,zeroedBytes;
+    private static final int REFS=1, SIZE=2, LOCKED=3, GPU_MODE=4, STORAGE=5, DUPLICATE=6, DISABLED=7;
+    private static final long[] rejected=new long[8];
+    private static long releaseRejected,borrowRejected,vboLayoutReturns;
     private ClientTextBuffers() { }
     public static boolean enabled() {return Boolean.getBoolean("wurm.client.reuseTextBuffers");}
     private static void initialize() throws Throwable {
@@ -49,12 +52,14 @@ public final class ClientTextBuffers {
             long now=System.nanoTime();trim(now);
             for(int i=0;i<SLOTS;i++)if(vertices[i]!=null&&idle[i]&&sizes[i]==size) {
                 Object vertex=vertices[i];
-                if(reusable(vertex,count)) {
+                int reason=rejectionReason(vertex,count);
+                if(reason==0) {
                     FloatBuffer buffer=(FloatBuffer)systemBuffer.invokeExact(vertex);
                     // A fresh allocation is zero-filled. Preserve even unused glyph-tail bytes.
                     buffer.clear();for(int j=0;j<buffer.capacity();j++)buffer.put(j,0f);
                     idle[i]=false;reused++;zeroedBytes+=size;return vertex;
                 }
+                rejected[reason]++;borrowRejected++;
                 remove(i,true);
             }
         }
@@ -65,19 +70,27 @@ public final class ClientTextBuffers {
         } else bypassed++;
         return vertex;
     }
-    private static boolean reusable(Object vertex,int count) throws Throwable {
+    private static int rejectionReason(Object vertex,int count) throws Throwable {
+        if((int)refCount.invokeExact(vertex)!=1)return REFS;
+        if((int)numVertex.invokeExact(vertex)!=count)return SIZE;
+        if(((AtomicInteger)locked.invokeExact(vertex)).get()!=0)return LOCKED;
+        if((boolean)allowGpu.invokeExact(vertex)!=(boolean)useGpu.invokeExact())return GPU_MODE;
         FloatBuffer buffer=(FloatBuffer)systemBuffer.invokeExact(vertex);
-        return (int)refCount.invokeExact(vertex)==1 && (int)numVertex.invokeExact(vertex)==count &&
-            ((AtomicInteger)locked.invokeExact(vertex)).get()==0 && !(boolean)bound.invokeExact(vertex) &&
-            (boolean)allowGpu.invokeExact(vertex)==(boolean)useGpu.invokeExact() &&
-            buffer!=null&&buffer.isDirect()&&!buffer.isReadOnly()&&buffer.capacity()==count*5;
+        return buffer!=null&&buffer.isDirect()&&!buffer.isReadOnly()&&buffer.capacity()==count*5?0:STORAGE;
     }
     public static synchronized void release(Object vertex) throws Throwable {
         initialize();
         for(int i=0;i<SLOTS;i++)if(vertices[i]==vertex) {
-            if(!idle[i]&&enabled()&&reusable(vertex,sizes[i]/20)) {
+            int reason=idle[i]?DUPLICATE:!enabled()?DISABLED:rejectionReason(vertex,sizes[i]/20);
+            if(reason==0) {
+                // The original queue release is the ownership handoff after rendering.
+                // boundBufferObject records the last pointer layout; bind(false) leaves it
+                // true after VBO drawing, including after global unbind. It is not a lease.
+                // Keep the engine's binding state and upload/deferred-delete paths intact.
+                if((boolean)bound.invokeExact(vertex))vboLayoutReturns++;
                 idle[i]=true;releasedAt[i]=System.nanoTime();releases++;return;
             }
+            rejected[reason]++;releaseRejected++;
             // Reference counts, modified/locked buffers, or repeated releases follow the engine.
             remove(i,false);break;
         }
@@ -99,6 +112,10 @@ public final class ClientTextBuffers {
             " releases="+releases+" bypassed="+bypassed+" evicted="+evicted+" entries="+entries+" idle="+available+
             " active="+(entries-available)+" capacityBytes="+bytes+" maxCapacityBytes="+MAX_BYTES+" maxEntries="+SLOTS+
             " zeroedBytes="+zeroedBytes+" engineBufferAccountingBytes="+engine+
+            " vboLayoutReturns="+vboLayoutReturns+" releaseRejected="+releaseRejected+" borrowRejected="+borrowRejected+
+            " rejectRefs="+rejected[REFS]+" rejectSize="+rejected[SIZE]+" rejectLocked="+rejected[LOCKED]+
+            " rejectGpuMode="+rejected[GPU_MODE]+" rejectStorage="+rejected[STORAGE]+
+            " rejectDuplicate="+rejected[DUPLICATE]+" rejectDisabled="+rejected[DISABLED]+
             "; cumulative text-factory counters; capacity covers active+idle system storage with at most equal GPU payload; engine accounting is not retained memory";
     }
 }

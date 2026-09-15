@@ -1,3 +1,28 @@
+# 0.10.48 — completed text buffer release fix
+
+Corrects the condition that discarded completed text buffers after VBO drawing.
+The previous device run had legible text but zero reuse. The old check mistook
+saved pointer-layout state for live ownership. The original queue release point,
+reference/lock/storage/mode safeguards, bounded capacity and GPU cleanup remain.
+
+The exact-client host regression now runs glyph generation, queue sorting,
+rendering and cleanup. It accepts all 120 rendered returns, reuses buffers 133
+times and preserves geometry and draw data/order with reuse off/on. Original GPU
+upload, deferred deletion and rejection safeguards pass. Fixed counters report
+successful VBO-layout returns and the reason for any rejected return. This is a
+host result; Android reuse, allocation savings and long-run memory need checking.
+
+Save/stop both runtimes, export a full backup and restore into the separate
+`.textreleasefix` app. Keep the working app. Explicitly enable **Reuse text
+buffers** and **job profiling** before launch; restored reuse may be off.
+At 30 FPS, record five minutes on a similar route with **Skip periodic client
+cleanup off**, matching the last run. Check chat/inventory/changing text, stop
+normally and export support. Disable reuse and restart if text or pauses worsen.
+
+See CLIENT_TEXT_BUFFER_RELEASE_FIX.md for the regression, bounds and test steps.
+
+---
+
 # 0.10.47 — bounded text buffer reuse
 
 Reuses exact-size text vertex buffers after the original draw queue releases

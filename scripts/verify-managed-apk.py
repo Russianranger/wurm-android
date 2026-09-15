@@ -64,6 +64,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
         assert b"wurm.client.reuseTextBuffers" in helper.read("client/ClientTextBuffers.class")
         assert b"[client-text-buffers]" in helper.read("client/ClientTextBuffers.class")
+        for counter in (b"vboLayoutReturns", b"releaseRejected", b"borrowRejected", b"rejectLocked", b"rejectGpuMode", b"rejectStorage"):
+            assert counter in helper.read("client/ClientTextBuffers.class"), counter
         assert b"client/ClientTextBuffers" in helper.read("client/ClientGraphicsPatch.class")
         assert b"client/ClientTextBuffers" in helper.read("client/ClientJobProfiler.class")
         assert b"client/ClientTextBuffers" in helper.read("client/ClientAllocationMeasurements.class")

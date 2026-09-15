@@ -10,7 +10,7 @@ SOURCES={
 'options/BooleanOption.java':'''package com.wurmonline.client.options; public class BooleanOption {public boolean value(){return false;}}''',
 'options/GLOption.java':'''package com.wurmonline.client.options; public class GLOption {public static boolean gpu;public boolean disabled(){return !gpu;}public boolean inCore(){return true;}}''',
 'options/Options.java':'''package com.wurmonline.client.options; public class Options {public static final boolean USE_DEV_DEBUG=false;public static final BooleanOption debugsEnabled=new BooleanOption(),prettyWeather=new BooleanOption();public static final GLOption useVBO=new GLOption(),useGLSL=new GLOption();}''',
-'renderer/backend/Backend.java':'''package com.wurmonline.client.renderer.backend; public class Backend {public static boolean gl;public static int primitiveAllocs;public static boolean isGLThread(){return gl;}}''',
+'renderer/backend/Backend.java':'''package com.wurmonline.client.renderer.backend; public class Backend {public static boolean gl;public static int primitiveAllocs,defaultTextureId,lineCount,pointCount,primitiveCount,triangleCount;public static final int[] primitiveCountQueue=new int[64],triangleCountQueue=new int[64];public static boolean isGLThread(){return gl;}}''',
 'util/BufferUtil.java':'''package com.wurmonline.client.util; public class BufferUtil {public static int getAllocatedMemory(){return 0;}}''',
 'renderer/backend/VertexBuffer.java':'''package com.wurmonline.client.renderer.backend;
 import java.nio.*;import java.util.concurrent.atomic.AtomicInteger;import com.wurmonline.client.options.GLOption;
@@ -40,15 +40,20 @@ public class FontTexture {public static class CharDetails{public float u0=0.1f,v
  private final CharDetails glyph=new CharDetails();public FontTexture(Font f,boolean b){}public boolean texturesLoaded(){return true;}public void init(){}public Texture getTexture(){return null;}public CharDetails getCharDetails(char c){return c<128?glyph:null;}public int getAscent(){return 9;}public int getDescent(){return 3;}public int getLeading(){return 0;}public int getMaxHeight(){return 12;}public int getWidth(String s){return s.length()*7;}public int getWidth(char[] c,int o,int n){return n*7;}}''',
 'resources/textures/Texture.java':'''package com.wurmonline.client.resources.textures;public class Texture{}''',
 'renderer/gui/Renderer.java':'''package com.wurmonline.client.renderer.gui;import com.wurmonline.client.renderer.backend.RenderState;public class Renderer{public static final RenderState stateAlphaBlend=new RenderState();}''',
-'renderer/backend/ScissorControl.java':'''package com.wurmonline.client.renderer.backend;public class ScissorControl{public static class ClipRect{public boolean isVisible(){return true;}}private final ClipRect clip=new ClipRect();public ClipRect getCurrent(){return clip;}}''',
+'renderer/backend/ScissorControl.java':'''package com.wurmonline.client.renderer.backend;public class ScissorControl{public static class ClipRect{public boolean isVisible(){return true;}public void doClip(){}}private final ClipRect clip=new ClipRect();public ClipRect getCurrent(){return clip;}}''',
 'renderer/gui/HeadsUpDisplay.java':'''package com.wurmonline.client.renderer.gui;import com.wurmonline.client.renderer.backend.ScissorControl;public class HeadsUpDisplay{public static final ScissorControl scissor=new ScissorControl();}''',
 }
+
+SOURCES.update({
+'renderer/light/LightManager.java':'''package com.wurmonline.client.renderer.light;public class LightManager {public static void disableAllLights(){}public static void disableAllSecondaryLights(boolean all){}}''',
+'util/GLHelper.java':'''package com.wurmonline.client.util;public class GLHelper {public static boolean checkGlError(String label,Object o){return false;}}''',
+})
 
 GL_SOURCES={
 'org/lwjgl/opengl/GL15.java':'''package org.lwjgl.opengl;import java.nio.*;import java.util.*;
 public class GL15 {public static int next,bound,uploads,deleted;public static final Map<Integer,float[]> live=new HashMap<>();
  public static int glGenBuffers(){int id=++next;live.put(id,new float[0]);return id;}
- public static void glBindBuffer(int target,int id){if(id!=0&&!live.containsKey(id))throw new AssertionError("freed VBO");bound=id;}
+ public static void glBindBuffer(int target,int id){if(id!=0&&!live.containsKey(id))throw new AssertionError("freed VBO");if(target==34962)bound=id;}
  public static void glBufferData(int target,FloatBuffer b,int usage){if(bound==0)throw new AssertionError("no VBO");float[] a=new float[b.remaining()];b.duplicate().get(a);live.put(bound,a);uploads++;}
  public static void glDeleteBuffers(int id){if(live.remove(id)==null)throw new AssertionError("double VBO delete");deleted++;}
  public static float first(int id){return live.get(id)[0];}public static int count(){return live.size();}}
@@ -58,7 +63,8 @@ public class GL15 {public static int next,bound,uploads,deleted;public static fi
  public static void glDeleteVertexArrays(int id){if(!live.remove(id))throw new AssertionError("double VAO delete");deleted++;}}
 ''',
 'org/lwjgl/opengl/GL20.java':'''package org.lwjgl.opengl;public class GL20{public static void glEnableVertexAttribArray(int i){}public static void glDisableVertexAttribArray(int i){}public static void glVertexAttribPointer(int i,int n,int t,boolean normalized,int stride,long offset){if(GL15.bound==0||GL30.bound==0)throw new AssertionError("missing VBO/VAO");}}''',
-'org/lwjgl/opengl/GL11.java':'''package org.lwjgl.opengl;public class GL11{public static void glVertexPointer(int n,int t,int stride,long offset){if(GL15.bound==0)throw new AssertionError();}}''',
+'org/lwjgl/opengl/GL11.java':(ROOT/'tests/fixtures/text_buffers/org/lwjgl/opengl/GL11.java').read_text(),
+'org/lwjgl/opengl/GL13.java':'''package org.lwjgl.opengl;public class GL13{public static void glActiveTexture(int i){}public static void glClientActiveTexture(int i){}}''',
 }
 
 class TextBuffersTest(unittest.TestCase):
@@ -93,6 +99,15 @@ class TextBuffersTest(unittest.TestCase):
   return r.stdout
  def test_lease_lifetime_shared_references_zeroing_and_expiry(self):
   self.assertIn('TEXT_LIFETIME_PASS',self.run_java('lifetime'))
+ def test_rejection_guards_and_bounded_diagnostics(self):
+  self.assertIn('TEXT_GUARDS_PASS',self.run_java('guards'))
+  if CLIENT:self.assertIn('TEXT_GUARDS_PASS',self.run_java('guards',private=True))
+ def test_rejected_returns_do_not_add_material_heap_allocation(self):
+  for private in ([False,True] if CLIENT else [False]):
+   old=self.run_java('reject-baseline',private=private);new=self.run_java('reject-benchmark',private=private)
+   baseline=int(re.search(r'heapBytes=(\d+)',old)[1]);rejected=int(re.search(r'heapBytes=(\d+)',new)[1])
+   self.assertLessEqual(rejected,baseline*1.10+4096)
+   if private:print(old.strip());print(new.strip())
  def test_count_and_byte_limits_include_active_buffers(self):
   self.assertIn('TEXT_LIMIT_PASS',self.run_java('limits'));self.assertIn('TEXT_BYTE_LIMIT_PASS',self.run_java('bytes'))
  def test_concurrent_borrowers_have_exclusive_buffers(self):
@@ -121,6 +136,12 @@ class TextBuffersTest(unittest.TestCase):
    r=subprocess.run(args,capture_output=True,text=True,timeout=40);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
    self.assertIn('TEXT_FULL_OVERLAY_PASS',r.stdout)
    self.assertEqual(r.stdout.count('TEXT_BUFFER_PATCH_ACTIVE'),3 if reuse=='true' else 0)
+ @unittest.skipUnless(CLIENT,'requires owner-provided client JAR')
+ def test_exact_private_legacy_draw_and_queue_release(self):
+  old=self.run_java('font-legacy-baseline',private=True);new=self.run_java('font-legacy',private=True)
+  self.assertEqual(re.search(r'geometry=(\w+)',old)[1],re.search(r'geometry=(\w+)',new)[1])
+  self.assertEqual(re.search(r'drawHash=(-?\d+)',old)[1],re.search(r'drawHash=(-?\d+)',new)[1])
+  self.assertIn('legacy=true draws=120',new);print(new.strip())
  @unittest.skipUnless(CLIENT,'requires owner-provided client JAR')
  def test_exact_private_text_geometry_matches_with_and_without_reuse(self):
   old=self.run_java('font-baseline',private=True);new=self.run_java('font',private=True)

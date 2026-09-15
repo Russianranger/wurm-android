@@ -59,20 +59,22 @@ public final class TextFixture {
             try(var jar=new JarFile(args[1])){check(jar.size()==9+(Boolean.parseBoolean(args[2])?3:0)+(Boolean.parseBoolean(args[3])?1:0));}
             System.out.println("TEXT_FULL_OVERLAY_PASS");return;
         }
-        setup(!args[0].equals("baseline"));
+        setup(!args[0].endsWith("baseline"));
         switch(args[0]) {
-            case "baseline", "benchmark" -> {
+            case "baseline", "benchmark", "reject-baseline", "reject-benchmark" -> {
+                boolean rejecting=args[0].startsWith("reject-");
                 Object[] held=new Object[64];
                 var bean=(com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
                 long allocated=0,elapsed=0;
                 for(int frame=0;frame<350;frame++) {
                     if(frame==100){allocated=bean.getCurrentThreadAllocatedBytes();elapsed=System.nanoTime();}
-                    for(int i=0;i<held.length;i++){Object v=make(60+6*(i%12));held[i]=v;FloatBuffer b=(FloatBuffer)lock.invokeExact(v);for(int j=0;j<b.capacity();j++)b.put(j,(float)(j+frame));unlock.invokeExact(v);}
-                    for(Object v:held)release.invokeExact(v);
+                    for(int i=0;i<held.length;i++){Object v=make(60+6*(i%12));held[i]=v;FloatBuffer b=(FloatBuffer)lock.invokeExact(v);for(int j=0;j<b.capacity();j++)b.put(j,(float)(j+frame));unlock.invokeExact(v);if(rejecting){Object ref=(Object)reference.invokeExact(v);check(ref==v);}}
+                    for(Object v:held){release.invokeExact(v);if(rejecting)release.invokeExact(v);}
                 }
                 allocated=bean.getCurrentThreadAllocatedBytes()-allocated;elapsed=System.nanoTime()-elapsed;
-                if(pooled){check(number("created")==64);check(number("active")==0);check(number("reused")==64*349);}
-                System.out.println("TEXT_BENCH pooled="+pooled+" draws=16000 heapBytes="+allocated+" nanos="+elapsed);
+                if(pooled&&rejecting){check(number("created")==22400);check(number("reused")==0);check(number("rejectRefs")==22400);check(number("entries")==0);}
+                if(pooled&&!rejecting){check(number("created")==64);check(number("active")==0);check(number("reused")==64*349);}
+                System.out.println("TEXT_BENCH pooled="+pooled+" rejecting="+rejecting+" draws=16000 heapBytes="+allocated+" nanos="+elapsed);
             }
             case "lifetime" -> {
                 Object a=make(60),b=make(60);check(a!=b);FloatBuffer first=fill(a,1);fill(b,2);
@@ -87,6 +89,22 @@ public final class TextFixture {
                 for(int i=0;i<ClientTextBuffers.SLOTS;i++)((long[])times.get(null))[i]=System.nanoTime()-ClientTextBuffers.IDLE_NANOS-1;
                 fresh=make(60);fill(fresh,7);release.invokeExact(fresh);check(number("evicted")>0);
                 check(number("active")==0);System.out.println("TEXT_LIFETIME_PASS sharedRefs=true zeroFilled=true expiry=true");
+            }
+            case "guards" -> {
+                // Corrupted/ineligible entries must reach original deletion, never another borrower.
+                Object v=make(60);fill(v,1);Object ref=(Object)reference.invokeExact(v);check(ref==v);release.invokeExact(v);release.invokeExact(v);
+                var locked=vertex.getDeclaredField("isLocked");locked.setAccessible(true);
+                v=make(60);fill(v,2);((java.util.concurrent.atomic.AtomicInteger)locked.get(v)).set(2);release.invokeExact(v);
+                var count=vertex.getDeclaredField("numVertex");count.setAccessible(true);
+                v=make(60);fill(v,3);count.setInt(v,61);release.invokeExact(v);
+                var gpu=Class.forName("com.wurmonline.client.options.GLOption").getField("gpu");
+                v=make(60);fill(v,4);gpu.setBoolean(null,true);release.invokeExact(v);gpu.setBoolean(null,false);
+                v=make(60);release.invokeExact(v); // No lock/allocation: missing storage.
+                v=make(60);fill(v,5);release.invokeExact(v);release.invokeExact(v);
+                v=make(60);fill(v,6);System.setProperty("wurm.client.reuseTextBuffers","false");release.invokeExact(v);System.setProperty("wurm.client.reuseTextBuffers","true");
+                for(String key:new String[]{"rejectRefs","rejectLocked","rejectSize","rejectGpuMode","rejectStorage","rejectDuplicate","rejectDisabled"})check(number(key)==1);
+                check(number("releaseRejected")==7);check(number("borrowRejected")==0);check(number("entries")==0);
+                System.out.println("TEXT_GUARDS_PASS allReasons=true originalDelete=true");
             }
             case "limits" -> {
                 Object[] held=new Object[300];for(int i=0;i<held.length;i++){held[i]=make(60);fill(held[i],i);}
@@ -141,11 +159,12 @@ public final class TextFixture {
                 check((int)gl15.getMethod("count").invoke(null)==0);check(number("active")==0);
                 System.out.println("TEXT_GPU_PASS currentData=true vaoReused=true deferredDelete=true modeChange=true");
             }
-            case "font", "font-baseline" -> {
+            case "font", "font-baseline", "font-legacy", "font-legacy-baseline" -> {
                 // Exact SimpleTextFont/Queue/Primitive/Matrix/VertexBuffer code; authored glyph and GL boundaries.
-                boolean compare=args[0].equals("font-baseline");System.setProperty("wurm.client.reuseTextBuffers",String.valueOf(!compare));
+                boolean compare=args[0].endsWith("baseline"),legacy=args[0].contains("legacy");System.setProperty("wurm.client.reuseTextBuffers",String.valueOf(!compare));
                 Class<?> font=Class.forName("com.wurmonline.client.renderer.gui.text.SimpleTextFont"),q=Class.forName("com.wurmonline.client.renderer.backend.Queue"),p=Class.forName("com.wurmonline.client.renderer.backend.Primitive");
                 var ctor=font.getDeclaredConstructor(java.awt.Font.class,boolean.class);ctor.setAccessible(true);Object text=ctor.newInstance(new java.awt.Font("Dialog",0,12),false),queue=q.getConstructor(int.class,boolean.class).newInstance(128,false);
+                if(legacy){Class.forName("com.wurmonline.client.options.GLOption").getField("gpu").setBoolean(null,true);}
                 var draw=font.getMethod("drawString",q,String.class,int.class,int.class,float.class,float.class,float.class,float.class);
                 var digest=java.security.MessageDigest.getInstance("SHA-256");
                 String[] words={"chat","short","longer label","","\u03a9","mixed\u03a9","12345","54321"};
@@ -157,10 +176,18 @@ public final class TextFixture {
                         for(int j=0;j<b.capacity();j++)digest.update(ByteBuffer.allocate(4).putFloat(b.get(j)).array());
                         digest.update(ByteBuffer.allocate(4).putInt(p.getField("num").getInt(primitive)).array());
                     }
+                    if(legacy) {
+                        Class.forName("com.wurmonline.client.renderer.backend.Backend").getField("gl").setBoolean(null,true);
+                        q.getMethod("sort").invoke(queue);q.getMethod("render").invoke(queue);
+                        if(frame==0){var bnd=vertex.getDeclaredField("boundBufferObject");bnd.setAccessible(true);check(bnd.getBoolean(p.getField("vertex").get(primitives[0])));System.out.println("LEGACY_DRAW_BOUND_LAYOUT_CONFIRMED");for(int j=0;j<n;j++)check(bnd.getBoolean(p.getField("vertex").get(primitives[j])));}
+                        Class.forName("com.wurmonline.client.renderer.backend.Backend").getField("gl").setBoolean(null,false);
+                    }
                     q.getMethod("clear").invoke(queue);
+                    if(legacy){Class.forName("com.wurmonline.client.renderer.backend.Backend").getField("gl").setBoolean(null,true);vertex.getMethod("deleteDeferred").invoke(null);Class.forName("com.wurmonline.client.renderer.backend.Backend").getField("gl").setBoolean(null,false);}
                 }
-                check(number("active")==0);if(!compare)check(number("reused")>0);
-                System.out.println("TEXT_FONT_PASS geometry="+HexFormat.of().formatHex(digest.digest())+" baseline="+compare);
+                System.out.println(ClientTextBuffers.sample());
+                check(number("active")==0);if(!compare){check(number("reused")>0);if(legacy){check(number("evicted")==0);check(number("vboLayoutReturns")==120);check(number("reused")==133);check(number("releaseRejected")==0);}}
+                System.out.println("TEXT_FONT_PASS geometry="+HexFormat.of().formatHex(digest.digest())+" baseline="+compare+" legacy="+legacy+" draws="+Class.forName("org.lwjgl.opengl.GL11").getField("draws").getInt(null)+" drawHash="+Class.forName("org.lwjgl.opengl.GL11").getField("drawHash").getLong(null));
             }
             default -> throw new IllegalArgumentException(args[0]);
         }

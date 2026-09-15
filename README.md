@@ -2,16 +2,16 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.47 — bounded text buffer reuse.**
+**Current branch test: 0.10.48 — completed text buffer release fix.**
 
-The five-minute 0.10.46 recording identifies GUI rendering as the largest
-measured job allocation source. This test reuses completed text vertex buffers
-within a fixed limit and adds reuse/accounting counters to support logs. The
-existing FPS controls and memory recorder remain available. Device performance
-and long-run retained memory still need qualification.
+The 0.10.47 device recording showed legible text but zero buffer reuse. This
+build corrects a drawing-layout flag mistakenly treated as active ownership.
+Completed buffers can now return to the bounded pool, with counters explaining
+any rejection. Exact-client host drawing and cleanup checks pass; device reuse,
+GUI allocation savings and long-run memory still need qualification.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.47-text-buffer-reuse).
-[Changes, limits and device test](docs/CLIENT_TEXT_BUFFER_REUSE_TEST.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.48-text-release-fix).
+[Changes, evidence and device test](docs/CLIENT_TEXT_BUFFER_RELEASE_FIX.md).
 [Maintained handoff](docs/HANDOFF.md). Work stays on `mod-launcher-test`.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed
