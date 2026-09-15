@@ -4,6 +4,28 @@ Updated: 2026-09-15. Keep this file current when investigating, changing, or rel
 
 ## Latest release — 0.10.47 bounded text buffer reuse
 
+Latest device evidence: [0.10.47 reuse review](CLIENT_TEXT_BUFFER_REUSE_REVIEW_20260915.md).
+User confirms legible text with no visible degradation. The 13:52Z support export
+contains one approximately 10m21s 30 FPS session and a complete five-minute memory
+recording. Client/server exit cleanly, saves/database close complete, no crash,
+OOM, ASan/client-GL error or server SEVERE record is found. However, **reuse does
+not work in this device run**: all 82 distinct samples show zero reuses/returns;
+523,092 fresh buffers are created during recording, and the last ordinary sample
+has 1,015,783 total creations. All three overlays and the enabled property are
+confirmed. The release eligibility check rejects registered returns; the stale
+fixed-function bound-buffer flag is the leading hypothesis, not a logged reason.
+The host VAO-path test did not qualify this complete device draw/release path.
+
+Recorded job allocations are 340.426 MiB versus 225.179 MiB previously; printed
+GUI bytes are 278.219 versus 174.937 MiB, 32.353 versus 20.391 KiB per GUI call.
+Workload differences are not controlled, so do not assign all excess bytes to the
+adapter. Warm viewer mean remains about 29.807 FPS. GC-related gaps reach 617.68
+ms; the ten-minute periodic collection adds a 560.548 ms pause after recording.
+Client sampled PSS peaks at 1,816.9 MiB then ends recording at 1,647.3 MiB;
+lower than before but not a pooling benefit or leak verdict. Detailed limits,
+counters and method are in the review. Storage audit was not run.
+
+
 User authorized the next steps after the completed 0.10.46 memory review. Stay
 on mod-launcher-test; keep main and prior working releases/data. See
 [CLIENT_TEXT_BUFFER_REUSE_TEST.md](CLIENT_TEXT_BUFFER_REUSE_TEST.md) for scope,
@@ -74,15 +96,15 @@ not change the APK. Main remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
   reuse and zero with reuse in that run (JIT/host dependent). GPU/glyph boundaries
   are authored fixtures, not a real device rendering qualification.
 
-Device confirmation and long-run memory qualification remain. Request one normal
-five-minute recording with reuse on, profiling on, 30 FPS and cleanup off to
-match support bundle 5. Check chat/inventory/changing/Unicode text, save/stop
-normally, export support. Use the same-build reuse-off fallback if defects appear.
-Keep prior apps/backups. Compare per-call GUI allocations and pool hit/capacity
-counters separately from direct buffers, PSS and natural post-GC heap floors.
-A fixed-function rendering path can conservatively bypass reuse because the
-engine keeps its bound-buffer flag set; diagnose the measured counters before
-changing that guard. No device improvement or memory-leak cure is claimed.
+The requested device recording is received and evaluated above. Next reproduce
+and correct the rejected return in the exact fixed-function draw/Queue cleanup
+path. Preserve ownership and GPU state; do not blindly remove the binding guard.
+Include allocation measurements for the failed-return path and, if needed,
+bounded rejection-reason counters. Another unchanged device recording is not
+needed. Text reuse can be disabled for ordinary play until a corrected build is
+qualified. Continue direct/PSS investigation separately after reuse actually
+works. Also refresh ClientSession's stale generic Gate status paragraph in that
+next build. This review changes documentation only; the 0.10.47 release is intact.
 
 ## Previous release — 0.10.46 job memory recording and FPS targets
 
