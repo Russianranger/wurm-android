@@ -12,6 +12,37 @@ code 62, separate package `io.github.russianranger.wurmlauncher.textreleasefix`,
 immutable tag `v0.10.48-text-release-fix`.
 See [CLIENT_TEXT_BUFFER_RELEASE_FIX.md](CLIENT_TEXT_BUFFER_RELEASE_FIX.md).
 
+Latest device evidence: [0.10.48 60/30 FPS review](CLIENT_TEXT_RELEASE_DEVICE_REVIEW_20260915.md).
+The user ran 60 FPS first (PID 7031), then 30 FPS (PID 8029), each with a complete
+five-minute recording. The release fix now works on-device: 646,491 / 846,573
+reuses within recording, 95.730% / 97.959% of text factory calls, with all sampled
+rejection counters zero. Successful VBO-layout returns equal all returns. Pool
+sampled peaks are only 234,120 / 340,680 bytes and 130 / 173 entries.
+Both clients exit zero and the shared server completes requested saves/database
+close and exits zero. No crash/OOM/ASan/client-GL failure is found. Existing
+startup/shutdown warnings remain; storage audit was not performed.
+
+The 60-target run averages 47.12 displayed FPS and falls from first-minute 54.24
+to last-minute 40.73; reported readback rises from 4.89 to 7.94 ms. Its largest
+frame gap is 430.54 ms around young+full GC; one full collection is 318.411 ms.
+The 30-target recording averages 29.90 FPS, maximum gap 113.28 ms, with two young
+collections and no full collection during recording. No thermal cause is proven.
+
+Remaining GUI allocation is workload-dependent: printed GUI rows total 79.286 /
+311.625 MiB, 6.292 / 36.349 KiB per listed call. The second run handles about 98.4
+text requests per listed GUI call versus 52.3 in the first; this is not a clean
+FPS-only comparison. Relative to the old 32.353 KiB/call recording, do not claim
+uniform GUI improvement. Larger GUI allocations also occur on other workers;
+Job_executor_0 is not shown defective. Top-row coverage is 76.14% / 94.27%.
+
+Client PSS peaks 1,788.5 / 1,927.4 MiB and ends recording 1,749.7 / 1,611.3 MiB.
+Direct capacity peaks 355.5 / 346.1 MiB and drops after natural GC. The second
+ends near its initial direct capacity (201.3 → 203.9 MiB). This shows reclaimable
+memory, not a leak verdict or a complete memory fix. Recorder threads stop on
+both deadlines. Keep this successful release fix; next identify the remaining
+high-allocation GUI callees and investigate 60-target rendering/readback cost.
+No unchanged release-path recording or synthetic stress run is needed.
+
 The exact client was recovered and SHA-verified again. Original legacy VBO
 bind leaves `boundBufferObject` true; it records pointer layout, not ownership.
 Renderer completion waits for jobs, flushes the pipeline and clears the HUD
@@ -36,11 +67,10 @@ Host success workload: 5,376,880 versus 72 allocated heap bytes; forced shared
 reference rejection: 5,376,000 original versus 5,376,880 adapter bytes for 16,000
 measured iterations. These figures are not device GUI-job or PSS predictions.
 
-Next request a five-minute ordinary 30 FPS device recording. Explicitly enable reuse and job profiling before launch;
-restored reuse may be off. Keep skip-periodic-cleanup off to match the last
-recording. First confirm increasing reuse/returns and inspect rejection reasons,
-then compare job bytes per call and natural GC/direct/PSS behavior. Device
-qualification is still pending. Do not claim the overall memory problem is fixed.
+The requested short recordings have now been received and evaluated above.
+Both use reuse/job profiling on and skip-periodic-cleanup off. Release/reuse is
+qualified on-device; complete memory/performance qualification remains pending.
+Do not claim the overall memory problem is fixed.
 
 Released from implementation commit `9e3186bfe38e1648c8da26bc9dce46725698f0b5`,
 tree `70fe1893e65170ee0279641f34afce150321037f`. This subsequent documentation-only
