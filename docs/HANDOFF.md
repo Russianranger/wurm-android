@@ -2,14 +2,14 @@
 
 Updated: 2026-09-15. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.48 completed text buffer release fix
+## Latest release — 0.10.48 completed text buffer release fix
 
-User authorized “Work on the next fix” after the 0.10.47 review. Implementation
-and tests are complete; release/CI verification is pending. The full host suite
+User authorized “Work on the next fix” after the 0.10.47 review. Implementation, tests,
+CI and independent published-APK verification are complete. The full host suite
 passes 208 tests with 37 expected unavailable fixture/platform skips, no failures.
 Stay on `mod-launcher-test`, keep main and prior releases/data. Version 0.10.48,
 code 62, separate package `io.github.russianranger.wurmlauncher.textreleasefix`,
-planned immutable tag `v0.10.48-text-release-fix`.
+immutable tag `v0.10.48-text-release-fix`.
 See [CLIENT_TEXT_BUFFER_RELEASE_FIX.md](CLIENT_TEXT_BUFFER_RELEASE_FIX.md).
 
 The exact client was recovered and SHA-verified again. Original legacy VBO
@@ -36,12 +36,51 @@ Host success workload: 5,376,880 versus 72 allocated heap bytes; forced shared
 reference rejection: 5,376,000 original versus 5,376,880 adapter bytes for 16,000
 measured iterations. These figures are not device GUI-job or PSS predictions.
 
-Next finish CI/published-APK verification, then request a five-minute ordinary
-30 FPS recording. Explicitly enable reuse and job profiling before launch;
+Next request a five-minute ordinary 30 FPS device recording. Explicitly enable reuse and job profiling before launch;
 restored reuse may be off. Keep skip-periodic-cleanup off to match the last
 recording. First confirm increasing reuse/returns and inspect rejection reasons,
 then compare job bytes per call and natural GC/direct/PSS behavior. Device
 qualification is still pending. Do not claim the overall memory problem is fixed.
+
+Released from implementation commit `9e3186bfe38e1648c8da26bc9dce46725698f0b5`,
+tree `70fe1893e65170ee0279641f34afce150321037f`. This subsequent documentation-only
+handoff commit does not change the APK. Main independently confirmed unchanged:
+`2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- [Download 0.10.48 APK](https://github.com/Russianranger/wurm-android/releases/download/v0.10.48-text-release-fix/Wurm-Server.apk),
+  68,584,353 bytes, SHA-256
+  `d2f2c51bd8e8c32d8cdd36845ab027f3903f7d02bf79a411012be4f8f5db1f27`.
+  Published 2026-09-15T14:31:52Z as a prerelease with 59 assets. Downloaded APK
+  and test guide match SHA256SUMS and GitHub asset digests; the guide matches
+  the release source. Version `0.10.48-managed-preview`, code 62 and separate
+  `.textreleasefix` package verified from the binary manifest. APK v2 signature
+  and managed packaging checks pass. This build's debug certificate SHA-256 is
+  `43a95759854d0b90b93b3a75a6d2c8285a36051aa85df59143746538c5543461`,
+  independently matching CI; the separate package preserves older apps.
+- [CI run 34981005646](https://github.com/Russianranger/wurm-android/actions/runs/34981005646)
+  passes on that implementation commit. Build job `104420996399`; managed
+  publisher `104425047490`; unrelated publishers skipped. CI full host suite:
+  208 tests, 32 expected unavailable/private/platform skips. All three Android
+  variants pass builds, unit tests and lint. Native/input regressions, signature,
+  source and packaging gates pass, with the expected unavailable host-EGL skip.
+- Compared independently with 0.10.47: all 194 JRE data members and all LWJGL API,
+  client compatibility, graphics-probe and window JAR members are byte-identical.
+  Of 73 runtime-probe JAR members, **only ClientTextBuffers.class changes**;
+  existing adapters, recorder, server and persistence classes are identical.
+  Of 40 native libraries, 39 are identical. GL4ES differs only in its GNU build
+  ID and six compile-time digits (25 changed bytes total); no native code change.
+- The downloaded runtime-probe JAR has SHA-256
+  `010a365206b8429005b5322cf91ecbbe89fa47b207166e942aaab21cebf03c01`.
+  All 18 focused text-buffer and job-recorder tests pass against these published
+  helper bytes and the exact private client. Class-load logs confirm the tested
+  helpers come from the downloaded JAR. Full legacy draw submissions/geometry
+  match, 120 VBO returns and 133 reuses succeed with zero rejected returns,
+  GPU upload/VAO/deferred deletion, ownership guards and optional overlays pass.
+  Recorder expiry/cancellation/reference release and real executor callbacks/
+  shutdown pass. Published success benchmark: 5,379,072 original versus 72 pooled
+  heap bytes; forced-rejection benchmark: 5,378,048 original versus 5,376,000
+  adapter bytes, for 16,000 measured iterations. This is focused host/JIT evidence,
+  not device performance, memory-residency or a leak verdict.
 
 ## Previous release — 0.10.47 bounded text buffer reuse
 
