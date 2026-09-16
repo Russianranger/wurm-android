@@ -2,16 +2,16 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.48 — completed text buffer release fix.**
+**Current branch test: 0.10.49 — oak and stone launcher.**
 
-The 0.10.47 device recording showed legible text but zero buffer reuse. This
-build corrects a drawing-layout flag mistakenly treated as active ownership.
-Completed buffers can now return to the bounded pool, with counters explaining
-any rejection. Exact-client host drawing and cleanup checks pass; device reuse,
-GUI allocation savings and long-run memory still need qualification.
+A new oak-and-W app icon, four painted fantasy scenes, medieval headings and
+stone-framed controls bring the launcher closer to the world of Wurm. Artwork
+and fonts are bundled offline. Only the visible background is retained, and it
+is released while the launcher is stopped. Game rendering and runtime behavior
+remain at the successful 0.10.48 baseline; performance investigation is paused.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.48-text-release-fix).
-[Changes, evidence and device test](docs/CLIENT_TEXT_BUFFER_RELEASE_FIX.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.49-oak-theme).
+[Theme details and visual checks](docs/OAK_THEME.md).
 [Maintained handoff](docs/HANDOFF.md). Work stays on `mod-launcher-test`.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

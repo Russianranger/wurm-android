@@ -32,6 +32,8 @@ class ManagedActivity : Activity() {
     private lateinit var diagnosticsPage: DiagnosticsPage
     private val pages = mutableListOf<ScrollView>()
     private val tabs = mutableListOf<Button>()
+    private lateinit var backdrop: OakTheme.Backdrop
+    private lateinit var navigationScroll: android.widget.HorizontalScrollView
     private var selectedTab = SERVER
     private val scrollOffsets = IntArray(4)
     private var pageShown = false
@@ -51,15 +53,25 @@ class ManagedActivity : Activity() {
         super.onCreate(savedInstanceState)
         ClientSession.initialize(this)
         val root = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        root.addView(TextView(this).apply { text="Wurm · 0.10.48"; textSize=22f; setPadding(20,12,20,8) })
+        root.addView(OakTheme.header(this))
         val navigation=LinearLayout(this)
-        root.addView(navigation)
+        navigationScroll=android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled=false
+            isFillViewport=true
+            addView(navigation)
+        }
+        root.addView(navigationScroll)
         val content=android.widget.FrameLayout(this)
         root.addView(content,LinearLayout.LayoutParams(-1,0,1f))
+        backdrop=OakTheme.Backdrop(this)
+        content.addView(backdrop,android.widget.FrameLayout.LayoutParams(-1,-1))
+        content.addView(View(this).apply { setBackgroundColor(0x300A120D) },android.widget.FrameLayout.LayoutParams(-1,-1))
         setContentView(root)
         page = LauncherUi.column(this)
         fun addPage(view: View) {
-            val scroll=ScrollView(this).apply { isFillViewport=true; addView(view); visibility=View.GONE }
+            val scroll=ScrollView(this).apply {
+                isFillViewport=true; addView(OakTheme.page(view,pages.size)); visibility=View.GONE
+            }
             pages.add(scroll); content.addView(scroll)
         }
         addPage(page)
@@ -76,8 +88,13 @@ class ManagedActivity : Activity() {
         listOf("Server","Client","Mods","Diagnostics").forEachIndexed { index, title ->
             tabs += Button(this).apply {
                 text=title; isAllCaps=false
+                textSize=16f
+                minimumWidth=LauncherUi.dp(context,80)
                 setOnClickListener { if (selectedTab!=index) selectTab(index) }
-                navigation.addView(this,LinearLayout.LayoutParams(0,-2,1f))
+                navigation.addView(this,LinearLayout.LayoutParams(-2,-1,1f).apply {
+                    val gap=LauncherUi.dp(context,3)
+                    setMargins(gap,gap,gap,gap)
+                })
             }
         }
         status = label("Server",22f)
@@ -134,12 +151,13 @@ class ManagedActivity : Activity() {
         selectedTab=tab.takeIf { it in SERVER..DIAGNOSTICS } ?: CLIENT
         if(navigationPrefs.getInt("tab",-1)!=selectedTab) navigationPrefs.edit().putInt("tab",selectedTab).apply()
         pages.forEachIndexed { index, view -> view.visibility=if (index==selectedTab) View.VISIBLE else View.GONE }
+        backdrop.show(selectedTab)
         tabs.forEachIndexed { index, button ->
             button.isSelected=index==selectedTab
             button.setTextColor(getColor(if (index==selectedTab) R.color.wurm_accent else R.color.wurm_text_primary))
-            button.setTypeface(null,if (index==selectedTab) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
             button.contentDescription=button.text.toString()+if (index==selectedTab) ", selected tab" else ", tab"
         }
+        navigationScroll.post { tabs[selectedTab].requestRectangleOnScreen(android.graphics.Rect(0,0,tabs[selectedTab].width,tabs[selectedTab].height),true) }
         renderSelected()
         val shown=selectedTab
         pages[shown].post { if (selectedTab==shown) pages[shown].scrollTo(0,scrollOffsets[shown]) }
@@ -302,9 +320,7 @@ class ManagedActivity : Activity() {
         }
         if (!accepted) toast("Stop the active operation before importing or exporting runtime files.")
     }
-    private fun label(value: String, size: Float = 14f) = TextView(this).apply {
-        text = value; textSize = size; setPadding(0, 8, 0, 8)
-    }.also { page.addView(it) }
+    private fun label(value: String, size: Float = 14f) = LauncherUi.label(page,value,size)
     private fun button(value: String, action: () -> Unit) = LauncherUi.button(page,value,action)
     private fun toast(value: String) = Toast.makeText(this, value, Toast.LENGTH_LONG).show()
     override fun onResume() {
@@ -313,6 +329,8 @@ class ManagedActivity : Activity() {
         main.removeCallbacks(refresh); main.post(refresh)
     }
     override fun onPause() { saveWorld(); main.removeCallbacks(refresh); super.onPause() }
+    override fun onStart() { super.onStart(); backdrop.show(selectedTab) }
+    override fun onStop() { backdrop.release(); super.onStop() }
     companion object {
         const val SERVER=0
         const val CLIENT=1

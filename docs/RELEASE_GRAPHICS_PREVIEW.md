@@ -1,3 +1,27 @@
+# 0.10.49 — oak and stone launcher
+
+An ancient oak and golden fantastical W now identify the APK and opening splash.
+Server shows a fantasy homestead; Client a forest bridge and distant castle;
+Mods an artisan forge; Diagnostics an explorer's map room. Dark stone panels,
+antique gold borders and bundled MedievalSharp headings/controls complete the
+launcher theme. Body text remains readable and live logs remain monospace.
+
+Scenes are static and offline, limited to one visible 1280×853 bitmap reference.
+The launcher releases that reference when stopped, including during gameplay.
+Wide screens center the controls; tabs scroll when space or large fonts require
+it. Touch targets, focus feedback, tab selection and scroll restoration remain.
+
+Save/stop client and server in the working app, export a full backup, install
+this separate `.oaktheme` app and restore the backup through Backups & migration.
+Keep the previous app and backup. This is a visual release; no new performance
+recording is requested yet. Check the icon, four tabs, scrolling, expanded
+settings and readability in your usual orientation and with larger text.
+
+See OAK_THEME.md for artwork/font provenance and verification details. The game
+renderer, FPS choices, text-buffer reuse and server/client data paths are unchanged.
+
+---
+
 # 0.10.48 — completed text buffer release fix
 
 Corrects the condition that discarded completed text buffers after VBO drawing.

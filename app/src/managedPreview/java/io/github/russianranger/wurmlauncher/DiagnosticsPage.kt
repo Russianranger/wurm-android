@@ -22,10 +22,8 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val periodicGc: CheckBox
     private val jobProfiling: CheckBox
     private val textBuffers: CheckBox
-    private fun label(text: String)=TextView(activity).apply { this.text=text; setPadding(0,8,0,8); target.addView(this) }
-    private fun button(text: String, action: () -> Unit)=Button(activity).apply {
-        this.text=text; setOnClickListener { action() }; target.addView(this)
-    }
+    private fun label(text: String)=LauncherUi.label(target,text)
+    private fun button(text: String, action: () -> Unit)=LauncherUi.button(target,text,action)
     private fun showReport(title: String, value: String) {
         val text=TextView(activity).apply { this.text=value; setTextIsSelectable(true); setPadding(20,12,20,12) }
         AlertDialog.Builder(activity).setTitle(title).setView(ScrollView(activity).apply { addView(text) })

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Wurm.Oak" parent="Theme.Wurm">
+        <item name="android:fontFamily">serif</item>
+        <item name="android:buttonStyle">@style/Widget.Wurm.StoneButton</item>
+        <item name="android:windowSplashScreenBackground">@color/wurm_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_oak</item>
+    </style>
+    <style name="Widget.Wurm.StoneButton" parent="android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/wurm_stone_button</item>
+        <item name="android:backgroundTint">@null</item>
+        <item name="android:fontFamily">@font/medieval_sharp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@color/wurm_primary_text</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:paddingLeft">18dp</item>
+        <item name="android:paddingRight">18dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+</resources>

@@ -40,12 +40,12 @@ class ModsPage(private val activity: Activity, private val chooseZip: (String) -
         var loading=false
         init {
             view.addView(body)
-            body.addView(TextView(activity).apply { text=if(side=="server") "Server mods" else "Client mods"; textSize=22f; setPadding(0,28,0,8) })
+            LauncherUi.label(body,if(side=="server") "Server mods" else "Client mods",22f)
             body.addView(TextView(activity).apply { text=if(side=="server")
                 "Install Ago server-modlauncher-0.47.zip once, then import individual mod ZIPs. Loader installation does not enable bundled mods."
                 else "Install Ago client-modlauncher-0.15.zip, then livemap-1.8.zip. The client loader can run with all mods off for an initial check. Start the game from Client; mod changes apply on its next start." })
             fun button(title: String, action: ()->Unit) {
-                controls += Button(activity).apply { text=title; setOnClickListener { action() }; body.addView(this) }
+                controls += LauncherUi.button(body,title,action)
             }
             button("Import $side loader / mod ZIP") { chooseZip(side) }
             body.addView(status); body.addView(mods)

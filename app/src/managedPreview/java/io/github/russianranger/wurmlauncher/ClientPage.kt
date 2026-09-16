@@ -22,6 +22,7 @@ class ClientPage(private val activity: Activity, private val importClient: () ->
     private fun button(text: String, action: () -> Unit)=LauncherUi.button(view,text,action)
     init {
         status.textSize=20f
+        OakTheme.heading(status)
         play=button("Play") {
             if(ClientSession.gameActive()) activity.startActivity(Intent(activity,GraphicsTestActivity::class.java).putExtra("mode","start"))
             else launch("local")

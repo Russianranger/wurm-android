@@ -1,8 +1,25 @@
 # Wurm Android handoff
 
-Updated: 2026-09-15. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+Updated: 2026-09-16. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.48 completed text buffer release fix
+## Current work — 0.10.49 oak and stone launcher
+
+User paused performance testing and requested a large oak/fantastical W APK icon,
+fantasy homestead/exploration backgrounds for each tab, medieval typography and
+castle-like tiles. Work stays on `mod-launcher-test`; main and previous apps/data
+are preserved. Version 0.10.49/code 63 uses separate `.oaktheme` package and
+immutable tag `v0.10.49-oak-theme`. See [OAK_THEME.md](OAK_THEME.md).
+
+Five original images were created with the built-in image generator and packaged
+as bounded-size WebP resources. Each of the existing four tabs has its own scene.
+MedievalSharp is bundled with its OFL license. LauncherUI buttons and sections,
+header, adaptive icon/splash, page panels and managed theme are updated. Only
+one scene is referenced at a time and it is released in onStop. No runtime-probe,
+native, game font/rendering or storage logic change. Build/release verification
+is pending until recorded below. Next technical work remains allocation/readback
+from the review below; do not interpret the visual release as a performance fix.
+
+## Previous release — 0.10.48 completed text buffer release fix
 
 User authorized “Work on the next fix” after the 0.10.47 review. Implementation, tests,
 CI and independent published-APK verification are complete. The full host suite
