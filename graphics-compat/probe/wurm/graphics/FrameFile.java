@@ -25,6 +25,35 @@ public final class FrameFile {
             Files.move(pending,target,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);
         } finally { Files.deleteIfExists(pending); }
     }
+    /** One owned publisher per window. Reuses metadata and view buffers across frames. */
+    public static final class RawWriter implements AutoCloseable {
+        private final Thread owner=Thread.currentThread();
+        private final Path target,pending;
+        private static final java.util.Set<StandardOpenOption> OPTIONS=java.util.Set.of(
+            StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING,StandardOpenOption.WRITE);
+        private static final CopyOption[] MOVE={StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING};
+        private ByteBuffer header=ByteBuffer.allocateDirect(36),source,view;
+        public RawWriter(Path target) {this.target=target;pending=target.resolveSibling(target.getFileName()+".pending");}
+        private void owned() {if(Thread.currentThread()!=owner||header==null)throw new IllegalStateException("Frame writer is closed or not owned");}
+        public void write(int width,int height,int sequence,ByteBuffer rgba,int x,int y,boolean visible,int applied)throws IOException {
+            owned();
+            if(width<16||height<16||width>1280||height>1024||sequence<1||rgba.remaining()!=width*height*4||x<0||x>=width||y<0||y>=height||applied<0)
+                throw new IllegalArgumentException("Invalid raw frame");
+            if(source!=rgba){source=rgba;view=rgba.duplicate();}
+            // Source position/limit, channels and bottom-up origin remain untouched.
+            view.clear().limit(rgba.limit()).position(rgba.position());
+            header.clear();header.putInt(MAGIC).putInt(3).putInt(width).putInt(height).putInt(sequence)
+                .putInt(x).putInt(y).putInt(visible?1:0).putInt(applied).flip();
+            try {
+                try(var channel=java.nio.channels.FileChannel.open(pending,OPTIONS)) {
+                    while(header.hasRemaining())channel.write(header);
+                    while(view.hasRemaining())channel.write(view);
+                }
+                Files.move(pending,target,MOVE);
+            } finally {Files.deleteIfExists(pending);}
+        }
+        public void close() {owned();source=null;view=null;header=null;}
+    }
     public static void write(Path target, int width, int height, int sequence, ByteBuffer rgba) throws IOException {
         writeFrame(target, width, height, sequence, rgba, null);
     }

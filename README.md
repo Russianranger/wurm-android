@@ -2,16 +2,16 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.49 — oak and stone launcher.**
+**Current branch test: 0.10.50 — GUI allocation tracing and frame publisher reuse.**
 
-A new oak-and-W app icon, four painted fantasy scenes, medieval headings and
-stone-framed controls bring the launcher closer to the world of Wurm. Artwork
-and fonts are bundled offline. Only the visible background is retained, and it
-is released while the launcher is stopped. Game rendering and runtime behavior
-remain at the successful 0.10.48 baseline; performance investigation is paused.
+The memory recorder now separates top-level GUI components and overlays. Frame
+publication reuses its metadata buffers, and frame timings separate client work,
+pacing, readback, publication and EGL swap. The oak launcher and working text
+buffer reuse remain. GUI spikes and sustained 60 FPS need the new device data;
+this release does not claim either is fully resolved.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.49-oak-theme).
-[Theme details and visual checks](docs/OAK_THEME.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.50-gui-frame).
+[Focused device test and verification](docs/CLIENT_GUI_FRAME_TEST.md).
 [Maintained handoff](docs/HANDOFF.md). Work stays on `mod-launcher-test`.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

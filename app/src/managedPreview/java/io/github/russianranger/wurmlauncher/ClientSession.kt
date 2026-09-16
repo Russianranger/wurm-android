@@ -75,9 +75,9 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.49\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.50\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.47 had legible text and clean saves/exits, but its device recording showed no text buffer reuse. This build corrects completed VBO returns and adds rejection counters. Actual reuse, GUI allocation savings, GC stalls and long-run memory still need device qualification.\n\n" +
+            "Gate status: 0.10.48 device recordings confirmed successful text buffer reuse and clean exits. This build adds component-level GUI allocation recording, reuses frame publication metadata and separates frame-stage timings. Remaining GUI allocation spikes and sustained 60 FPS performance still need device attribution.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +

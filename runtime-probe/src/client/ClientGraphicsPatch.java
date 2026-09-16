@@ -92,6 +92,9 @@ public final class ClientGraphicsPatch {
             URL executor = ClientGraphicsPatch.class.getClassLoader().getResource(ClientJobPatch.EXECUTOR);
             if (executor == null) throw new IOException("CLIENT_EXECUTOR_MISSING");
             classes.put(ClientJobPatch.EXECUTOR, ClientJobPatch.prepare(read(executor.openStream())));
+            URL renderer = ClientGraphicsPatch.class.getClassLoader().getResource(ClientGuiPatch.RENDERER);
+            if (renderer == null) throw new IOException("CLIENT_GUI_RENDERER_MISSING");
+            classes.put(ClientGuiPatch.RENDERER, ClientGuiPatch.prepare(read(renderer.openStream())));
         }
         if (ClientTextBuffers.enabled()) {
             for (String name : new java.util.TreeSet<>(ClientTextPatch.ORIGINALS.keySet())) {
@@ -142,7 +145,7 @@ public final class ClientGraphicsPatch {
         try (var jar = new JarFile(path)) {
             var names = new java.util.TreeSet<>(ClientBuffers.ORIGINALS.keySet()); names.add(ENGINE);
             names.add(ClientWorldGc.WORLD); names.add(ClientSoundResources.RESOURCE); names.add(ClientSoundResources.MAPPINGS);
-            if (ClientJobProfiler.enabled()) names.add(ClientJobPatch.EXECUTOR);
+            if (ClientJobProfiler.enabled()) { names.add(ClientJobPatch.EXECUTOR); names.add(ClientGuiPatch.RENDERER); }
             names.addAll(ClientShaderResources.ORIGINALS.keySet());
             if (ClientTextBuffers.enabled()) names.addAll(ClientTextPatch.ORIGINALS.keySet());
             names.add(ClientSettingsPatch.HUD);
@@ -162,6 +165,7 @@ public final class ClientGraphicsPatch {
             String name = item.getKey(); byte[] bytes = item.getValue();
             boolean shader = ClientShaderResources.ORIGINALS.containsKey(name);
             if (ClientTextPatch.ORIGINALS.containsKey(name)) ClientTextPatch.verify(name, bytes);
+            else if (name.equals(ClientGuiPatch.RENDERER)) ClientGuiPatch.verify(bytes);
             else if (name.equals(ClientJobPatch.EXECUTOR)) ClientJobPatch.verify(bytes);
             else if (name.equals(ClientWorldGc.WORLD)) ClientWorldGc.verify(bytes);
             else if (name.equals(ClientSoundResources.MAPPINGS)) ClientSoundResources.verifyMappings(bytes);
@@ -172,7 +176,7 @@ public final class ClientGraphicsPatch {
             URL selected = ClientGraphicsPatch.class.getClassLoader().getResource(name);
             if (selected == null || !sha(read(selected.openStream())).equals(sha(bytes)))
                 throw new IOException("CLIENT_GRAPHICS_PATCH_NOT_SELECTED: classpath order mismatch " + name);
-            log((ClientTextPatch.ORIGINALS.containsKey(name) ? "TEXT_BUFFER_PATCH_ACTIVE" : name.equals(ClientJobPatch.EXECUTOR) ? "JOB_PROFILING_PATCH_ACTIVE" : name.equals(ClientWorldGc.WORLD) ? "WORLD_GC_PATCH_ACTIVE" : name.equals(ClientSoundResources.RESOURCE) || name.equals(ClientSoundResources.MAPPINGS) ? "SOUND_FALLBACK_ACTIVE" : name.equals(ClientSettingsPatch.HUD) ? "SETTINGS_PATCH_ACTIVE" : shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
+            log((ClientTextPatch.ORIGINALS.containsKey(name) ? "TEXT_BUFFER_PATCH_ACTIVE" : name.equals(ClientGuiPatch.RENDERER) ? "GUI_PROFILING_PATCH_ACTIVE" : name.equals(ClientJobPatch.EXECUTOR) ? "JOB_PROFILING_PATCH_ACTIVE" : name.equals(ClientWorldGc.WORLD) ? "WORLD_GC_PATCH_ACTIVE" : name.equals(ClientSoundResources.RESOURCE) || name.equals(ClientSoundResources.MAPPINGS) ? "SOUND_FALLBACK_ACTIVE" : name.equals(ClientSettingsPatch.HUD) ? "SETTINGS_PATCH_ACTIVE" : shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
         }
     }
 }

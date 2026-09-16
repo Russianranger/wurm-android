@@ -2,7 +2,48 @@
 
 Updated: 2026-09-16. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.49 oak and stone launcher
+## Current work — 0.10.50 GUI/frame attribution
+
+User resumed performance work: remaining GUI allocations, then 60 FPS rendering/
+readback slowdown. Exact support6 and private client were recovered and hashes
+match the previous review. No new on-device evidence exists after 0.10.48.
+Implementation and full local host verification are complete; Android CI and
+published-APK verification are in progress. Stay on
+`mod-launcher-test`; main and prior releases/data remain preserved. Version
+0.10.50/code 64 uses separate `.guiframe` package and `v0.10.50-gui-frame`.
+See [CLIENT_GUI_FRAME_TEST.md](CLIENT_GUI_FRAME_TEST.md).
+
+- Existing job recording now also attributes six verified GUI call sites to
+  top-level component classes and overlays. Same five-minute sampler/lifecycle;
+  fixed 128-pair table, all retained GUI rows printed, no receiver/queue retention.
+  Production overlay is hash-pinned and byte-exact reversible. Exact imported
+  renderer passes JVM verification; authored execution tests preserve dispatch,
+  arguments and exception identity. Warmed 100,000-call host measurement:
+  128 bytes recording, zero idle. The device GUI spike is not yet attributed.
+- Reusable frame publisher preserves exact V3 pixels and atomic open-reader
+  lifetime, handles resize and releases views on close. Local 2,000-frame heap
+  comparison: 3,104,120 to 1,136,000 bytes (~63% publisher-only reduction).
+  Channel/open/rename allocations remain; no device FPS or GUI savings claim.
+- Frame logs now expose work between swaps, pacing, capture checks/restoration,
+  readback and EGL swap, with maxima/counts/size and reset on target/size changes.
+  Readback includes pending rendering; no thermal cause is proven. No GPU
+  synchronization, readback algorithm, heap/GC policy or text-pool change.
+- New focused tests cover exact patch reversal/verifier, bounded/non-retaining
+  scopes, original exceptions, atomic frame readers, publication failures,
+  ownership, resize, pack restoration and frame-stage observations. Existing
+  full-overlay expected counts updated for the extra optional renderer class.
+- Full local host suite: 212 tests, 37 expected unavailable fixture/platform
+  skips, no failures. It includes all exact-client text-buffer/geometry/release
+  regressions and all four job-profiling/text-reuse overlay combinations.
+  The final GUI fixture additionally waits for the initial sampler snapshot
+  before asserting per-window counts; its focused rerun passes (192 recording
+  bytes / 100,000 calls, zero idle).
+- Next device test: five-minute 30 FPS then matched 60 FPS recordings, same
+  location/camera, with the documented normal/chat+inventory/normal/map/normal
+  minute sequence. Use new GUI rows before choosing another game allocator.
+  Do not characterize this attribution build as a completed GUI/60 FPS fix.
+
+## Previous release — 0.10.49 oak and stone launcher
 
 User paused performance testing and requested a large oak/fantastical W APK icon,
 fantasy homestead/exploration backgrounds for each tab, medieval typography and

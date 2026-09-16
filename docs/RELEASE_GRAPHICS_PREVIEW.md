@@ -1,3 +1,24 @@
+# 0.10.50 — GUI allocation tracing and frame publisher reuse
+
+The five-minute memory recorder now identifies top-level GUI components and
+hover/message overlays. This supplies the missing evidence for the remaining
+GUI allocation spikes. A reusable frame publisher removes metadata allocation
+churn, and frame timings separate client work, pacing, readback, publication and
+EGL swap. The oak theme and successful text-buffer reuse remain.
+
+Host verification passes for exact-client overlay reversal/JVM verification,
+original dispatch/exception behavior, bounded recording and pixel/atomic-reader
+correctness. Publisher-only heap allocation falls about 63% in the local fixture.
+This is not a device GUI-allocation reduction or a sustained-60-FPS result.
+
+Save/stop both runtimes and export a backup before restoring into the separate
+`.guiframe` app. Enable job profiling and text reuse before launch; leave periodic
+cleanup enabled. Record five minutes at 30 FPS, then five at 60 FPS in the same
+location with the same UI sequence. See CLIENT_GUI_FRAME_TEST.md for the short
+sequence and interpretation limits. Export support after normal save/stop.
+
+---
+
 # 0.10.49 — oak and stone launcher
 
 An ancient oak and golden fantastical W now identify the APK and opening splash.

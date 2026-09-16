@@ -45,7 +45,8 @@ public final class ClientJobProfiler {
         try { sampler.start(); }
         catch (RuntimeException | LinkageError failure) { active=null; log("UNAVAILABLE reason="+failure.getClass().getSimpleName()); }
     }
-    private static long allocated() {
+    static Capture current() { return active; }
+    static long allocated() {
         try { return counters==null?-1:counters.getCurrentThreadAllocatedBytes(); }
         catch (RuntimeException | LinkageError unavailable) { return -1; }
     }
@@ -83,7 +84,7 @@ public final class ClientJobProfiler {
         } catch (InterruptedException stop) { reason="cancelled"; Thread.currentThread().interrupt(); }
         catch (RuntimeException | LinkageError failure) { reason="unavailable-"+failure.getClass().getSimpleName(); }
         finally {
-            capture.cancelled=true;
+            capture.cancelled=true; capture.gui.cancelled=true;
             synchronized(ClientJobProfiler.class) {
                 try {
                     emit(capture,true);
@@ -94,14 +95,17 @@ public final class ClientJobProfiler {
         }
     }
     private static void emit(Capture capture,boolean last) {
-        Snapshot snapshot=capture.snapshot();
-        log("JOBS windowMs="+snapshot.elapsedMs+" completed="+snapshot.completed+" observedAllocatedBytes="+snapshot.bytes+
+        emitRows(capture.snapshot(),last,false);
+        emitRows(capture.gui.snapshot(),last,true);
+    }
+    private static void emitRows(Snapshot snapshot,boolean last,boolean gui) {
+        log((gui?"GUI_SCOPES":"JOBS")+" windowMs="+snapshot.elapsedMs+" completed="+snapshot.completed+" observedAllocatedBytes="+snapshot.bytes+
             " unavailable="+snapshot.unavailable+" omitted="+snapshot.omitted+" pairs="+snapshot.rows.size()+" final="+last+
-            "; excludes callbacks, waiting, incomplete jobs and non-job threads; elapsed includes GC/scheduling");
+            (gui?"; top-level component subtrees and overlays; nested calls included, scope totals exclude renderer remainder; elapsed includes GC/scheduling":"; excludes callbacks, waiting, incomplete jobs and non-job threads; elapsed includes GC/scheduling"));
         int printed=0;
         for(Row row:snapshot.rows) {
-            if(printed++==TOP) break;
-            log("JOB threadId="+row.id+" thread="+row.thread+" class="+row.job+" calls="+row.calls+
+            if(printed++==(gui?PAIRS:TOP)) break;
+            log((gui?"GUI":"JOB")+" threadId="+row.id+" thread="+row.thread+" class="+row.job+" calls="+row.calls+
                 " allocatedBytes="+row.bytes+" elapsedMs="+(row.nanos/1_000_000)+" failed="+row.failed+" unavailable="+row.unavailable);
         }
     }
@@ -118,12 +122,14 @@ public final class ClientJobProfiler {
         final long started,budget;
         volatile boolean cancelled;
         Thread sampler;
+        final Capture gui;
         private final Row[] rows=new Row[PAIRS];
         private int size;
         private long completed,bytes,unavailable,omitted,previous;
-        Capture(long started,long budget) { this.started=started; this.budget=budget; previous=started; }
+        Capture(long started,long budget) { this(started,budget,true); }
+        private Capture(long started,long budget,boolean scopes) { this.started=started; this.budget=budget; previous=started; gui=scopes?new Capture(started,budget,false):null; }
         boolean accepts(long now) { return !cancelled && now-started<budget; }
-        void cancel() { cancelled=true; if(sampler!=null) sampler.interrupt(); }
+        void cancel() { cancelled=true; if(gui!=null)gui.cancel(); if(sampler!=null) sampler.interrupt(); }
         synchronized void add(long id,String thread,String job,long allocated,long elapsed,boolean success) {
             if(!accepts(System.nanoTime())) return;
             Row row=null;
@@ -144,7 +150,7 @@ public final class ClientJobProfiler {
             long now=System.nanoTime(); Snapshot snapshot=new Snapshot((now-previous)/1_000_000,completed,bytes,unavailable,omitted,result);
             previous=now; completed=bytes=unavailable=omitted=0; return snapshot;
         }
-        synchronized void clear() { Arrays.fill(rows,null); size=0; }
+        synchronized void clear() { Arrays.fill(rows,null); size=0; if(gui!=null)gui.clear(); }
         synchronized int retainedPairs() { return size; }
     }
     static String safe(String value,int limit) {

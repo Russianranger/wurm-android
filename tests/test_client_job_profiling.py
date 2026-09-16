@@ -36,7 +36,7 @@ public class JobFixture {
   System.setProperty("wurm.client.jobProfiling","true"); ClientJobProfiler.prepare();
   if(args[0].equals("overlay")) {
    System.setProperty("wurm.client.offscreenOverlay",args[1]);ClientGraphicsPatch.prepare();
-   try(var jar=new java.util.jar.JarFile(args[1])){check(jar.size()==10);}
+   try(var jar=new java.util.jar.JarFile(args[1])){check(jar.size()==11);}
    System.out.println("PRIVATE_JOB_OVERLAY_READY");return;
   }
   if(args[0].equals("verify-overlay")) {

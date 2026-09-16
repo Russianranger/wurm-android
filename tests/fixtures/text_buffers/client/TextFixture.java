@@ -56,7 +56,7 @@ public final class TextFixture {
             System.setProperty("wurm.client.offscreenOverlay",args[1]);
             System.setProperty("wurm.client.reuseTextBuffers",args[2]);System.setProperty("wurm.client.jobProfiling",args[3]);
             if(args[0].equals("prepare-overlay"))ClientGraphicsPatch.prepare();else ClientGraphicsPatch.verifySelected();
-            try(var jar=new JarFile(args[1])){check(jar.size()==9+(Boolean.parseBoolean(args[2])?3:0)+(Boolean.parseBoolean(args[3])?1:0));}
+            try(var jar=new JarFile(args[1])){check(jar.size()==9+(Boolean.parseBoolean(args[2])?3:0)+(Boolean.parseBoolean(args[3])?2:0));}
             System.out.println("TEXT_FULL_OVERLAY_PASS");return;
         }
         setup(!args[0].endsWith("baseline"));

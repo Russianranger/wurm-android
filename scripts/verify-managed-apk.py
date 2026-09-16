@@ -58,7 +58,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
         assert b"client/ClientAllocationMeasurements" in helper.read("client/ClientBootstrap.class")
         assert b"observedAllocatedBytes" in helper.read("client/ClientAllocationMeasurements.class")
-        for name in ("ClientJobPatch", "ClientJobProfiler", "ClientJobProfiler$Capture", "ClientJobProfiler$Row", "ClientJobProfiler$Snapshot"):
+        for name in ("ClientGuiPatch", "ClientGuiProfiler", "ClientJobPatch", "ClientJobProfiler", "ClientJobProfiler$Capture", "ClientJobProfiler$Row", "ClientJobProfiler$Snapshot"):
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
         for name in ("ClientTextBuffers", "ClientTextPatch", "ClientTextPatch$File", "ClientTextPatch$Entry", "ClientTextPatch$Attribute", "ClientTextPatch$Member"):
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
@@ -115,7 +115,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert hashlib.sha256(apk.read("assets/"+name)).hexdigest() == digest
     assert "lib/arm64-v8a/liblwjgl.so" not in apk.namelist(), "Graphics test must not replace imported LWJGL2 native lookup"
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/graphics-probe.jar"))) as probe:
-        assert set(probe.namelist()) == {"wurm/graphics/GraphicsProbe.class", "wurm/graphics/GlChecks.class", "wurm/graphics/FrameFile.class", "wurm/graphics/NativeEgl.class", "wurm/graphics/LibraryNames.class"}
+        assert set(probe.namelist()) == {"wurm/graphics/GraphicsProbe.class", "wurm/graphics/GlChecks.class", "wurm/graphics/FrameFile.class", "wurm/graphics/FrameFile$RawWriter.class", "wurm/graphics/NativeEgl.class", "wurm/graphics/LibraryNames.class"}
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/pojav-wurm-api.jar"))) as adapter:
         assert b"canQueueInput" in adapter.read("org/lwjgl/input/GLFWInputImplementation.class")
         assert b"remainingEvents" in adapter.read("org/lwjgl/input/EventQueue.class")
@@ -128,6 +128,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
         assert b"FPS_APPLIED target=" in window.read("wurm/graphics/WindowBackend.class")
+        assert b"clientWorkMs=" in window.read("wurm/graphics/WindowBackend.class")
+        assert b"wurm/graphics/FrameFile$RawWriter" in window.read("wurm/graphics/WindowBackend.class")
         assert b"MEMORY start" in window.read("wurm/graphics/WindowBackend.class")
         assert b"canApply" in window.read("wurm/graphics/WindowBackend.class")
         assert b"KEYCHAR" in window.read("wurm/graphics/WindowInput.class")
