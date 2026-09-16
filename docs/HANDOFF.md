@@ -2,10 +2,10 @@
 
 Updated: 2026-09-16. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.51 inventory and frame delivery
+## Latest release — 0.10.51 inventory and frame delivery
 
 User authorized resolving the support7 findings. Version 0.10.51/code 65 uses
-separate `.inventoryframes` package, branch `mod-launcher-test`, intended tag
+separate `.inventoryframes` package, branch `mod-launcher-test`, immutable tag
 `v0.10.51-inventory-frames`. Main and old releases remain preserved. See
 [CLIENT_INVENTORY_FRAME_FIX.md](CLIENT_INVENTORY_FRAME_FIX.md).
 
@@ -29,8 +29,45 @@ separate `.inventoryframes` package, branch `mod-launcher-test`, intended tag
   cleanup skipping off. No forced GC, heap limit or GPU policy changes.
 - Full local host suite passes: 215 tests, 37 expected unavailable fixture/platform
   skips, no failures. Includes exact private inventory/GUI/text overlays and all
-  text-reuse/profiling combinations. Android CI and released-APK verification are
-  pending; update this entry with final results/provenance before handing off.
+  text-reuse/profiling combinations. Android CI and downloaded-APK verification
+  are now complete. Next step is the documented matched on-device comparison.
+
+Released from commit `fd00614b7ef746fc11934a95e92b2c04b0425751`, tree
+`f3f80fe5a7a810727be4de16725fd2584c00ec00`; immutable tag points to that
+commit. Main independently remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- [Download 0.10.51](https://github.com/Russianranger/wurm-android/releases/download/v0.10.51-inventory-frames/Wurm-Server.apk),
+  69,352,606 bytes, SHA-256
+  `8f5ac3aab5bb4c540d71e470124d881048f6899ca69c459ccc66b79ddc652c65`.
+  Published 2026-09-16T09:44:38Z as a prerelease with 63 assets. APK and new test
+  guide match the downloaded SHA256SUMS and GitHub asset digests; guide also
+  matches tagged source, SHA-256
+  `d004f7dcdc2623eba2eb22ea20510211747cd057adf3109304b30f7214ee0f1e`.
+- [CI 35080246140](https://github.com/Russianranger/wurm-android/actions/runs/35080246140)
+  passes: build `104742246579`, publisher `104744997367`. CI host suite passes
+  215 tests with 34 expected private/platform skips. All three Android variants
+  build, unit test and lint successfully; native graphics/input, packaging,
+  source and signature checks pass. Expected host EGL skip remains. CI matcher
+  allocation is 91,072,520 -> 6,167,848 bytes (about 93.2% for the isolated check).
+- Downloaded manifest confirms `0.10.51-managed-preview`, code 65, package
+  `io.github.russianranger.wurmlauncher.inventoryframes`. Managed verifier and
+  independent APK v2 verification pass. Certificate SHA-256
+  `2902aff0f1456fd3f2852707b52231d35b9ff26b81d795292c82a855ded3f8d4`
+  matches CI; prior apps/signatures/data remain preserved by the separate package.
+- All seven focused tests pass against downloaded runtime bytecode: exact private
+  inventory/GUI patch verification, matcher semantics/allocation/retention,
+  asynchronous publisher ownership/backpressure/atomicity/errors, both window
+  publication modes and existing raw publisher behavior. Shipped matcher result
+  is 89,600,000 -> 5,600,000 heap bytes per 100,000 calls; GUI wrapper measured zero
+  heap bytes in both active and idle loops. No device FPS or leak-fix claim.
+- Versus 0.10.50, seven of nine JVM JARs have identical members. Changed members
+  are only ClientGraphicsPatch, ClientGuiPatch, new inventory matcher/patch,
+  WindowBackend and new FramePublisher classes. All 194 JRE-data ZIP members,
+  fantasy WebP images and medieval font are identical. ZIP container metadata
+  differs; comparing extracted members confirms unchanged runtime content.
+  Of 40 native libraries, 39 match byte-for-byte; GL4ES differs only in its
+  20-byte GNU build ID and five ASCII build-time digits. No native rendering
+  implementation changed. This final maintenance commit changes handoff only.
 
 ## Previous release — 0.10.50 GUI/frame attribution
 
