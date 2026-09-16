@@ -17,6 +17,15 @@ tiles. This release implements that appearance in the managed launcher.
 - Content centers at up to 760 dp on wide displays. Natural content heights and
   horizontal tab scrolling accommodate narrow screens and larger system text.
 
+The fresh-install Client landscape screen renders as follows. The disabled Play
+button is expected until runtime imports or a full backup are restored.
+
+![Client landscape preview](screenshots/oak-client-landscape.webp)
+
+This is a UI-only software-emulator capture. Emulator Android system stalls
+limited the remaining-tab, portrait and large-text review; check those on the
+actual device. No performance result is inferred from this emulator.
+
 ## Asset provenance and bounds
 
 Five original paintings were created with the built-in image generation tool.
@@ -48,10 +57,14 @@ Runtime-probe, native and game renderer sources are unchanged. FPS options and
 the verified 0.10.48 text buffer release fix remain in place. Performance/memory
 investigation resumes after visual review; this is not a performance fix.
 
-Build, lint, UI review and published-APK results will be recorded in HANDOFF.md.
+Build, lint and independent published-APK checks passed; release details and
+visual-review limits are recorded in HANDOFF.md.
 If a local UI-only APK is used for emulator inspection, it deliberately omits
 runtime/native preparation and must never be offered as the installable release.
 The shipped APK is always produced by the complete existing CI pipeline.
+This release passed that full pipeline and its downloaded signature/checksum
+checks. The theme documents are in the tagged repository and build artifact;
+the first release asset list omitted their standalone copies.
 
 ## Device review
 

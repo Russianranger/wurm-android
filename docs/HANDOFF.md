@@ -2,7 +2,7 @@
 
 Updated: 2026-09-16. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.49 oak and stone launcher
+## Latest release — 0.10.49 oak and stone launcher
 
 User paused performance testing and requested a large oak/fantastical W APK icon,
 fantasy homestead/exploration backgrounds for each tab, medieval typography and
@@ -15,9 +15,50 @@ as bounded-size WebP resources. Each of the existing four tabs has its own scene
 MedievalSharp is bundled with its OFL license. LauncherUI buttons and sections,
 header, adaptive icon/splash, page panels and managed theme are updated. Only
 one scene is referenced at a time and it is released in onStop. No runtime-probe,
-native, game font/rendering or storage logic change. Build/release verification
-is pending until recorded below. Next technical work remains allocation/readback
+native, game font/rendering or storage logic change. Build and published-APK verification
+are complete as recorded below. Next technical work remains allocation/readback
 from the review below; do not interpret the visual release as a performance fix.
+
+Released from commit `d336de3c8fd77743635f2ae71cacb2afcf60ccfd`, tree
+`2510bb18b06daeff3efcadf1dd4c8a120ae832ce`. The immutable tag points to that
+commit. Main is still `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- [Download 0.10.49](https://github.com/Russianranger/wurm-android/releases/download/v0.10.49-oak-theme/Wurm-Server.apk),
+  69,329,994 bytes; SHA-256
+  `a853dbd29a266d53ca4579d800dc3d52189435e75ba214002866e18f61176a3d`.
+  Published 2026-09-16T01:17:49Z as a prerelease, 59 assets. Downloaded APK
+  matches both GitHub's asset digest and SHA256SUMS. The release publisher's
+  explicit asset list omitted the two new theme documents; they are available
+  in the tagged repository and build artifact. The following maintenance commit
+  includes them in future publications; this APK/tag is left unchanged.
+- [CI 35042772039](https://github.com/Russianranger/wurm-android/actions/runs/35042772039)
+  passes. Build job `104625991245`, publisher `104628146389`. The host suite
+  passes 208 tests with 32 expected unavailable/private/platform skips. All
+  three Android variants pass build, unit tests and lint; native/input and
+  source/packaging/signature gates pass. Expected host-EGL skip remains.
+- Independent downloaded-APK checks pass: version `0.10.49-managed-preview`,
+  code 63, package `io.github.russianranger.wurmlauncher.oaktheme`, APK v2
+  signature and managed runtime verifier. Certificate SHA-256
+  `61734f573f2abe0dd88d927fdb097583647aa76b5a2849c50823f49adcc7144f`
+  matches CI. Five WebP images, medieval font and its full OFL license are
+  present in the published APK.
+- Every member of all nine JVM JARs and the 194-member JRE data ZIP matches
+  0.10.48, including runtime-probe (73), client compatibility (20), graphics
+  probe (5), window (27) and LWJGL API (1,573). Of 40 native libraries, 39 are
+  identical. GL4ES has exactly 26 different bytes: 20 GNU build-ID bytes plus
+  six compilation date/time digits. Native code and JVM behavior are unchanged.
+- Local UI-only assembly and lint pass (zero lint errors). The visual-check APK
+  deliberately omits native/runtime preparation and is never distributed.
+  The Client landscape screen was visually inspected at 1280×800/213 dpi;
+  oak icon, medieval font, selected tab, panel contrast and control layout render
+  correctly. A fresh-install screenshot is saved under
+  `docs/screenshots/oak-client-landscape.webp` (runtime imports are absent).
+  Software-emulated Android 33 first boot took about 16 minutes. Its System UI
+  had to be disabled locally to obtain that view; subsequent Android system ANRs
+  prevented reliable remaining-tab, portrait and large-font verification. These
+  test-emulator changes are not in the APK and are not user-device evidence.
+  Physical-device visual review remains required. No new gameplay recording is
+  requested. Do not claim all layouts were verified on a device.
 
 ## Previous release — 0.10.48 completed text buffer release fix
 
