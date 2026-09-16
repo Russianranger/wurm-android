@@ -2,13 +2,13 @@
 
 Updated: 2026-09-16. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.50 GUI/frame attribution
+## Latest release — 0.10.50 GUI/frame attribution
 
 User resumed performance work: remaining GUI allocations, then 60 FPS rendering/
 readback slowdown. Exact support6 and private client were recovered and hashes
 match the previous review. No new on-device evidence exists after 0.10.48.
-Implementation and full local host verification are complete; Android CI and
-published-APK verification are in progress. Stay on
+Implementation, full local host verification, Android CI and downloaded-APK
+verification are complete. Stay on
 `mod-launcher-test`; main and prior releases/data remain preserved. Version
 0.10.50/code 64 uses separate `.guiframe` package and `v0.10.50-gui-frame`.
 See [CLIENT_GUI_FRAME_TEST.md](CLIENT_GUI_FRAME_TEST.md).
@@ -42,6 +42,47 @@ See [CLIENT_GUI_FRAME_TEST.md](CLIENT_GUI_FRAME_TEST.md).
   location/camera, with the documented normal/chat+inventory/normal/map/normal
   minute sequence. Use new GUI rows before choosing another game allocator.
   Do not characterize this attribution build as a completed GUI/60 FPS fix.
+
+Released from commit `4000442fbb924b21c6dc03122628560e2a3a11dc`, tree
+`1a84584ba5d0b5db06c37282dd6c8a275d693a14`; immutable tag points to that
+commit. Main independently remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- [Download 0.10.50](https://github.com/Russianranger/wurm-android/releases/download/v0.10.50-gui-frame/Wurm-Server.apk),
+  69,342,286 bytes, SHA-256
+  `7d398e93125abe7b51b74de7dd416a3a8c7445ae66b519e197d6c339f4c51109`.
+  Published 2026-09-16T06:55:46Z as a prerelease with 62 assets. APK matches
+  SHA256SUMS and GitHub asset digest. New guide matches tagged source and GitHub
+  digest `a934129a2ce394484bd00ae38968fedf781a018bcdd9f3dbc85ded17dae75596`.
+  The existing manually enumerated checksum command omitted the new guide/theme
+  documents; this maintenance commit adds them for future releases. Published
+  APK, guide, checksum manifest and tag are left unchanged.
+- [CI 35065373784](https://github.com/Russianranger/wurm-android/actions/runs/35065373784)
+  passes: build `104694361360`, publisher `104696153621`. Full CI host suite
+  passes 212 tests with 33 expected private/platform skips. All three Android
+  variants build, unit test and lint successfully; native graphics/input,
+  packaging, source and signature gates pass. Expected host EGL skip remains.
+- Downloaded binary manifest confirms `0.10.50-managed-preview`, code 64,
+  `io.github.russianranger.wurmlauncher.guiframe`. Managed verifier and independent
+  APK v2 verification pass. Certificate SHA-256
+  `908f2544dc1beac3d6f8b10af282599f57fa9c24a10b6cc8f469fd8f8291276a`
+  matches CI. Prior apps and their signatures/data are preserved.
+- Shipped-bytecode checks pass all four focused tests: exact private renderer
+  reversal/JVM verification, GUI dispatch/retention/recording, WindowBackend swap
+  semantics/stages and RawWriter atomicity/allocation. Published GUI wrapper:
+  192 bytes per 100,000 recording calls, zero idle. Published publisher: 3,104,248
+  to 1,136,664 heap bytes for 2,000 frames. The initial shipped-window check found
+  the authored GL stub had a void createCapabilities signature and placeholder
+  enum values. This maintenance commit corrects the fixture to the real return
+  descriptor and enum values; the shipped window then passes. No production
+  bytecode/APK change was needed. This remains host boundary evidence, not device
+  gameplay/GPU performance qualification.
+- Versus 0.10.49, six of nine JVM JARs have identical members. Changed members
+  are only ClientGraphicsPatch, new GUI helper/adapter classes, ClientJobProfiler
+  and its nested classes, FrameFile/RawWriter and WindowBackend. Text pool and
+  original text adapters are byte-identical. All 194 JRE-data members, fantasy
+  WebP images and medieval font are identical. Of 40 native libraries, 39 match;
+  GL4ES differs only in its 20-byte GNU build ID and three build-time digits.
+  No native rendering implementation changed.
 
 ## Previous release — 0.10.49 oak and stone launcher
 

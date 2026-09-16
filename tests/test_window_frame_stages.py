@@ -3,16 +3,17 @@ from pathlib import Path
 import subprocess,tempfile,unittest,re
 ROOT=Path(__file__).resolve().parents[1]
 SOURCES={
-'org/lwjgl/opengl/GL.java':'''package org.lwjgl.opengl;public class GL{public static void create(String s){}public static void createCapabilities(){}public static void destroy(){}}''',
+'org/lwjgl/opengl/GL.java':'''package org.lwjgl.opengl;public class GL{public static void create(String s){}public static GLCapabilities createCapabilities(){return new GLCapabilities();}public static void destroy(){}}''',
+'org/lwjgl/opengl/GLCapabilities.java':'package org.lwjgl.opengl;public class GLCapabilities{}',
 'org/lwjgl/glfw/GLFW.java':'''package org.lwjgl.glfw;public class GLFW{public static void glfwSetWindowShouldClose(long w,boolean b){}}''',
 'org/lwjgl/opengl/GL11.java':'''package org.lwjgl.opengl;import java.nio.*;
 public class GL11{
- public static final int GL_VERSION=1,GL_RENDERER=2,GL_NO_ERROR=0,GL_PACK_ALIGNMENT=3,GL_PACK_ROW_LENGTH=4,GL_PACK_SKIP_ROWS=5,GL_PACK_SKIP_PIXELS=6,GL_RGBA=7,GL_UNSIGNED_BYTE=8;
- public static final int[] pack={0,0,0,8,9,10,11};public static boolean fail;public static int finishes,reads;
+ public static final int GL_VERSION=0x1F02,GL_RENDERER=0x1F01,GL_NO_ERROR=0,GL_PACK_ALIGNMENT=0xD05,GL_PACK_ROW_LENGTH=0xD02,GL_PACK_SKIP_ROWS=0xD03,GL_PACK_SKIP_PIXELS=0xD04,GL_RGBA=0x1908,GL_UNSIGNED_BYTE=0x1401;
+ public static final int[] pack=new int[0xD06];static{pack[GL_PACK_ALIGNMENT]=8;pack[GL_PACK_ROW_LENGTH]=9;pack[GL_PACK_SKIP_ROWS]=10;pack[GL_PACK_SKIP_PIXELS]=11;}public static boolean fail;public static int finishes,reads;
  public static String glGetString(int p){return "fixture";}public static int glGetError(){return 0;}
  public static int glGetInteger(int p){return pack[p];}public static void glPixelStorei(int p,int v){pack[p]=v;}
  public static void glReadPixels(int x,int y,int w,int h,int f,int t,ByteBuffer b){
-  if(pack[3]!=1||pack[4]!=0||pack[5]!=0||pack[6]!=0)throw new AssertionError("pack setup");
+  if(pack[GL_PACK_ALIGNMENT]!=1||pack[GL_PACK_ROW_LENGTH]!=0||pack[GL_PACK_SKIP_ROWS]!=0||pack[GL_PACK_SKIP_PIXELS]!=0)throw new AssertionError("pack setup");
   if(fail)throw new IllegalStateException("read failure");reads++;try{Thread.sleep(3);}catch(InterruptedException e){throw new AssertionError(e);}
   for(int i=0;i<w*h*4;i++)b.put(i,(byte)(i*13));
  }public static void glFlush(){}public static void glFinish(){finishes++;}}
@@ -30,7 +31,7 @@ public class WindowCheck{
  static void check(boolean b){if(!b)throw new AssertionError();}
  static void set(String key,long value)throws Exception{var f=WindowBackend.class.getDeclaredField(key);f.setAccessible(true);f.setLong(null,value);}
  static long get(String key)throws Exception{var f=WindowBackend.class.getDeclaredField(key);f.setAccessible(true);return f.getLong(null);}
- static void packed(){check(Arrays.equals(GL11.pack,new int[]{0,0,0,8,9,10,11}));}
+ static void packed(){check(GL11.pack[GL11.GL_PACK_ALIGNMENT]==8&&GL11.pack[GL11.GL_PACK_ROW_LENGTH]==9&&GL11.pack[GL11.GL_PACK_SKIP_ROWS]==10&&GL11.pack[GL11.GL_PACK_SKIP_PIXELS]==11);}
  public static void main(String[] args)throws Exception{
   Path path=Path.of(args[0]);System.setProperty("wurm.graphics.frame",path.toString());System.setProperty("wurm.graphics.fps","60");
   WindowBackend.open(16,16);set("statsStart",System.nanoTime()-6_000_000_000L);set("previousEnd",System.nanoTime()-20_000_000L);
