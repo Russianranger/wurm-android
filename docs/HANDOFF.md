@@ -6,7 +6,16 @@ Updated: 2026-09-16. Keep this file current when investigating, changing, or rel
 
 User resumed performance work: remaining GUI allocations, then 60 FPS rendering/
 readback slowdown. Exact support6 and private client were recovered and hashes
-match the previous review. No new on-device evidence exists after 0.10.48.
+match the previous review. The user's new support7 bundle now provides two full
+five-minute recordings on 0.10.50. See
+[CLIENT_GUI_FRAME_DEVICE_REVIEW_20260916.md](CLIENT_GUI_FRAME_DEVICE_REVIEW_20260916.md).
+Both client sessions and server exit normally. InventoryWindow accounts for
+85.3%/87.6% of measured GUI heap allocation (45.3/40.4 KiB per render call).
+Text reuse remains effective. Viewer averages are 29.70/48.42 FPS; the 60 FPS
+frame budget is about 12.01 ms client work + 5.67 ms readback + 2.91 ms publication,
+with negligible pacing. Brief stalls align with GC. Memory remains substantial;
+this five-minute evidence neither establishes nor excludes a retained leak.
+Inventory render workloads differ between tests, so this is not an FPS-only A/B.
 Implementation, full local host verification, Android CI and downloaded-APK
 verification are complete. Stay on
 `mod-launcher-test`; main and prior releases/data remain preserved. Version
@@ -19,7 +28,9 @@ See [CLIENT_GUI_FRAME_TEST.md](CLIENT_GUI_FRAME_TEST.md).
   Production overlay is hash-pinned and byte-exact reversible. Exact imported
   renderer passes JVM verification; authored execution tests preserve dispatch,
   arguments and exception identity. Warmed 100,000-call host measurement:
-  128 bytes recording, zero idle. The device GUI spike is not yet attributed.
+  128 bytes recording, zero idle. Device attribution now identifies inventory
+  rendering as the dominant GUI allocator; the individual allocator still needs
+  local measurement before patching.
 - Reusable frame publisher preserves exact V3 pixels and atomic open-reader
   lifetime, handles resize and releases views on close. Local 2,000-frame heap
   comparison: 3,104,120 to 1,136,000 bytes (~63% publisher-only reduction).
@@ -38,10 +49,15 @@ See [CLIENT_GUI_FRAME_TEST.md](CLIENT_GUI_FRAME_TEST.md).
   The final GUI fixture additionally waits for the initial sampler snapshot
   before asserting per-window counts; its focused rerun passes (192 recording
   bytes / 100,000 calls, zero idle).
-- Next device test: five-minute 30 FPS then matched 60 FPS recordings, same
-  location/camera, with the documented normal/chat+inventory/normal/map/normal
-  minute sequence. Use new GUI rows before choosing another game allocator.
-  Do not characterize this attribution build as a completed GUI/60 FPS fix.
+- Next implementation: measure/optimize the numeric alignment check in
+  `WurmTreeList$TreeListPanel.renderComponent`. Exact private-client inspection
+  confirms per-column regex construction and String.matches in this render loop;
+  its individual share of device inventory allocation is not measured yet.
+  Preserve locale/alignment semantics, use bounded non-retaining state and the
+  existing exact/reversible overlay gates. No unchanged diagnostic rerun is
+  needed. Then validate inventory behavior/allocations on device and continue
+  with the remaining rendering/readback budget. This attribution build is not
+  a completed GUI/60 FPS fix. The support7 review changes documentation only.
 
 Released from commit `4000442fbb924b21c6dc03122628560e2a3a11dc`, tree
 `1a84584ba5d0b5db06c37282dd6c8a275d693a14`; immutable tag points to that
