@@ -22,6 +22,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val periodicGc: CheckBox
     private val jobProfiling: CheckBox
     private val textBuffers: CheckBox
+    private val backgroundFrames: CheckBox
     private fun label(text: String)=LauncherUi.label(target,text)
     private fun button(text: String, action: () -> Unit)=LauncherUi.button(target,text,action)
     private fun showReport(title: String, value: String) {
@@ -51,6 +52,12 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
             setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("reuse-text-buffers",checked).apply() }
         }
         label("Reuses completed text draws within a fixed memory limit. Turn off for a comparison or if text looks incorrect.")
+        backgroundFrames=CheckBox(activity).apply {
+            text="Background frame delivery · next client start"; isChecked=prefs.getBoolean("background-frames",true)
+            target.addView(this)
+            setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("background-frames",checked).apply() }
+        }
+        label("Lets frame delivery overlap the next game frame. Turn off for a performance comparison or if the display stutters.")
         jobProfiling=CheckBox(activity).apply {
             text="Enable job profiling · next client start"; isChecked=prefs.getBoolean("job-profiling",false)
             target.addView(this)
@@ -106,6 +113,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         periodicGc.isEnabled=!client.busy
         jobProfiling.isEnabled=!client.busy
         textBuffers.isEnabled=!client.busy
+        backgroundFrames.isEnabled=!client.busy
         status.updateText("Client: ${client.phase} · ${client.detail}\nServer: ${server.phase} · ${server.detail}")
         clientTests.forEach { it.isEnabled=!client.busy }
         serverTests.forEach { it.isEnabled=!server.busy }

@@ -75,9 +75,9 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.50\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.51\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
-            "Gate status: 0.10.48 device recordings confirmed successful text buffer reuse and clean exits. This build adds component-level GUI allocation recording, reuses frame publication metadata and separates frame-stage timings. Remaining GUI allocation spikes and sustained 60 FPS performance still need device attribution.\n\n" +
+            "Gate status: 0.10.50 device recordings attributed most GUI allocations to inventory rendering. This build reuses numeric alignment matchers and optionally delivers frames on a bounded background worker. Host verification passes; device allocation reduction and FPS improvement still need qualification.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
             (installed?.inventory ?: "No accepted client import.\n") + "\nController profile:\n" +
             profileFile(context).takeIf { it.isFile }?.readText().orEmpty() + "\nGraphics runtime:\n" +
@@ -221,6 +221,7 @@ object ClientSession {
     private fun run(context: Context, store: ClientStore, mode: String) {
         require(mode in listOf("start", "local", "input", "render", "window", "memory"))
         val verbose = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("verbose-diagnostics", false)
+        val backgroundFrames = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("background-frames", true)
         val skipPeriodicGc = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("skip-periodic-gc", false)
         val reuseTextBuffers = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("reuse-text-buffers", true)
         val jobProfiling = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("job-profiling", false)
@@ -335,6 +336,7 @@ object ClientSession {
                         "-Dorg.lwjgl.system.allocator=system",
                         "-Dwurm.graphics.trace=true",
                         "-Dwurm.graphics.fps=$frameFps",
+                        "-Dwurm.graphics.asyncPublication=$backgroundFrames",
                         "-Dwurm.graphics.library=${File(native, "libgl4es.so")}", "-Dwurm.graphics.frame=${graphicsFrame(context)}"
                     ) + when(stage) {
                         "render" -> listOf("wurm.graphics.GraphicsProbe", File(native,"libgl4es.so").absolutePath, graphicsFrame(context).absolutePath)

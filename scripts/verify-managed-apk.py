@@ -58,7 +58,7 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
         assert b"client/ClientAllocationMeasurements" in helper.read("client/ClientBootstrap.class")
         assert b"observedAllocatedBytes" in helper.read("client/ClientAllocationMeasurements.class")
-        for name in ("ClientGuiPatch", "ClientGuiProfiler", "ClientJobPatch", "ClientJobProfiler", "ClientJobProfiler$Capture", "ClientJobProfiler$Row", "ClientJobProfiler$Snapshot"):
+        for name in ("ClientInventoryPatch", "ClientInventoryNumbers", "ClientGuiPatch", "ClientGuiProfiler", "ClientJobPatch", "ClientJobProfiler", "ClientJobProfiler$Capture", "ClientJobProfiler$Row", "ClientJobProfiler$Snapshot"):
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
         for name in ("ClientTextBuffers", "ClientTextPatch", "ClientTextPatch$File", "ClientTextPatch$Entry", "ClientTextPatch$Attribute", "ClientTextPatch$Member"):
             assert int.from_bytes(helper.read("client/"+name+".class")[6:8], "big") == 61
@@ -69,6 +69,9 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"client/ClientTextBuffers" in helper.read("client/ClientGraphicsPatch.class")
         assert b"client/ClientTextBuffers" in helper.read("client/ClientJobProfiler.class")
         assert b"client/ClientTextBuffers" in helper.read("client/ClientAllocationMeasurements.class")
+        assert b"INVENTORY_REUSE_PATCH_ACTIVE" in helper.read("client/ClientGraphicsPatch.class")
+        assert b"background-frames" in dex
+        assert b"wurm.graphics.asyncPublication" in dex
         assert b"reuse-text-buffers" in dex
         assert b"wurm.client.jobProfiling" in helper.read("client/ClientJobProfiler.class")
         assert b"client/ClientJobProfiler" in helper.read("client/ClientBootstrap.class")
@@ -127,6 +130,9 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"wurm/graphics/GraphicsTrace" in adapter.read("org/lwjgl/opengl/GL20.class")
         assert not any(n.startswith(("com/wurmonline/", "SteamJni/")) for n in adapter.namelist())
     with zipfile.ZipFile(io.BytesIO(apk.read("assets/wurm-window.jar"))) as window:
+        assert b"publishWaitMs=" in window.read("wurm/graphics/WindowBackend.class")
+        assert b"wurm-frame-publisher" in window.read("wurm/graphics/FramePublisher.class")
+        assert b"FRAME_PUBLICATION_FAILED" in window.read("wurm/graphics/FramePublisher.class")
         assert b"FPS_APPLIED target=" in window.read("wurm/graphics/WindowBackend.class")
         assert b"clientWorkMs=" in window.read("wurm/graphics/WindowBackend.class")
         assert b"wurm/graphics/FrameFile$RawWriter" in window.read("wurm/graphics/WindowBackend.class")

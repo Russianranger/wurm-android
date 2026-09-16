@@ -16,6 +16,9 @@ public final class WindowBackend {
     private static long previousEnd, maxWorkNanos, maxReadbackNanos;
     private static int workSamples;
     private static FrameFile.RawWriter writer;
+    private static FramePublisher publisher;
+    private static long publishWaitNanos,maxPublishWaitNanos,writerFramesBaseline,writerNanosBaseline;
+    private static final boolean ASYNC_PUBLICATION=Boolean.getBoolean("wurm.graphics.asyncPublication");
     private static int swaps, published;
     private static ByteBuffer pixels;
     private static final ArrayBlockingQueue<String> events = new ArrayBlockingQueue<>(512);
@@ -30,9 +33,12 @@ public final class WindowBackend {
         owner = Thread.currentThread(); width = w; height = h;
         GL.create(System.getProperty("wurm.graphics.library"));
         GL.createCapabilities();
-        pixels = ByteBuffer.allocateDirect(w*h*4);
+        pixels = ASYNC_PUBLICATION ? null : ByteBuffer.allocateDirect(w*h*4);
         pointer = new WindowInput(w, h);
-        writer = new FrameFile.RawWriter(Path.of(System.getProperty("wurm.graphics.frame")));
+        Path framePath=Path.of(System.getProperty("wurm.graphics.frame"));
+        if(ASYNC_PUBLICATION)publisher=new FramePublisher(framePath,w,h);
+        else writer = new FrameFile.RawWriter(framePath);
+        System.out.println("[window] FRAME_PUBLICATION mode="+(ASYNC_PUBLICATION?"async":"sync")+" buffers="+(ASYNC_PUBLICATION?2:1)+" pixelBytes="+((ASYNC_PUBLICATION?2:1)*w*h*4));
         resetTiming();
         pacer = new FramePacer(Integer.getInteger("wurm.graphics.fps", 30));
         reportFps();
@@ -59,6 +65,8 @@ public final class WindowBackend {
     }
     private static void resetTiming() {
         statsStart=System.nanoTime();previousEnd=0;swaps=published=workSamples=0;
+        publishWaitNanos=maxPublishWaitNanos=0;
+        if(publisher!=null){var stats=publisher.stats();writerFramesBaseline=stats.frames();writerNanosBaseline=stats.nanos();}
         readbackNanos=publishNanos=workNanos=pacingNanos=setupNanos=restoreNanos=swapNanos=maxWorkNanos=maxReadbackNanos=0;
     }
     private static void reportFps() {
@@ -71,8 +79,11 @@ public final class WindowBackend {
         if (window != 1) throw new UnsupportedOperationException("Context detachment / thread transfer is not yet qualified");
     }
     public static void resize(int w, int h) {
-        owned(); NativeEgl.resize(w,h); width=w; height=h; pointer.resize(w,h);
-        pixels = ByteBuffer.allocateDirect(w*h*4);
+        owned();
+        if(publisher!=null)try{publisher.close();}catch(IOException e){throw new UncheckedIOException(e);}
+        NativeEgl.resize(w,h); width=w; height=h; pointer.resize(w,h);
+        if(ASYNC_PUBLICATION){publisher=new FramePublisher(Path.of(System.getProperty("wurm.graphics.frame")),w,h);pixels=null;}
+        else pixels = ByteBuffer.allocateDirect(w*h*4);
         resetTiming();
         System.out.println("[window] WINDOW_RESIZE " + w + "x" + h);
     }
@@ -134,6 +145,10 @@ public final class WindowBackend {
         long frameStart = System.nanoTime();
         pacingNanos+=frameStart-entered;
         {
+            long waitStart=System.nanoTime();
+            if(publisher!=null)try{pixels=publisher.acquire();}catch(IOException e){throw new UncheckedIOException(e);}
+            long waited=System.nanoTime()-waitStart;
+            publishWaitNanos+=waited;maxPublishWaitNanos=Math.max(maxPublishWaitNanos,waited);
             int before = glGetError();
             if (before != GL_NO_ERROR) throw new IllegalStateException("CLIENT_GL_ERROR before readback=0x"+Integer.toHexString(before)+
                 " frame="+(sequence+1)+" time="+java.time.Instant.now()+"; pending before capture; see graphics-error origin/candidates");
@@ -143,7 +158,7 @@ public final class WindowBackend {
                 glPixelStorei(GL_PACK_ALIGNMENT,1); pixels.clear();
                 glPixelStorei(GL_PACK_ROW_LENGTH,0); glPixelStorei(GL_PACK_SKIP_ROWS,0); glPixelStorei(GL_PACK_SKIP_PIXELS,0);
                 long readStart = System.nanoTime();
-                setupNanos+=readStart-frameStart;
+                setupNanos+=readStart-frameStart-waited;
                 glReadPixels(0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,pixels);
                 long readElapsed=System.nanoTime()-readStart;
                 readbackNanos+=readElapsed;maxReadbackNanos=Math.max(maxReadbackNanos,readElapsed);
@@ -151,7 +166,8 @@ public final class WindowBackend {
                 if (error != 0 || driver != 0) throw new IllegalStateException("FRAME_READBACK_ERROR GL="+error+" GLES="+driver);
                 long publishStart = System.nanoTime();
                 setupNanos+=publishStart-readStart-readElapsed;
-                writer.write(width,height,++sequence,pixels, pointer.displayX(), pointer.displayY(), pointer.visible(), pointer.applied());
+                if(publisher!=null){publisher.submit(++sequence,pointer.displayX(),pointer.displayY(),pointer.visible(),pointer.applied());pixels=null;}
+                else writer.write(width,height,++sequence,pixels, pointer.displayX(), pointer.displayY(), pointer.visible(), pointer.applied());
                 publishNanos += System.nanoTime() - publishStart; published++;
             } catch (IOException failure) { throw new UncheckedIOException(failure); }
             finally {
@@ -169,12 +185,15 @@ public final class WindowBackend {
         swapNanos+=now-swapStart;
         if (now - statsStart >= 5_000_000_000L) {
             double seconds = (now - statsStart) / 1e9;
+            FramePublisher.Stats writerStats=publisher==null?null:publisher.stats();
+            long writerSamples=writerStats==null?published:writerStats.frames()-writerFramesBaseline;
+            long writerTime=writerStats==null?publishNanos:writerStats.nanos()-writerNanosBaseline;
             System.out.println(String.format(java.util.Locale.ROOT,
-                "[window] FRAME_TIMING time=%s pid=%d renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=%d clientWorkMs=%.2f pacingMs=%.2f captureSetupMs=%.2f captureRestoreMs=%.2f eglSwapMs=%.2f maxClientWorkMs=%.2f maxReadbackMs=%.2f samples=%d workSamples=%d size=%dx%d",
+                "[window] FRAME_TIMING time=%s pid=%d renderFps=%.1f presentedFps=%.1f readbackMs=%.2f publishMs=%.2f targetFps=%d clientWorkMs=%.2f pacingMs=%.2f captureSetupMs=%.2f captureRestoreMs=%.2f eglSwapMs=%.2f maxClientWorkMs=%.2f maxReadbackMs=%.2f samples=%d workSamples=%d size=%dx%d publicationMode=%s publishWaitMs=%.2f maxPublishWaitMs=%.2f writerMs=%.2f writerSamples=%d pendingFrames=%d",
                 java.time.Instant.now(), ProcessHandle.current().pid(), swaps/seconds, published/seconds, readbackNanos/1e6/Math.max(1,published),
                 publishNanos/1e6/Math.max(1,published), pacer.fps(),workNanos/1e6/Math.max(1,workSamples),
                 pacingNanos/1e6/Math.max(1,published),setupNanos/1e6/Math.max(1,published),restoreNanos/1e6/Math.max(1,published),
-                swapNanos/1e6/Math.max(1,published),maxWorkNanos/1e6,maxReadbackNanos/1e6,published,workSamples,width,height));
+                swapNanos/1e6/Math.max(1,published),maxWorkNanos/1e6,maxReadbackNanos/1e6,published,workSamples,width,height,ASYNC_PUBLICATION?"async":"sync",publishWaitNanos/1e6/Math.max(1,published),maxPublishWaitNanos/1e6,writerTime/1e6/Math.max(1,writerSamples),writerSamples,writerStats==null?0:writerStats.pending()));
             hud("observe");
             resetTiming();
         }
@@ -182,7 +201,10 @@ public final class WindowBackend {
     }
     public static void close() {
         if (owner == null) return;
-        owned(); pointer.release(); glFlush(); glFinish(); NativeEgl.close(); GL.destroy(); writer.close();writer=null;owner=null;pixels=null;
+        owned();
+        try{if(publisher!=null)publisher.close();}
+        catch(IOException e){throw new UncheckedIOException(e);}
+        finally{pointer.release();glFlush();glFinish();NativeEgl.close();GL.destroy();if(writer!=null)writer.close();writer=null;publisher=null;owner=null;pixels=null;}
         System.out.println("[window] WINDOW_CLOSED frames="+sequence);
     }
 }

@@ -2,7 +2,37 @@
 
 Updated: 2026-09-16. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.50 GUI/frame attribution
+## Current work — 0.10.51 inventory and frame delivery
+
+User authorized resolving the support7 findings. Version 0.10.51/code 65 uses
+separate `.inventoryframes` package, branch `mod-launcher-test`, intended tag
+`v0.10.51-inventory-frames`. Main and old releases remain preserved. See
+[CLIENT_INVENTORY_FRAME_FIX.md](CLIENT_INVENTORY_FRAME_FIX.md).
+
+- Inventory: one exact-hash/reversible invocation patch in the tree-list panel.
+  One reusable matcher per worker, exact regex semantics, input cleared after
+  each check. Focused 100,000-call host allocation: 89,600,000 -> 5,600,000 bytes
+  (93.75% reduction for this check only). Locale/edge/random/concurrent/retention
+  tests and exact private class reversal/JVM verification pass. Existing text
+  buffer reuse is unchanged; total device inventory savings are not claimed.
+- Frame path: optional background publication, enabled by default in Diagnostics.
+  Two direct pixel buffers, one worker, FIFO ownership and backpressure. Same
+  GPU readback and atomic V3 pixels/metadata; close/resize drain before reuse.
+  Extra pixel capacity at 720p is 3.52 MiB. Focused ownership, blocked-writer,
+  error, exact-pixel/metadata, reader lifetime and both window mode tests pass.
+- New timing fields separate queue/buffer wait from worker publication. Async
+  writerMs overlaps game work and must not be added to its serial stage budget.
+  Existing presentedFps is captures/submissions; UI_TIMING is delivered FPS.
+- Device procedure: brief 30 FPS visual/input check, then matched five-minute
+  60 FPS recordings with background delivery off and on. Same inventory contents,
+  camera and open/closed sequence; keep text reuse/profiling on and periodic
+  cleanup skipping off. No forced GC, heap limit or GPU policy changes.
+- Full local host suite passes: 215 tests, 37 expected unavailable fixture/platform
+  skips, no failures. Includes exact private inventory/GUI/text overlays and all
+  text-reuse/profiling combinations. Android CI and released-APK verification are
+  pending; update this entry with final results/provenance before handing off.
+
+## Previous release — 0.10.50 GUI/frame attribution
 
 User resumed performance work: remaining GUI allocations, then 60 FPS rendering/
 readback slowdown. Exact support6 and private client were recovered and hashes

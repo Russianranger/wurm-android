@@ -2,16 +2,16 @@
 
 **Continuing this project in a new chat? Read [the maintained handoff](docs/HANDOFF.md) first.**
 
-**Current branch test: 0.10.50 — GUI allocation tracing and frame publisher reuse.**
+**Current branch test: 0.10.51 — inventory allocation and background frame delivery.**
 
-The memory recorder now separates top-level GUI components and overlays. Frame
-publication reuses its metadata buffers, and frame timings separate client work,
-pacing, readback, publication and EGL swap. The oak launcher and working text
-buffer reuse remain. GUI spikes and sustained 60 FPS need the new device data;
-this release does not claim either is fully resolved.
+Inventory numeric alignment now reuses its matcher; the focused host check
+allocates 93.75% less. A bounded background publisher lets frame delivery overlap
+subsequent game work, with a Diagnostics switch for comparison. Device allocation
+savings and FPS gains still need qualification; sustained 60 FPS is not promised.
 
-[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.50-gui-frame).
-[Focused device test and verification](docs/CLIENT_GUI_FRAME_TEST.md).
+[Download the branch test APK](https://github.com/Russianranger/wurm-android/releases/tag/v0.10.51-inventory-frames).
+[Focused test and implementation](docs/CLIENT_INVENTORY_FRAME_FIX.md).
+[Device baseline](docs/CLIENT_GUI_FRAME_DEVICE_REVIEW_20260916.md).
 [Maintained handoff](docs/HANDOFF.md). Work stays on `mod-launcher-test`.
 
 **Previous test: 0.10.32 — dark app theme and white pointer.** The Thor completed

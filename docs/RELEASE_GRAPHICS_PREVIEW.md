@@ -1,3 +1,24 @@
+# 0.10.51 — inventory allocation and background frame delivery
+
+Inventory rendering now reuses numeric alignment matchers. A focused host test
+allocates 93.75% less for that check, preserving the original expression/layout.
+The exact imported class reverses byte-for-byte and passes JVM verification.
+
+Background frame delivery uses two owned buffers and one writer to overlap file
+publication with game work. Pixel data, pointer metadata and atomic frame reads
+remain intact; a slow writer applies bounded backpressure. Diagnostics includes
+an on/off comparison switch. GPU readback remains synchronous. Device FPS gains
+and total inventory allocation savings are not yet measured.
+
+Save/stop and export a full backup, then install this separate `.inventoryframes`
+app and restore it. Keep the working app. Check inventory/chat at 30 FPS, then
+compare five-minute 60 FPS recordings with background delivery off and on, using
+the same inventory contents, location and camera. Keep text reuse/profiling on,
+periodic-cleanup skipping off, and export one support bundle after normal stops.
+See CLIENT_INVENTORY_FRAME_FIX.md for the exact procedure and timing definitions.
+
+---
+
 # 0.10.50 — GUI allocation tracing and frame publisher reuse
 
 The five-minute memory recorder now identifies top-level GUI components and

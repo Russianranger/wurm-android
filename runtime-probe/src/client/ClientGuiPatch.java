@@ -33,6 +33,9 @@ final class ClientGuiPatch {
     }
     // Authored fixtures supply their own inspected offsets, never production inputs.
     static byte[] transform(byte[] bytes,boolean reverse,List<Site> sites)throws Exception{
+        return transform(bytes,reverse,sites,"execute","(Ljava/lang/Object;)V","client/ClientGuiProfiler");
+    }
+    static byte[] transform(byte[] bytes,boolean reverse,List<Site> sites,String method,String descriptor,String helperOwner)throws Exception{
         if(bytes.length>65536)throw new IOException("Oversized GUI class");
         var in=new DataInputStream(new ByteArrayInputStream(bytes));
         if(in.readInt()!=0xcafebabe)throw new IOException("Invalid GUI class");
@@ -47,7 +50,7 @@ final class ClientGuiPatch {
         }
         int base=reverse?count-sites.size()*6:count;
         if(base<1||base+sites.size()*6>=65535)throw new IOException("Invalid GUI pool size");
-        byte[] tail=in.readAllBytes();int code=executeCode(tail,cp),length=readInt(tail,code);code+=4;
+        byte[] tail=in.readAllBytes();int code=methodCode(tail,cp,method,descriptor),length=readInt(tail,code);code+=4;
         for(int s=0;s<sites.size();s++){
             Site site=sites.get(s);int ref=0;
             for(int i=1;i<base;i++){
@@ -59,7 +62,7 @@ final class ClientGuiPatch {
             }
             if(ref==0||site.offset<0||site.offset+3>length)throw new IOException("Missing GUI call");
             int b=base+s*6;
-            List<Entry> added=List.of(utf("client/ClientGuiProfiler"),new Entry(7,Arrays.copyOf(pair(b,0),2)),utf(site.helper),utf(site.erased),new Entry(12,pair(b+2,b+3)),new Entry(10,pair(b+1,b+4)));
+            List<Entry> added=List.of(utf(helperOwner),new Entry(7,Arrays.copyOf(pair(b,0),2)),utf(site.helper),utf(site.erased),new Entry(12,pair(b+2,b+3)),new Entry(10,pair(b+1,b+4)));
             if(reverse){for(int i=0;i<6;i++){Entry a=added.get(i),v=cp.get(b+i);if(a.tag!=v.tag||!Arrays.equals(a.data,v.data))throw new IOException("Invalid GUI helper");}}
             else cp.addAll(added);
             int p=code+site.offset;
@@ -73,11 +76,11 @@ final class ClientGuiPatch {
     }
     private static int readInt(byte[] b,int p)throws IOException{int n=new DataInputStream(new ByteArrayInputStream(b,p,4)).readInt();if(n<0)throw new IOException("Invalid GUI size");return n;}
     private static int skipAttrs(byte[] b,int p)throws IOException{int n=u2(b,p);p+=2;for(int i=0;i<n;i++){p+=6+readInt(b,p+2);if(p>b.length)throw new IOException("Truncated GUI class");}return p;}
-    private static int executeCode(byte[] b,List<Entry> cp)throws IOException{
+    private static int methodCode(byte[] b,List<Entry> cp,String method,String descriptor)throws IOException{
         int p=8+2*u2(b,6),fields=u2(b,p);p+=2;for(int i=0;i<fields;i++)p=skipAttrs(b,p+6);
         int methods=u2(b,p),found=-1;p+=2;
         for(int i=0;i<methods;i++){
-            boolean target=text(cp,u2(b,p+2)).equals("execute")&&text(cp,u2(b,p+4)).equals("(Ljava/lang/Object;)V");
+            boolean target=text(cp,u2(b,p+2)).equals(method)&&text(cp,u2(b,p+4)).equals(descriptor);
             int attrs=u2(b,p+6);p+=8;
             for(int j=0;j<attrs;j++){int n=readInt(b,p+2);if(target&&text(cp,u2(b,p)).equals("Code")){if(found!=-1)throw new IOException("Ambiguous GUI execute");found=p+10;}p+=6+n;if(p>b.length)throw new IOException("Truncated GUI method");}
         }
