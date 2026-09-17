@@ -1,6 +1,6 @@
 # Wurm Android handoff
 
-Updated: 2026-09-16. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+Updated: 2026-09-17. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
 ## Latest release — 0.10.51 inventory and frame delivery
 
@@ -9,12 +9,27 @@ separate `.inventoryframes` package, branch `mod-launcher-test`, immutable tag
 `v0.10.51-inventory-frames`. Main and old releases remain preserved. See
 [CLIENT_INVENTORY_FRAME_FIX.md](CLIENT_INVENTORY_FRAME_FIX.md).
 
+Device follow-up: support8 now verifies the inventory improvement on the Thor.
+See [CLIENT_INVENTORY_FRAME_DEVICE_REVIEW_20260917.md](CLIENT_INVENTORY_FRAME_DEVICE_REVIEW_20260917.md).
+Observed inventory allocation is 4.44/4.64 KiB per call versus roughly 40-45 KiB
+in support7. Common initial 210-second spans show 39.33 FPS delivery off / 45.30 on;
+game-thread publication falls from 2.954 to 0.043 ms with negligible buffer wait.
+Inventory activity differs, so the observed 15.2% FPS gain is not an isolated
+feature-effect estimate. The on recording ends with normal client exit after
+about 3m41s, without a five-minute END marker. Keep both improvements; next target
+is the remaining 14.17 ms client work plus 7.75 ms readback (~22 ms serial frame).
+All four client attempts and the server exit normally. No new fatal/frame errors;
+short captures do not establish or exclude a leak. Two startup Epic mission
+backup-map warnings are recorded separately; storage audit was not run. No repeat
+of the unchanged diagnostic build is needed before the next investigation.
+
 - Inventory: one exact-hash/reversible invocation patch in the tree-list panel.
   One reusable matcher per worker, exact regex semantics, input cleared after
   each check. Focused 100,000-call host allocation: 89,600,000 -> 5,600,000 bytes
   (93.75% reduction for this check only). Locale/edge/random/concurrent/retention
   tests and exact private class reversal/JVM verification pass. Existing text
-  buffer reuse is unchanged; total device inventory savings are not claimed.
+  buffer reuse is unchanged; support8 subsequently verifies lower per-render
+  inventory allocation on device, with workload limits explained in its review.
 - Frame path: optional background publication, enabled by default in Diagnostics.
   Two direct pixel buffers, one worker, FIFO ownership and backpressure. Same
   GPU readback and atomic V3 pixels/metadata; close/resize drain before reuse.
@@ -30,7 +45,8 @@ separate `.inventoryframes` package, branch `mod-launcher-test`, immutable tag
 - Full local host suite passes: 215 tests, 37 expected unavailable fixture/platform
   skips, no failures. Includes exact private inventory/GUI/text overlays and all
   text-reuse/profiling combinations. Android CI and downloaded-APK verification
-  are now complete. Next step is the documented matched on-device comparison.
+  are complete. The first device comparison is reviewed above; rendering/readback
+  investigation remains next.
 
 Released from commit `fd00614b7ef746fc11934a95e92b2c04b0425751`, tree
 `f3f80fe5a7a810727be4de16725fd2584c00ec00`; immutable tag points to that
