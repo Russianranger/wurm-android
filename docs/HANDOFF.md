@@ -2,12 +2,13 @@
 
 Updated: 2026-09-17. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Current work — 0.10.52 pipelined GPU readback
+## Latest release — 0.10.52 pipelined GPU readback
 
 User authorized attempting the remaining support8 bottleneck. Implementation is
 on `mod-launcher-test`, version 0.10.52/code 66, separate `.gpupipeline` package,
 release tag `v0.10.52-gpu-pipeline`. See [CLIENT_GPU_READBACK_TEST.md](CLIENT_GPU_READBACK_TEST.md).
-Release/build status below must be finalized after CI and APK verification.
+Android CI, publication and downloaded-APK verification are complete. Device
+comparison remains next; no device speedup is claimed.
 
 - Optional GPU pipeline, off by default; keeps background publication on. One
   GLES3 PBO in the existing context; unsupported driver/functions fall back
@@ -23,11 +24,43 @@ Release/build status below must be finalized after CI and APK verification.
   GL4ES passes 40 exact-pixel frames with framebuffer changes after submission.
   Full local suite passes: 217 tests, 27 expected unavailable fixture/platform
   skips. The subsequent terminal-failure refinement passes both focused native
-  and window tests. Android CI/release verification is pending.
+  and window tests. CI passes 217 tests with 34 expected private/platform skips,
+  all three Android builds/unit/lint, native/input and real Mesa readback gates.
 - Next device test is matched 60 FPS off/on for this new switch, background
   delivery on in both, fixed camera/inventory; brief 30 FPS visual/input check.
   Review issue/collect/total frame timings, displayed FPS and added input delay.
   Remaining 14 ms client work is not independently reduced by this change.
+
+Released from commit `13bbfdb9f7fa5428fbfc9758f1978e370102cf36`, tree
+`bda9b3b0e2705297cd9cb97707e414ef0741041b`; immutable tag points to that
+commit. Main independently remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- [Download 0.10.52](https://github.com/Russianranger/wurm-android/releases/download/v0.10.52-gpu-pipeline/Wurm-Server.apk),
+  69,362,858 bytes, SHA-256
+  `349e27f207fd7d6fe589fbd5159fb2c058c36365a7c7879d7cac9ba7146ea132`.
+  Published 2026-09-17T09:55:58Z as a prerelease with 64 assets. Downloaded APK
+  and guide match SHA256SUMS and GitHub asset digests. Guide matches tagged source,
+  SHA-256 `41d9035ed9a393a1902fc70711c6fc552fd6b27c3dddaf92f9a4af6e6f2a4b0f`.
+- [CI 35206806489](https://github.com/Russianranger/wurm-android/actions/runs/35206806489)
+  passes: build `105154481012`, publisher `105157608852`. Real Mesa/GL4ES gate
+  verifies 40 exact RGBA frames and pack restoration from the same pinned and
+  patched public GL4ES source used for the Android build. No Adreno timing claim.
+- Downloaded manifest confirms `0.10.52-managed-preview`, code 66, package
+  `io.github.russianranger.wurmlauncher.gpupipeline`. Managed verifier and
+  independent APK v2 verification pass. Certificate SHA-256
+  `aca3d0bfd8ff4187ca9820a206ee0b7bd506dccd9cfaa0e0c2cc7d0839400868`
+  matches CI. The separate package preserves previous installations and data.
+- Both focused window suites pass against the downloaded bytecode: synchronous
+  behavior, unsupported-context fallback, pipeline with either publisher, exact
+  delayed pixels/metadata, failures, resize and final-frame drain. GPU faults
+  are terminal; invalid captures cannot be retried/published during shutdown.
+- Versus 0.10.51, seven of nine JVM JARs have identical members. Only NativeEgl
+  and WindowBackend bytecode changes; inventory/text helpers and FramePublisher
+  are unchanged. All 194 JRE ZIP members, artwork and font are identical.
+  Of 40 native libraries, 38 are byte-identical. `libwurm_graphics.so` contains
+  the new readback path; GL4ES has only 24 differing build-metadata bytes.
+  This final maintenance commit changes handoff only; release assets/tag remain
+  immutable. Next: review the Thor off/on comparison and input-delay feedback.
 
 ## Previous release — 0.10.51 inventory and frame delivery
 
