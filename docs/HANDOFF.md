@@ -2,7 +2,34 @@
 
 Updated: 2026-09-17. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.51 inventory and frame delivery
+## Current work — 0.10.52 pipelined GPU readback
+
+User authorized attempting the remaining support8 bottleneck. Implementation is
+on `mod-launcher-test`, version 0.10.52/code 66, separate `.gpupipeline` package,
+release tag `v0.10.52-gpu-pipeline`. See [CLIENT_GPU_READBACK_TEST.md](CLIENT_GPU_READBACK_TEST.md).
+Release/build status below must be finalized after CI and APK verification.
+
+- Optional GPU pipeline, off by default; keeps background publication on. One
+  GLES3 PBO in the existing context; unsupported driver/functions fall back
+  explicitly. No context-version, resolution, shader, GC or quality change.
+- Captures current frame, collects it at next swap after client work. One-frame
+  display delay; one extra 3.52 MiB buffer at 720p, no queue growth. Original
+  pointer/input metadata stays with pixels; resize/close drain before disposal.
+- Pinned GL4ES RGBA8 passthrough retains read-FBO handling. Actual GLES pack state
+  is restored. No GL worker/context sharing. Allocation/map/read errors fail
+  visibly rather than delivering invalid pixels. Mapping/copying can still cost
+  enough to negate overlap; no Adreno improvement or sustained-60 claim yet.
+- Native fault and Java lifecycle tests pass. Real Mesa + identically patched
+  GL4ES passes 40 exact-pixel frames with framebuffer changes after submission.
+  Full local suite passes: 217 tests, 27 expected unavailable fixture/platform
+  skips. The subsequent terminal-failure refinement passes both focused native
+  and window tests. Android CI/release verification is pending.
+- Next device test is matched 60 FPS off/on for this new switch, background
+  delivery on in both, fixed camera/inventory; brief 30 FPS visual/input check.
+  Review issue/collect/total frame timings, displayed FPS and added input delay.
+  Remaining 14 ms client work is not independently reduced by this change.
+
+## Previous release — 0.10.51 inventory and frame delivery
 
 User authorized resolving the support7 findings. Version 0.10.51/code 65 uses
 separate `.inventoryframes` package, branch `mod-launcher-test`, immutable tag

@@ -9,6 +9,7 @@
 #include "wurm_heap_check.h"
 #include "wurm_depth_config.h"
 #include "wurm_driver_debug.h"
+#include "wurm_readback.h"
 
 static EGLDisplay display = EGL_NO_DISPLAY;
 static EGLContext context = EGL_NO_CONTEXT;
@@ -122,6 +123,7 @@ JNIEXPORT jint JNICALL Java_wurm_graphics_NativeEgl_error(JNIEnv *env, jclass ty
 JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_close(JNIEnv *env, jclass type) {
     (void)type;
     if (display != EGL_NO_DISPLAY && !pthread_equal(owner, pthread_self())) { fail(env, "Close on wrong thread"); return; }
+    if (context != EGL_NO_CONTEXT) wurm_readback_close();
     if (context != EGL_NO_CONTEXT && backend != NULL) {
         void (*close_backend)(void) = (void (*)(void))dlsym(backend, "close_gl4es");
         if (close_backend != NULL) close_backend();
@@ -130,4 +132,39 @@ JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_close(JNIEnv *env, jclass ty
     /* Backend stays loaded until this disposable process exits; no callback can
        jump into unloaded code. Every test run gets a new process. */
     printf("[graphics] EGL_CONTEXT_CLOSED\n");
+}
+
+static int readback_owned(JNIEnv *env) {
+    if (context == EGL_NO_CONTEXT || !pthread_equal(owner, pthread_self()) || eglGetCurrentContext() != context) {
+        fail(env, "Readback without owned current context"); return 0;
+    }
+    return 1;
+}
+JNIEXPORT jboolean JNICALL Java_wurm_graphics_NativeEgl_readbackOpen(JNIEnv *env, jclass type) {
+    (void)type;
+    if (!readback_owned(env)) return JNI_FALSE;
+    int result = wurm_readback_open(driver, backend, width, height);
+    if (result < 0) { fail(env, "Readback buffer initialization failed"); return JNI_FALSE; }
+    printf("[graphics] GPU_READBACK mode=%s buffers=%d pixelBytes=%zu context_unchanged=true\n",
+        result ? "pipelined" : "sync-unsupported", result ? 1 : 0, result ? wurm_rb.bytes : 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_readbackIssue(JNIEnv *env, jclass type) {
+    (void)type;
+    if (!readback_owned(env)) return;
+    const char *error = wurm_readback_issue();
+    if (error) fail(env, error);
+}
+JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_readbackCollect(JNIEnv *env, jclass type, jobject pixels) {
+    (void)type;
+    if (!readback_owned(env)) return;
+    if (!pixels) { fail(env, "Missing readback destination"); return; }
+    void *address = (*env)->GetDirectBufferAddress(env, pixels);
+    jlong capacity = (*env)->GetDirectBufferCapacity(env, pixels);
+    const char *error = wurm_readback_collect(address, capacity < 0 ? 0 : (size_t)capacity);
+    if (error) fail(env, error);
+}
+JNIEXPORT void JNICALL Java_wurm_graphics_NativeEgl_readbackClose(JNIEnv *env, jclass type) {
+    (void)type;
+    if (readback_owned(env)) wurm_readback_close();
 }

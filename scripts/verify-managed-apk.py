@@ -70,6 +70,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
         assert b"client/ClientTextBuffers" in helper.read("client/ClientJobProfiler.class")
         assert b"client/ClientTextBuffers" in helper.read("client/ClientAllocationMeasurements.class")
         assert b"INVENTORY_REUSE_PATCH_ACTIVE" in helper.read("client/ClientGraphicsPatch.class")
+        assert b"pipelined-readback" in dex
+        assert b"wurm.graphics.pipelinedReadback" in dex
         assert b"background-frames" in dex
         assert b"wurm.graphics.asyncPublication" in dex
         assert b"reuse-text-buffers" in dex
@@ -98,6 +100,8 @@ with zipfile.ZipFile(sys.argv[1]) as apk:
     assert graphics["nativeHeapDiagnostic"] == "ASan / isolated startup and client graphics stages / LLVM 17.0.2 native ELF TLS with prctl PAC and trampoline BTI fixes"
     assert graphics["asanRuntimeFlags"] == "-target aarch64-linux-android33 -mbranch-protection=standard -fno-emulated-tls -g"
     assert b"ASAN_READY" in apk.read("lib/arm64-v8a/libwurm_graphics.so")
+    for method in ("readbackOpen", "readbackIssue", "readbackCollect", "readbackClose"):
+        assert ("Java_wurm_graphics_NativeEgl_"+method).encode() in apk.read("lib/arm64-v8a/libwurm_graphics.so")
     assert graphics["audioBackend"] == "OpenAL Soft 1.23.1 / Android OpenSL ES"
     assert "vao-buffer-offset-addresses" in graphics["gl4esPatches"]
     assert "program-cache-cleanup" in graphics["gl4esPatches"]

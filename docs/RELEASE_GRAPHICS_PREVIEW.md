@@ -1,3 +1,24 @@
+# 0.10.52 — pipelined GPU readback test
+
+Adds an optional one-frame GPU readback pipeline to overlap completion with the
+next frame's client work. The existing Thor context supports the required GLES3
+functions; unsupported contexts explicitly retain synchronous readback. The
+option is off by default in Diagnostics and adds one frame of display latency.
+
+Host tests cover exact pixels, input metadata, bounded storage, pack-state
+restoration, failures, resize and shutdown. A real Mesa/pinned-GL4ES comparison
+passes. This is ready for device testing, not a verified Adreno speedup or 60 FPS
+claim. Inventory allocation and background delivery improvements are preserved.
+
+Save/stop and export a full backup; install the separate `.gpupipeline` app and
+restore it. Keep background delivery on. Compare five-minute 60 FPS recordings
+with the new GPU readback option off/on at the same location, camera and open
+inventory. Briefly check graphics/controls at 30 FPS before the on recording.
+See CLIENT_GPU_READBACK_TEST.md. Export a support bundle after normal stops and
+report any added control delay.
+
+---
+
 # 0.10.51 — inventory allocation and background frame delivery
 
 Inventory rendering now reuses numeric alignment matchers. A focused host test

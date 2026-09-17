@@ -20,6 +20,7 @@ public class GL11{
 ''',
 'wurm/graphics/NativeEgl.java':'''package wurm.graphics;class NativeEgl{
  static int swaps,error;static void open(String b,int w,int h){}static void resize(int w,int h){}static void close(){}
+ static boolean readbackOpen(){return false;}static void readbackIssue(){}static void readbackCollect(java.nio.ByteBuffer b){}static void readbackClose(){}
  static int error(){return error;}static void swap(){swaps++;try{Thread.sleep(2);}catch(InterruptedException e){throw new AssertionError(e);}}}
 ''',
 'wurm/graphics/WindowInput.java':'''package wurm.graphics;class WindowInput{
@@ -61,6 +62,9 @@ class WindowStagesTest(unittest.TestCase):
    subprocess.run(['java','com.sun.tools.javac.Main','--release','17','-d',td,*paths],check=True,capture_output=True)
    r=subprocess.run(['java','-cp',td,'wurm.graphics.WindowCheck',str(p/'frame')],capture_output=True,text=True,timeout=20)
    async_run=subprocess.run(['java','-Dwurm.graphics.asyncPublication=true','-cp',td,'wurm.graphics.WindowCheck',str(p/'async-frame')],capture_output=True,text=True,timeout=20)
+   fallback=subprocess.run(['java','-Dwurm.graphics.pipelinedReadback=true','-cp',td,'wurm.graphics.WindowCheck',str(p/'fallback-frame')],capture_output=True,text=True,timeout=20)
+   self.assertEqual(fallback.returncode,0,fallback.stdout+fallback.stderr)
+   self.assertIn('requested=pipelined active=sync',fallback.stdout)
    self.assertEqual(async_run.returncode,0,async_run.stdout+async_run.stderr)
    self.assertIn('publicationMode=async',async_run.stdout)
    self.assertIn('buffers=2',async_run.stdout)

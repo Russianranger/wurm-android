@@ -23,6 +23,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val jobProfiling: CheckBox
     private val textBuffers: CheckBox
     private val backgroundFrames: CheckBox
+    private val pipelinedReadback: CheckBox
     private fun label(text: String)=LauncherUi.label(target,text)
     private fun button(text: String, action: () -> Unit)=LauncherUi.button(target,text,action)
     private fun showReport(title: String, value: String) {
@@ -58,6 +59,12 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
             setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("background-frames",checked).apply() }
         }
         label("Lets frame delivery overlap the next game frame. Turn off for a performance comparison or if the display stutters.")
+        pipelinedReadback=CheckBox(activity).apply {
+            text="Pipelined GPU readback (test) · next client start"; isChecked=prefs.getBoolean("pipelined-readback",false)
+            target.addView(this)
+            setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("pipelined-readback",checked).apply() }
+        }
+        label("Lets GPU readback overlap the next game frame. Adds one frame of display delay. Turn off if graphics or controls feel worse. Unsupported devices use normal readback.")
         jobProfiling=CheckBox(activity).apply {
             text="Enable job profiling · next client start"; isChecked=prefs.getBoolean("job-profiling",false)
             target.addView(this)
@@ -114,6 +121,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         jobProfiling.isEnabled=!client.busy
         textBuffers.isEnabled=!client.busy
         backgroundFrames.isEnabled=!client.busy
+        pipelinedReadback.isEnabled=!client.busy
         status.updateText("Client: ${client.phase} · ${client.detail}\nServer: ${server.phase} · ${server.detail}")
         clientTests.forEach { it.isEnabled=!client.busy }
         serverTests.forEach { it.isEnabled=!server.busy }
