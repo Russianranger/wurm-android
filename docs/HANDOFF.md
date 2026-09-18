@@ -2,7 +2,39 @@
 
 Updated: 2026-09-18. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
-## Latest release — 0.10.52 pipelined GPU readback
+## Current work — 0.10.53 allocation pauses and client-work stalls
+
+User authorized the next allocation/stall target after the successful pipeline
+recording. Implementation is on `mod-launcher-test`, version 0.10.53/code 67,
+separate `.allocationstalls` package, tag `v0.10.53-allocation-stalls`. See
+[CLIENT_ALLOCATION_STALL_TEST.md](CLIENT_ALLOCATION_STALL_TEST.md).
+
+- Exact-client ClipRect intersection memoization: one controller, 256 snapshots,
+  never mutates queued rectangles. Off/on switch defaults on in this test build;
+  disabling removes the overlay at next client start. Original method retained,
+  full byte reversal and parent hash gate. All 17 referring original classes
+  inspected; no coordinate writes outside the ClipRect constructor.
+- Authored and exact private-class tests pass coordinates, delayed draws,
+  canvas-height/controller changes, eviction and bounds. Repeated intersections
+  allocate 3,200,000 -> 0 heap bytes per 100,000 calls. This is a focused host
+  result; device hit rate, overall allocation and GC improvement are unverified.
+- Recording-only frame observer reports work CPU/heap allocation and individual
+  slow-frame stages. Work >=50 ms or cycle >=75 ms: 32 pending / 64 reported
+  stalls maximum; omitted count explicit. Existing daemon polls at 20 ms,
+  samples at most one stack per long work frame, 32 attempts x 16 entries max.
+  No per-frame allocation/formatting/stack walks; partial frames excluded.
+  CPU/wait/known-allocation/cancellation/bounds tests pass with zero warmed
+  per-frame heap allocation. Sampling overhead remains a device consideration.
+- Existing pixel/metadata, pipeline, ownership and cleanup behavior is retained.
+  Full local suite: 220 tests, 37 expected missing fixture/platform skips, no
+  failures. All eight clip/text/job overlay combinations and final window/frame
+  integration checks pass. Android CI and downloaded-APK verification follow.
+- Next device run: keep pipeline/background/text/clip reuse on, periodic cleanup
+  skipping off, job profiling enabled, 60 FPS/720p. Check clipping, scrolling,
+  nested panels and window resize, then one five-minute normal-play recording.
+  No unchanged pipeline baseline rerun or heap/GC policy change is requested.
+
+## Previous release — 0.10.52 pipelined GPU readback
 
 User authorized attempting the remaining support8 bottleneck. Implementation is
 on `mod-launcher-test`, version 0.10.52/code 66, separate `.gpupipeline` package,

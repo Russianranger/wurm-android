@@ -41,7 +41,7 @@ object OakTheme {
             heading(this)
         }, LinearLayout.LayoutParams(0, -2, 1f))
         addView(TextView(context).apply {
-            text = "0.10.52"
+            text = "0.10.53"
             textSize = 12f
             setTextColor(context.getColor(R.color.wurm_text_secondary))
         })

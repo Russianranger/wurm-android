@@ -128,14 +128,15 @@ class TextBuffersTest(unittest.TestCase):
   self.assertIn('TEXT_GPU_PASS',self.run_java('gpu',private=True))
  @unittest.skipUnless(CLIENT,'requires owner-provided client JAR')
  def test_full_optional_overlay_with_job_recording_on_and_off(self):
-  for reuse,jobs in [('true','false'),('true','true'),('false','false'),('false','true')]:
-   path=self.home/f'full-{reuse}-{jobs}.jar'
-   args=['java',*EXPORTS,'-cp',os.pathsep.join(map(str,[self.classes,CLIENT])),'client.TextFixture','prepare-overlay',str(path),reuse,jobs]
+  for reuse,jobs,clips in [(r,j,c) for r in ('true','false') for j in ('true','false') for c in ('true','false')]:
+   path=self.home/f'full-{reuse}-{jobs}-{clips}.jar'
+   args=['java',*EXPORTS,'-cp',os.pathsep.join(map(str,[self.classes,CLIENT])),'client.TextFixture','prepare-overlay',str(path),reuse,jobs,clips]
    r=subprocess.run(args,capture_output=True,text=True,timeout=40);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
    args[args.index('-cp')+1]=os.pathsep.join(map(str,[self.classes,path,CLIENT]));args[args.index('prepare-overlay')]='verify-overlay'
    r=subprocess.run(args,capture_output=True,text=True,timeout=40);self.assertEqual(r.returncode,0,r.stdout+r.stderr)
    self.assertIn('TEXT_FULL_OVERLAY_PASS',r.stdout)
    self.assertEqual(r.stdout.count('TEXT_BUFFER_PATCH_ACTIVE'),3 if reuse=='true' else 0)
+   self.assertEqual(r.stdout.count('CLIP_SNAPSHOT_PATCH_ACTIVE'),1 if clips=='true' else 0)
  @unittest.skipUnless(CLIENT,'requires owner-provided client JAR')
  def test_exact_private_legacy_draw_and_queue_release(self):
   old=self.run_java('font-legacy-baseline',private=True);new=self.run_java('font-legacy',private=True)

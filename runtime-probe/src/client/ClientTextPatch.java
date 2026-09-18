@@ -15,11 +15,11 @@ final class ClientTextPatch {
         FONT,"b306197e0eb400cdbcfaa4d93b9d9fb0c30b5e0f4f1cec522d43dc07ff77fb1c",
         QUEUE,"ba694299f062f82e7ff33637d0e2d3095bf94fed1d182dd49919a33640be819c");
     private static final String MARKER="WurmAndroidTextBuffers";
-    private record Entry(int tag,byte[] bytes) { }
-    private record Attribute(int name,byte[] bytes) { }
-    private record Member(int access,int name,int desc,List<Attribute> attrs) { }
+    record Entry(int tag,byte[] bytes) { }
+    record Attribute(int name,byte[] bytes) { }
+    record Member(int access,int name,int desc,List<Attribute> attrs) { }
     private static int u2(byte[] b,int p) { return (b[p]&255)*256+(b[p+1]&255); }
-    private static byte[] shorts(int... values) throws IOException {
+    static byte[] shorts(int... values) throws IOException {
         var b=new ByteArrayOutputStream();var out=new DataOutputStream(b);
         for(int v:values)out.writeShort(v);return b.toByteArray();
     }
@@ -27,7 +27,7 @@ final class ClientTextPatch {
         if(n<0 || n>1_048_576)throw new IOException("Invalid text patch length");
         byte[] b=new byte[n];in.readFully(b);return b;
     }
-    private static final class File {
+    static final class File {
         final List<Entry> cp=new ArrayList<>();
         final List<Member> fields=new ArrayList<>(),methods=new ArrayList<>();
         List<Attribute> attrs;int minor,major,access,self,parent;byte[] interfaces;

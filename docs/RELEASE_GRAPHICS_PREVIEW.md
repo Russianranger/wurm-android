@@ -1,3 +1,24 @@
+# 0.10.53 — GUI allocation reduction and slow-frame tracing
+
+Reuses matching GUI clipping snapshots within a fixed 256-entry cache. Existing
+queued rectangles are never mutated. The exact-client host test preserves draw
+coordinates and reduces repeated-intersection allocation from 3.2 MB to zero
+per 100,000 calls. Total device allocation and GC savings still need measurement.
+
+The five-minute recorder now reports individual slow-frame stages, main-thread
+CPU time/allocation and limited stack samples during long client-work frames.
+No per-frame objects or continuous stack sampling are added. The working GPU
+pipeline and existing graphics, text-buffer and collector settings are preserved.
+
+Save/stop and export a full backup, then restore it into the separate
+`.allocationstalls` app. Keep pipeline, background delivery, text reuse and new
+GUI clip reuse on, periodic-cleanup skipping off, and enable job profiling.
+At 60 FPS / 720p, check panel clipping and scrolling, then record one five-minute
+normal-play route. Stop/save normally and export support. Turn clip reuse off
+and restart if window clipping changes. See CLIENT_ALLOCATION_STALL_TEST.md.
+
+---
+
 # 0.10.52 — pipelined GPU readback test
 
 Adds an optional one-frame GPU readback pipeline to overlap completion with the

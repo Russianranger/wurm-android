@@ -145,8 +145,8 @@ android {
         minSdk = 33
         // This first, sideload-only milestone targets the Android 13 POC.
         targetSdk = 33
-        versionCode = 66
-        versionName = "0.10.52"
+        versionCode = 67
+        versionName = "0.10.53"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -170,7 +170,7 @@ android {
         create("managedPreview") {
             initWith(getByName("debug"))
             // Separate package preserves the earlier preview's data/debug signature.
-            applicationIdSuffix = ".gpupipeline"
+            applicationIdSuffix = ".allocationstalls"
             if (managedSigningStore != null) signingConfig = signingConfigs.getByName("managedRelease")
             versionNameSuffix = "-managed-preview"
             matchingFallbacks += listOf("debug")

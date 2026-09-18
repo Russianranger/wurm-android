@@ -75,7 +75,7 @@ object ClientSession {
     fun report(context: Context, includeServer: Boolean = true): String {
         initialize(context)
         val installed = runCatching { store(context).current() }.getOrNull()
-        return "Wurm client milestone 0.10.52\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
+        return "Wurm client milestone 0.10.53\nAndroid ${android.os.Build.VERSION.RELEASE}; API ${android.os.Build.VERSION.SDK_INT}\n" +
             "Status: ${state.phase} — ${state.detail}\nDefault target: 127.0.0.1:3724\n" +
             "Gate status: 0.10.51 device recordings verify reduced inventory allocation and background frame delivery. This build adds optional pipelined GPU readback, off by default, with one frame of display delay. Host pixel/lifecycle checks pass; Adreno performance and gameplay still need qualification.\n\n" +
             "Viewer preferences: fullscreen=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("viewer-fullscreen",true)} panelOpacity=${context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getInt("overlay-opacity",85)}%\n" +
@@ -225,6 +225,7 @@ object ClientSession {
         val backgroundFrames = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("background-frames", true)
         val skipPeriodicGc = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("skip-periodic-gc", false)
         val reuseTextBuffers = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("reuse-text-buffers", true)
+        val reuseClipSnapshots = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("reuse-clip-snapshots", true)
         val jobProfiling = context.getSharedPreferences("client-settings", Context.MODE_PRIVATE).getBoolean("job-profiling", false)
         log("[diagnostics] ${Instant.now()} CLIENT_LOG_MODE ${if (verbose) "verbose" else "normal"}; errors, compile/link breadcrumbs, native crash capture and periodic measurements retained")
         val installed = if (mode in listOf("input", "render", "window", "memory")) null else requireNotNull(store.current()) { "Import the complete client ZIP first" }
@@ -319,6 +320,7 @@ object ClientSession {
                     "-Dwurm.client.skipPeriodicGc=$skipPeriodicGc",
                     "-Dwurm.client.jobProfiling=$jobProfiling",
                     "-Dwurm.client.reuseTextBuffers=$reuseTextBuffers",
+                    "-Dwurm.client.reuseClipSnapshots=$reuseClipSnapshots",
                     "-Djava.library.path=$home/lib:$home/lib/server:$native", "-Dsun.boot.library.path=$home/lib:$native",
                     "-XX:ErrorFile=$session/hs_err_pid%p.log", "-XX:-CreateCoredumpOnCrash",
                     "-Dwurm.client.host=127.0.0.1", "-Dwurm.client.port=3724", "-Dwurm.client.offline=true", "-Dwurm.client.player=$player",

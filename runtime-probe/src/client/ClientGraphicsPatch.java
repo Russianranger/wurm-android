@@ -91,6 +91,12 @@ public final class ClientGraphicsPatch {
         URL inventory = ClientGraphicsPatch.class.getClassLoader().getResource(ClientInventoryPatch.PANEL);
         if (inventory == null) throw new IOException("CLIENT_INVENTORY_PANEL_MISSING");
         classes.put(ClientInventoryPatch.PANEL, ClientInventoryPatch.prepare(read(inventory.openStream())));
+        if(ClientClipSnapshots.enabled()) {
+            URL clip=ClientGraphicsPatch.class.getClassLoader().getResource(ClientClipPatch.CLASS);
+            URL control=ClientGraphicsPatch.class.getClassLoader().getResource(ClientClipPatch.OWNER);
+            if(clip==null||control==null||!sha(read(control.openStream())).equals(ClientClipPatch.OWNER_SHA))throw new IOException("CLIP_CONTROL_UNSUPPORTED");
+            classes.put(ClientClipPatch.CLASS,ClientClipPatch.prepare(read(clip.openStream())));
+        }
         if (ClientJobProfiler.enabled()) {
             URL executor = ClientGraphicsPatch.class.getClassLoader().getResource(ClientJobPatch.EXECUTOR);
             if (executor == null) throw new IOException("CLIENT_EXECUTOR_MISSING");
@@ -149,6 +155,7 @@ public final class ClientGraphicsPatch {
             var names = new java.util.TreeSet<>(ClientBuffers.ORIGINALS.keySet()); names.add(ENGINE);
             names.add(ClientWorldGc.WORLD); names.add(ClientSoundResources.RESOURCE); names.add(ClientSoundResources.MAPPINGS);
             names.add(ClientInventoryPatch.PANEL);
+            if(ClientClipSnapshots.enabled())names.add(ClientClipPatch.CLASS);
             if (ClientJobProfiler.enabled()) { names.add(ClientJobPatch.EXECUTOR); names.add(ClientGuiPatch.RENDERER); }
             names.addAll(ClientShaderResources.ORIGINALS.keySet());
             if (ClientTextBuffers.enabled()) names.addAll(ClientTextPatch.ORIGINALS.keySet());
@@ -169,6 +176,7 @@ public final class ClientGraphicsPatch {
             String name = item.getKey(); byte[] bytes = item.getValue();
             boolean shader = ClientShaderResources.ORIGINALS.containsKey(name);
             if (ClientTextPatch.ORIGINALS.containsKey(name)) ClientTextPatch.verify(name, bytes);
+            else if(name.equals(ClientClipPatch.CLASS))ClientClipPatch.verify(bytes);
             else if (name.equals(ClientInventoryPatch.PANEL)) ClientInventoryPatch.verify(bytes);
             else if (name.equals(ClientGuiPatch.RENDERER)) ClientGuiPatch.verify(bytes);
             else if (name.equals(ClientJobPatch.EXECUTOR)) ClientJobPatch.verify(bytes);
@@ -181,7 +189,7 @@ public final class ClientGraphicsPatch {
             URL selected = ClientGraphicsPatch.class.getClassLoader().getResource(name);
             if (selected == null || !sha(read(selected.openStream())).equals(sha(bytes)))
                 throw new IOException("CLIENT_GRAPHICS_PATCH_NOT_SELECTED: classpath order mismatch " + name);
-            log((name.equals(ClientInventoryPatch.PANEL) ? "INVENTORY_REUSE_PATCH_ACTIVE" : ClientTextPatch.ORIGINALS.containsKey(name) ? "TEXT_BUFFER_PATCH_ACTIVE" : name.equals(ClientGuiPatch.RENDERER) ? "GUI_PROFILING_PATCH_ACTIVE" : name.equals(ClientJobPatch.EXECUTOR) ? "JOB_PROFILING_PATCH_ACTIVE" : name.equals(ClientWorldGc.WORLD) ? "WORLD_GC_PATCH_ACTIVE" : name.equals(ClientSoundResources.RESOURCE) || name.equals(ClientSoundResources.MAPPINGS) ? "SOUND_FALLBACK_ACTIVE" : name.equals(ClientSettingsPatch.HUD) ? "SETTINGS_PATCH_ACTIVE" : shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
+            log((name.equals(ClientClipPatch.CLASS) ? "CLIP_SNAPSHOT_PATCH_ACTIVE" : name.equals(ClientInventoryPatch.PANEL) ? "INVENTORY_REUSE_PATCH_ACTIVE" : ClientTextPatch.ORIGINALS.containsKey(name) ? "TEXT_BUFFER_PATCH_ACTIVE" : name.equals(ClientGuiPatch.RENDERER) ? "GUI_PROFILING_PATCH_ACTIVE" : name.equals(ClientJobPatch.EXECUTOR) ? "JOB_PROFILING_PATCH_ACTIVE" : name.equals(ClientWorldGc.WORLD) ? "WORLD_GC_PATCH_ACTIVE" : name.equals(ClientSoundResources.RESOURCE) || name.equals(ClientSoundResources.MAPPINGS) ? "SOUND_FALLBACK_ACTIVE" : name.equals(ClientSettingsPatch.HUD) ? "SETTINGS_PATCH_ACTIVE" : shader ? "SHADER_RESOURCE_ACTIVE" : name.equals(ENGINE) ? "OFFSCREEN_PATCH_ACTIVE" : "BUFFER_PATCH_ACTIVE") + " source=" + selected + " sha256=" + sha(bytes));
         }
     }
 }

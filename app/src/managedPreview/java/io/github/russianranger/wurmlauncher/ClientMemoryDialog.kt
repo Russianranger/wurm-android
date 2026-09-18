@@ -19,7 +19,7 @@ object ClientMemoryDialog {
                 val ready=ClientSession.gameActive() && ClientSession.inputReady() && ClientSession.memoryRecordingAvailable
                 text.text=(if(ready) ClientSession.memoryRecordingNotice else
                     "Enable job profiling in Diagnostics while the client is stopped, then start the game.")+
-                    "\n\nRecords job allocations and memory use during normal play. Stops after five minutes; Close keeps recording. Export the support bundle afterwards.\n\nThis does not force cleanup, take a heap dump, or generate extra game load. Recording adds some measurement overhead and cannot by itself prove there is no memory leak."
+                    "\n\nRecords allocations, memory use and slow frames during normal play. Takes limited stack samples during long client-work stalls. Stops after five minutes; Close keeps recording. Export the support bundle afterwards.\n\nThis does not force cleanup, take a heap dump, or generate extra game load. Recording adds measurement overhead and cannot by itself prove there is no memory leak."
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=ready && !ClientSession.memoryRecording
                 dialog.getButton(AlertDialog.BUTTON_NEUTRAL).isEnabled=ready && ClientSession.memoryRecording
                 handler.postDelayed(this,500)

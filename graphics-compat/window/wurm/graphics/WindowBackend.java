@@ -29,6 +29,10 @@ public final class WindowBackend {
     private static volatile boolean stop;
     private static WindowInput pointer;
     private static final boolean VERBOSE = Boolean.getBoolean("wurm.diagnostics.verbose");
+    private static volatile java.util.function.IntConsumer frameObserver;
+    /** Primitive-only diagnostics bridge; installation does not access GL or transfer ownership. */
+    public static void observeFrames(java.util.function.IntConsumer observer){frameObserver=observer;}
+    private static void mark(int stage){var observer=frameObserver;if(observer!=null)observer.accept(stage);}
 
     public static long open(int w, int h) {
         if (owner != null) throw new IllegalStateException("Only one EGL window is supported");
@@ -71,6 +75,7 @@ public final class WindowBackend {
         if (owner != Thread.currentThread()) throw new IllegalStateException("EGL window must be used on its owning game thread");
     }
     private static void resetTiming() {
+        mark(-1); // Exclude partial frames across a timing/FPS/size reset.
         statsStart=System.nanoTime();previousEnd=0;swaps=published=workSamples=0;
         publishWaitNanos=maxPublishWaitNanos=issueNanos=collectNanos=0;captures=0;
         if(publisher!=null){var stats=publisher.stats();writerFramesBaseline=stats.frames();writerNanosBaseline=stats.nanos();}
@@ -148,6 +153,7 @@ public final class WindowBackend {
         long entered=System.nanoTime();
         if(previousEnd!=0){long work=entered-previousEnd;workNanos+=work;maxWorkNanos=Math.max(maxWorkNanos,work);workSamples++;}
         swaps++;
+        mark(1); // pacing, after the completed client-work interval
         long delay=pacer.delay(entered);
         if (delay > 0) try { Thread.sleep(delay/1_000_000L, (int)(delay%1_000_000L)); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); stop=true; return; }
@@ -158,12 +164,14 @@ public final class WindowBackend {
             // Deliver the previous capture with its original input metadata before
             // reusing the one GPU buffer. Client work has overlapped its readback.
             long collectStart=System.nanoTime();
+            mark(2);
             if(pipelined)collectPending();
             long collected=System.nanoTime()-collectStart;
             long waitStart=System.nanoTime();
             if(!pipelined && publisher!=null)try{pixels=publisher.acquire();}catch(IOException e){throw new UncheckedIOException(e);}
             long waited=System.nanoTime()-waitStart;
             publishWaitNanos+=waited;maxPublishWaitNanos=Math.max(maxPublishWaitNanos,waited);
+            mark(3);
             int before = glGetError();
             if (before != GL_NO_ERROR) throw new IllegalStateException("CLIENT_GL_ERROR before readback=0x"+Integer.toHexString(before)+
                 " frame="+(sequence+1)+" time="+java.time.Instant.now()+"; pending before capture; see graphics-error origin/candidates");
@@ -174,6 +182,7 @@ public final class WindowBackend {
                 glPixelStorei(GL_PACK_ROW_LENGTH,0); glPixelStorei(GL_PACK_SKIP_ROWS,0); glPixelStorei(GL_PACK_SKIP_PIXELS,0);
                 long readStart = System.nanoTime();
                 setupNanos+=readStart-frameStart-waited-collected;
+                mark(4);
                 if(pipelined)NativeEgl.readbackIssue();
                 else glReadPixels(0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,pixels);
                 long readElapsed=System.nanoTime()-readStart;
@@ -181,6 +190,7 @@ public final class WindowBackend {
                 int error = glGetError(), driver = NativeEgl.error();
                 if (error != 0 || driver != 0) throw new IllegalStateException("FRAME_READBACK_ERROR GL="+error+" GLES="+driver);
                 long publishStart = System.nanoTime();
+                mark(5);
                 setupNanos+=publishStart-readStart-readElapsed;
                 if(pipelined){
                     pendingSequence=++sequence;pendingX=pointer.displayX();pendingY=pointer.displayY();
@@ -193,6 +203,7 @@ public final class WindowBackend {
             } catch (IOException failure) { throw new UncheckedIOException(failure); }
             finally {
                 long restoreStart=System.nanoTime();
+                mark(6);
                 glPixelStorei(GL_PACK_ALIGNMENT,alignment); glPixelStorei(GL_PACK_ROW_LENGTH,rowLength);
                 glPixelStorei(GL_PACK_SKIP_ROWS,skipRows); glPixelStorei(GL_PACK_SKIP_PIXELS,skipPixels);
                 restoreNanos+=System.nanoTime()-restoreStart;
@@ -202,9 +213,11 @@ public final class WindowBackend {
             if (sequence == 1 || (VERBOSE && sequence%25 == 0)) System.out.println("[window] WINDOW_FRAME sequence="+sequence+" size="+width+"x"+height);
         }
         long swapStart=System.nanoTime();
+        mark(7);
         NativeEgl.swap();
         long now = System.nanoTime();
         swapNanos+=now-swapStart;
+        mark(8);
         if (now - statsStart >= 5_000_000_000L) {
             double seconds = (now - statsStart) / 1e9;
             FramePublisher.Stats writerStats=publisher==null?null:publisher.stats();
@@ -220,6 +233,7 @@ public final class WindowBackend {
             resetTiming();
         }
         previousEnd=System.nanoTime();
+        mark(0); // work starts after periodic logging, ends at the next swap
     }
     private static void collectPending() {
         if(pendingSequence==0)return;
@@ -245,6 +259,7 @@ public final class WindowBackend {
     public static void close() {
         if (owner == null) return;
         owned();
+        frameObserver=null;
         try { if(pipelined)collectPending(); }
         finally {
             try{if(publisher!=null)publisher.close();}

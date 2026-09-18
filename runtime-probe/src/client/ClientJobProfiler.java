@@ -29,7 +29,7 @@ public final class ClientJobProfiler {
         } catch (RuntimeException | LinkageError unavailable) { counters=null; }
         log("READY counters="+(counters!=null)+" durationSeconds="+SECONDS+"; recording starts only on request");
     }
-    private static void log(String message) {
+    static void log(String message) {
         System.out.println("[client-memory-test] "+Instant.now()+" pid="+ProcessHandle.current().pid()+" "+message);
     }
     public static synchronized void command(String command) {
@@ -40,10 +40,11 @@ public final class ClientJobProfiler {
         Capture capture=new Capture(System.nanoTime(),SECONDS*1_000_000_000L);
         Thread sampler=new Thread(()->record(capture),"wurm-job-observation");
         sampler.setDaemon(true); capture.sampler=sampler; active=capture;
+        capture.frames.attach();
         log("BEGIN durationSeconds="+SECONDS+" maxPairs="+PAIRS+" top="+TOP+
             "; completed-job heap allocation only; no forced GC, heap dump or stress allocation");
         try { sampler.start(); }
-        catch (RuntimeException | LinkageError failure) { active=null; log("UNAVAILABLE reason="+failure.getClass().getSimpleName()); }
+        catch (RuntimeException | LinkageError failure) { capture.cancel();capture.frames.detach();active=null;log("UNAVAILABLE reason="+failure.getClass().getSimpleName()); }
     }
     static Capture current() { return active; }
     static long allocated() {
@@ -70,24 +71,34 @@ public final class ClientJobProfiler {
     static void record(Capture capture) {
         String reason="duration";
         try {
-            int samples=0;
+            int samples=0;long nextSample=0;
             while(capture.accepts(System.nanoTime())) {
+                capture.frames.watch();
                 // Proc/management observations are performed on this daemon, never on a game worker.
-                log("SAMPLE recordingMs="+((System.nanoTime()-capture.started)/1_000_000));
-                System.out.println(probe.RuntimeMeasurements.sample("client-recording",Path.of("/proc/self")));
-                System.out.println(ClientTextBuffers.sample());
-                if(samples++%6==0) emit(capture,false);
+                long now=System.nanoTime();
+                if(now>=nextSample) {
+                    log("SAMPLE recordingMs="+((now-capture.started)/1_000_000));
+                    System.out.println(probe.RuntimeMeasurements.sample("client-recording",Path.of("/proc/self")));
+                    System.out.println(ClientTextBuffers.sample());
+                    log(ClientClipSnapshots.sample());
+                    capture.frames.emit(false);
+                    if(samples++%6==0) emit(capture,false);
+                    nextSample=System.nanoTime()+5_000_000_000L;
+                }
                 long remaining=capture.budget-(System.nanoTime()-capture.started);
-                if(remaining>0) Thread.sleep(Math.min(5_000,Math.max(1,remaining/1_000_000)));
+                if(remaining>0) Thread.sleep(Math.min(20,Math.max(1,remaining/1_000_000)));
             }
             if(capture.cancelled) reason="cancelled";
         } catch (InterruptedException stop) { reason="cancelled"; Thread.currentThread().interrupt(); }
         catch (RuntimeException | LinkageError failure) { reason="unavailable-"+failure.getClass().getSimpleName(); }
         finally {
             capture.cancelled=true; capture.gui.cancelled=true;
+            capture.frames.detach();
             synchronized(ClientJobProfiler.class) {
                 try {
                     emit(capture,true);
+                    capture.frames.emit(true);
+                    log(ClientClipSnapshots.sample());
                     log("END reason="+reason+" elapsedMs="+((System.nanoTime()-capture.started)/1_000_000)+
                         "; no leak verdict; compare natural post-GC heap and direct/PSS across repeated routes");
                 } finally { capture.clear(); if(active==capture) active=null; }
@@ -123,11 +134,12 @@ public final class ClientJobProfiler {
         volatile boolean cancelled;
         Thread sampler;
         final Capture gui;
+        final ClientFrameProfiler frames;
         private final Row[] rows=new Row[PAIRS];
         private int size;
         private long completed,bytes,unavailable,omitted,previous;
         Capture(long started,long budget) { this(started,budget,true); }
-        private Capture(long started,long budget,boolean scopes) { this.started=started; this.budget=budget; previous=started; gui=scopes?new Capture(started,budget,false):null; }
+        private Capture(long started,long budget,boolean scopes) { this.started=started; this.budget=budget; previous=started; gui=scopes?new Capture(started,budget,false):null;frames=scopes?new ClientFrameProfiler(this):null; }
         boolean accepts(long now) { return !cancelled && now-started<budget; }
         void cancel() { cancelled=true; if(gui!=null)gui.cancel(); if(sampler!=null) sampler.interrupt(); }
         synchronized void add(long id,String thread,String job,long allocated,long elapsed,boolean success) {

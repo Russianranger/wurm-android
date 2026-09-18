@@ -22,6 +22,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
     private val periodicGc: CheckBox
     private val jobProfiling: CheckBox
     private val textBuffers: CheckBox
+    private val clipSnapshots: CheckBox
     private val backgroundFrames: CheckBox
     private val pipelinedReadback: CheckBox
     private fun label(text: String)=LauncherUi.label(target,text)
@@ -53,6 +54,12 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
             setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("reuse-text-buffers",checked).apply() }
         }
         label("Reuses completed text draws within a fixed memory limit. Turn off for a comparison or if text looks incorrect.")
+        clipSnapshots=CheckBox(activity).apply {
+            text="Reuse GUI clip snapshots · next client start"; isChecked=prefs.getBoolean("reuse-clip-snapshots",true)
+            target.addView(this)
+            setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("reuse-clip-snapshots",checked).apply() }
+        }
+        label("Reduces repeated allocation while drawing windows. Turn off and restart the client if window edges or clipping look incorrect.")
         backgroundFrames=CheckBox(activity).apply {
             text="Background frame delivery · next client start"; isChecked=prefs.getBoolean("background-frames",true)
             target.addView(this)
@@ -70,7 +77,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
             target.addView(this)
             setOnCheckedChangeListener { _,checked -> prefs.edit().putBoolean("job-profiling",checked).apply() }
         }
-        label("Optional. During play, start a five-minute memory recording here or in the gear menu. Records allocation by job type; normal cleanup continues.")
+        label("Optional. During play, start a five-minute recording here or in the gear menu. Records allocations and slow frames, with limited stack sampling during long client-work stalls.")
         button("Client memory recording") { ClientMemoryDialog.show(activity) }
         target=LauncherUi.section(view,"Individual reports")
         button("Export Client Report") { export(ManagedActivity.EXPORT_CLIENT,"wurm-client-report.txt") }
@@ -119,6 +126,7 @@ class DiagnosticsPage(private val activity: Activity, private val audit: (String
         verbose.isEnabled=!client.busy
         periodicGc.isEnabled=!client.busy
         jobProfiling.isEnabled=!client.busy
+        clipSnapshots.isEnabled=!client.busy
         textBuffers.isEnabled=!client.busy
         backgroundFrames.isEnabled=!client.busy
         pipelinedReadback.isEnabled=!client.busy

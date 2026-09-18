@@ -28,6 +28,7 @@ public class PipelineCheck{
  public static void main(String[] args)throws Exception{
   Path p=Path.of(args[0]);System.setProperty("wurm.graphics.frame",p.toString());System.setProperty("wurm.graphics.fps","60");
   WindowBackend.open(16,16);
+  List<Integer> phases=new ArrayList<>();WindowBackend.observeFrames(phases::add);
   if(args.length>1){
    if(args[1].equals("issue"))NativeEgl.failIssue=true;
    else {WindowBackend.swap();NativeEgl.failCollect=true;}
@@ -37,13 +38,17 @@ public class PipelineCheck{
    check(NativeEgl.closed==1);System.out.println("PIPELINE_FAILURE_PASS");return;
   }
   WindowBackend.swap();WindowCheck.packed();check(!Files.exists(p));
+  check(phases.equals(Arrays.asList(1,2,3,4,5,6,7,8,0)));phases.clear();
   WindowInput.px=8;WindowInput.py=9;WindowInput.visible=false;WindowInput.input=24;
   WindowBackend.swap();WindowCheck.packed();delivered(p,1,16,3,4,1,17);
+  check(phases.equals(Arrays.asList(1,2,3,4,5,6,7,8,0)));
   WindowBackend.swap();delivered(p,2,16,8,9,0,24);
   WindowBackend.resize(32,16);delivered(p,3,16,8,9,0,24);check(NativeEgl.closed==1);
+  check(phases.get(phases.size()-1)==-1);
   WindowCheck.set("statsStart",System.nanoTime()-6_000_000_000L);
   WindowBackend.swap();WindowCheck.packed();delivered(p,3,16,8,9,0,24);
   WindowBackend.close();delivered(p,4,32,8,9,0,24);check(NativeEgl.closed==2);
+  var observer=WindowBackend.class.getDeclaredField("frameObserver");observer.setAccessible(true);check(observer.get(null)==null);
   System.out.println("PIPELINE_WINDOW_PASS");
  }
 }'''
