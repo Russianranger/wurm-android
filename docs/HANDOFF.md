@@ -28,11 +28,48 @@ separate `.allocationstalls` package, tag `v0.10.53-allocation-stalls`. See
 - Existing pixel/metadata, pipeline, ownership and cleanup behavior is retained.
   Full local suite: 220 tests, 37 expected missing fixture/platform skips, no
   failures. All eight clip/text/job overlay combinations and final window/frame
-  integration checks pass. Android CI and downloaded-APK verification follow.
+  integration checks pass. Android CI, publication and downloaded-APK
+  verification are complete; the device recording is next.
 - Next device run: keep pipeline/background/text/clip reuse on, periodic cleanup
   skipping off, job profiling enabled, 60 FPS/720p. Check clipping, scrolling,
   nested panels and window resize, then one five-minute normal-play recording.
   No unchanged pipeline baseline rerun or heap/GC policy change is requested.
+
+### Published 0.10.53 verification
+
+Released from commit `8de672f6b5c3b11019b3b6d13261458240316ef8`, tree
+`1aaebb75a7aeb5dc307383fc7398dcdfe40773a3`; immutable tag points to that
+commit. Main independently remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
+
+- [Download 0.10.53](https://github.com/Russianranger/wurm-android/releases/download/v0.10.53-allocation-stalls/Wurm-Server.apk),
+  69,375,266 bytes, SHA-256
+  `d27ef2d758b3fa870a1d0f75e94c564a5ca4a93a3c1bff5c05be987a1001a29d`.
+  Published 2026-09-18T01:35:20Z as a prerelease with 65 assets. Downloaded APK
+  and guide match SHA256SUMS and GitHub asset digests. Guide matches tagged source,
+  SHA-256 `303bc9bacdccdef4415ec4055b31cfd90c980c0f6bf1bb198bb5344bc93409c2`.
+- [CI 35295117874](https://github.com/Russianranger/wurm-android/actions/runs/35295117874)
+  passes: build `105445965972`, publisher `105448171066`. CI host suite passes
+  220 tests with 35 expected private/platform skips. Android build, unit tests,
+  lint, native/input regressions and real Mesa/GL4ES readback pass; the latter
+  verifies 40 exact RGBA frames and pack restoration. The separate host EGL
+  shader check retains its expected unavailable-context skip.
+- Downloaded manifest confirms `0.10.53-managed-preview`, code 67, package
+  `io.github.russianranger.wurmlauncher.allocationstalls`. Managed verifier,
+  new clip/frame class and option markers, and independent APK v2 verification
+  pass. Certificate SHA-256
+  `9eafbce17e062a4df3af832a28c43e0fc964b4e4361c95f1ac28835774099bf2`
+  matches CI. The separate package preserves previous installations and data.
+- All 17 focused tests pass against maintained bytecode extracted from the
+  published APK: clipping fixture and exact private class, slow-frame attribution,
+  eight clip/text/job combinations, text regressions and synchronous/pipelined
+  window behavior. Downloaded helpers reproduce 3,200,000 -> 0 clipping heap
+  bytes per 100,000 repeated intersections and zero warmed frame-hook heap bytes.
+  These remain host results, not a device pause-reduction claim.
+- Versus 0.10.52, only runtime-probe and WindowBackend class members change.
+  All 194 JRE ZIP members, artwork and font are identical. Of 40 native libraries,
+  39 are byte-identical; GL4ES differs only in its 20-byte build ID and six
+  date/time digits. No native rendering or JVM policy change is introduced.
+  This follow-up updates the handoff only; release assets and tag stay immutable.
 
 ## Previous release — 0.10.52 pipelined GPU readback
 
