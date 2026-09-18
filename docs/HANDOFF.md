@@ -1,14 +1,34 @@
 # Wurm Android handoff
 
-Updated: 2026-09-17. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
+Updated: 2026-09-18. Keep this file current when investigating, changing, or releasing the app. Start here when continuing in a new chat; then read the linked release/review documents and current source. Do not rely on a previous chat being available.
 
 ## Latest release — 0.10.52 pipelined GPU readback
 
 User authorized attempting the remaining support8 bottleneck. Implementation is
 on `mod-launcher-test`, version 0.10.52/code 66, separate `.gpupipeline` package,
 release tag `v0.10.52-gpu-pipeline`. See [CLIENT_GPU_READBACK_TEST.md](CLIENT_GPU_READBACK_TEST.md).
-Android CI, publication and downloaded-APK verification are complete. Device
-comparison remains next; no device speedup is claimed.
+Android CI, publication and downloaded-APK verification are complete. The first
+Thor device recording is now reviewed; a matched off/on comparison was not run.
+
+Device follow-up: the user reports very smooth play with a few stutters in the
+single 60 FPS pipeline-on run. See
+[CLIENT_GPU_READBACK_DEVICE_REVIEW_20260918.md](CLIENT_GPU_READBACK_DEVICE_REVIEW_20260918.md).
+The complete five-minute recording averages 58.35 displayed FPS, with 59.51 in
+complete bins of the final 90-second segment. Readback CPU time is 0.625 ms/frame
+(issue 0.263, collect 0.363), compared with about 7.75 ms in the prior build's
+background-delivery run. Different sessions/workloads prevent an exact feature
+speedup estimate. Pipeline is active and bounded; publication wait is negligible.
+Keep it enabled on this Thor; the global default remains off.
+
+The largest 404 ms displayed gap aligns with consecutive allocation-triggered
+young/full GC totaling 385 ms. Other gaps include client-work stalls without a
+matching GC. Next target is allocation pressure/heap expansion and attribution
+of those intermittent stalls, rather than steady readback. Memory reclaims after
+GC (direct peak 363.82 -> 195.43 MiB; PSS 1682.65 -> 1452.39 MiB), but five minutes
+does not establish long-term stability. Inventory overlay and text reuse remain
+active. No new fatal/graphics/OOM failures; client and server exit 0 with saves.
+Existing Epic mission backup-map warnings affect Fo/Magranon/Libila; no storage
+audit was run. No unchanged baseline rerun is required before investigation.
 
 - Optional GPU pipeline, off by default; keeps background publication on. One
   GLES3 PBO in the existing context; unsupported driver/functions fall back
@@ -19,17 +39,19 @@ comparison remains next; no device speedup is claimed.
 - Pinned GL4ES RGBA8 passthrough retains read-FBO handling. Actual GLES pack state
   is restored. No GL worker/context sharing. Allocation/map/read errors fail
   visibly rather than delivering invalid pixels. Mapping/copying can still cost
-  enough to negate overlap; no Adreno improvement or sustained-60 claim yet.
+  enough to negate overlap on other drivers. The Thor result above supports
+  improvement on this workload; constant 60 FPS is not established.
 - Native fault and Java lifecycle tests pass. Real Mesa + identically patched
   GL4ES passes 40 exact-pixel frames with framebuffer changes after submission.
   Full local suite passes: 217 tests, 27 expected unavailable fixture/platform
   skips. The subsequent terminal-failure refinement passes both focused native
   and window tests. CI passes 217 tests with 34 expected private/platform skips,
   all three Android builds/unit/lint, native/input and real Mesa readback gates.
-- Next device test is matched 60 FPS off/on for this new switch, background
-  delivery on in both, fixed camera/inventory; brief 30 FPS visual/input check.
-  Review issue/collect/total frame timings, displayed FPS and added input delay.
-  Remaining 14 ms client work is not independently reduced by this change.
+- The original device guide requests matched 60 FPS off/on, background delivery
+  on in both, fixed camera/inventory and a brief 30 FPS visual/input check. Only
+  the on recording has been supplied; the user reports very smooth play,
+  but objective added latency is not measured. Client work averages 12.84 ms in
+  this run and is not independently optimized by the readback change.
 
 Released from commit `13bbfdb9f7fa5428fbfc9758f1978e370102cf36`, tree
 `bda9b3b0e2705297cd9cb97707e414ef0741041b`; immutable tag points to that
@@ -44,7 +66,8 @@ commit. Main independently remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
 - [CI 35206806489](https://github.com/Russianranger/wurm-android/actions/runs/35206806489)
   passes: build `105154481012`, publisher `105157608852`. Real Mesa/GL4ES gate
   verifies 40 exact RGBA frames and pack restoration from the same pinned and
-  patched public GL4ES source used for the Android build. No Adreno timing claim.
+  patched public GL4ES source used for the Android build. Host results alone
+  make no Adreno timing claim; device timing evidence is reviewed above.
 - Downloaded manifest confirms `0.10.52-managed-preview`, code 66, package
   `io.github.russianranger.wurmlauncher.gpupipeline`. Managed verifier and
   independent APK v2 verification pass. Certificate SHA-256
@@ -59,8 +82,8 @@ commit. Main independently remains `2e41fb091ee75a76b9116e934abecff90bc735d9`.
   are unchanged. All 194 JRE ZIP members, artwork and font are identical.
   Of 40 native libraries, 38 are byte-identical. `libwurm_graphics.so` contains
   the new readback path; GL4ES has only 24 differing build-metadata bytes.
-  This final maintenance commit changes handoff only; release assets/tag remain
-  immutable. Next: review the Thor off/on comparison and input-delay feedback.
+  Release assets/tag remain immutable. The latest maintenance review updates
+  documentation only. Next: investigate the remaining GC and client-work pauses.
 
 ## Previous release — 0.10.51 inventory and frame delivery
 
